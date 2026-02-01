@@ -1,0 +1,85 @@
+/* ===============================
+   Assignments tab layout
+   =============================== */
+
+#assignments {
+  height: 100%;
+  position: relative;
+  min-height: 0;
+}
+
+#assignments .tab-content {
+  min-height: 0;              /* critical for nested flex */
+}
+
+
+/* ===============================
+   Toolbar (message + reload)
+   =============================== */
+
+.assignments-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+
+  height: 2.4rem;
+  padding: 0 0.25rem;
+  margin-bottom: 0.4rem;
+}
+
+/* Reload button */
+.assignments-reload-btn {
+  width: auto;              /* override global 100% */
+  padding: 0.3rem 0.6rem;
+  flex: 0 0 auto;
+}
+
+
+/* ===============================
+   Scrollable table container
+   =============================== */
+
+.assignments-table-container {
+  flex: 1 1 auto;             /* ✅ fill remaining space */
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  position: relative;
+}
+
+
+/* ===============================
+   Status colors
+   =============================== */
+
+.status-draft {
+  color: #5596fd;
+}
+
+.status-prepared {
+  color: #f68c21;
+}
+
+.status-inprogress {
+  color: #ec3f3b;
+}
+
+.status-completed {
+  color: #901cfc;
+}
+
+/* ===============================
+   Filters
+   =============================== */
+
+#filter-number {
+  max-width: 4rem;
+}
+
+#filter-team {
+  max-width: 4rem;
+}

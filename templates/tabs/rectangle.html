@@ -1,0 +1,87 @@
+<div id="rectangle" class="tab-panel rectangle-tab">
+  <div class="tab-content">
+    
+    <div id="layout">
+
+      <!-- FORM -->
+      <div id="formPane">
+
+        <fieldset>
+          <legend>Coordinates & Geometry</legend>
+
+          <label>Coordinate Input
+            <select id="coordType">
+              <option value="mgrs" selected>MGRS (strict)</option>
+              <option value="latlon">Lat/Lon</option>
+            </select>
+          </label>
+
+          <div id="mgrsInputs">
+            <label>MGRS
+              <input type="text" id="mgrs" placeholder="18T VR 55507 42227">
+            </label>
+          </div>
+
+          <div id="latlonInputs" style="display:none;">
+            <div class="two-cols">
+              <label>Latitude
+                <input type="number" id="lat" step="0.000001">
+              </label>
+              <label>Longitude
+                <input type="number" id="lon" step="0.000001">
+              </label>
+            </div>
+          </div>
+
+          <div class="two-cols">
+            <label>Length (m)
+              <input type="number" id="length" value="300">
+            </label>
+            <label>Width (m)
+              <input type="number" id="width" value="300">
+            </label>
+          </div>
+
+          <label>Bearing (°)
+            <input type="number" id="bearing" value="0">
+          </label>
+
+          <div class="two-cols">
+            <label>Grid Rows
+              <input type="number" id="gridRows" value="2" min="1">
+            </label>
+            <label>Grid Cols
+              <input type="number" id="gridCols" value="2" min="1">
+            </label>
+          </div>
+
+          <label>Grid Position
+            <select id="gridMode">
+              <option value="center">Center of grid (even only)</option>
+              <option value="origin">Corner of grid</option>
+            </select>
+          </label>
+          
+        </fieldset>
+
+        <div id="buttons" class="tool-buttons">
+          <button id="previewBtn">Preview</button>
+          <button id="uploadBtn">Upload</button>
+          <button id="exportBtn">Export</button>
+        </div>
+
+        <div id="rectangle-message" class="message-bar info hidden"></div>
+
+      </div>
+
+      <!-- MAP -->
+      <div id="mapPane">
+        <div id="previewMap"></div>
+        <div id="offlineBadge" class="offline-badge">📴 Offline mode</div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

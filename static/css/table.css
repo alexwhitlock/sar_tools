@@ -1,0 +1,86 @@
+/* ===============================
+   Table scroll container
+   =============================== */
+
+.table-container {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  position: relative;
+  min-height: 0;
+}
+
+/* ===============================
+   Generic data table
+   =============================== */
+
+.data-table {
+  width: 100%;
+  border-collapse: seperate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  table-layout: fixed;
+}
+
+/* Cells */
+.data-table th,
+.data-table td {
+  border: 1px solid #ccc;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ===============================
+   Sticky header (Generic)
+   =============================== */
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;                 /* stays above rows */
+  background: #f0f0f0;         /* REQUIRED for sticky */
+  box-shadow: 0 1px 0 #ccc;  /* subtle separation when scrolling */
+}
+
+/* ===============================
+   Sortable headers
+   =============================== */
+
+.data-table th.sortable {
+  cursor: pointer;
+  padding-right: 1.2rem;       /* reserve arrow space */
+}
+
+/* Reserve arrow space */
+.data-table th.sortable::after {
+  content: "▲";
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  font-size: 0.7em;
+  line-height: 1;
+}
+
+.data-table th.sorted-asc::after {
+  opacity: 0.7;
+  content: "▲";
+}
+
+.data-table th.sorted-desc::after {
+  opacity: 0.7;
+  content: "▼";
+}
+
+/* ===============================
+   Row hover
+   =============================== */
+
+.data-table tbody tr:hover {
+  background: #fafafa;
+}

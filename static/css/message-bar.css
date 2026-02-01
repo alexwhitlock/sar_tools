@@ -1,0 +1,55 @@
+/* ===============================
+   Generic message bar
+   =============================== */
+
+.message-bar {
+  display: flex;               /* ✅ block-level flex */
+  align-items: center;         /* content vertically centered */
+  
+  width: 100%;                 /* ✅ fill parent by default */
+  min-width: 0;
+
+  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  min-height: 1.6em;           /* stable height */
+  box-sizing: border-box;
+}
+
+
+/* -------------------------------
+   States
+   ------------------------------- */
+
+.message-bar.info {
+  background: #eef3ff;
+  color: #2c3e7a;
+}
+
+.message-bar.success {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.message-bar.warning {
+  background: #fff4e5;
+  color: #7a4a00;
+}
+
+.message-bar.error {
+  background: #fdecea;
+  color: #8a1c1c;
+}
+
+/* -------------------------------
+   Hidden but space preserved
+   ------------------------------- */
+
+.message-bar.hidden {
+  visibility: hidden; /* keeps layout stable */
+}

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="icon" href="/static/icon.ico" type="image/x-icon">
+<title>CalTopo Tools</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- MGRS -->
+<script src="https://cdn.jsdelivr.net/npm/mgrs@1.0.0/dist/mgrs.min.js"></script>
+
+<!-- App CSS -->
+<link rel="stylesheet" href="/static/css/main.css">
+<link rel="stylesheet" href="/static/css/table.css">
+<link rel="stylesheet" href="/static/css/message-bar.css">
+<link rel="stylesheet" href="/static/css/rectangle.css">
+<link rel="stylesheet" href="/static/css/console.css">
+<link rel="stylesheet" href="/static/css/assignments.css">
+
+
+
+<!-- Core JS -->
+<script src="/static/js/tabs.js" defer></script>
+<script src="/static/js/logger.js" defer></script>
+<script src="/static/js/console-toggle.js" defer></script>
+<script src="/static/js/map-utils.js" defer></script>
+<script src="/static/js/geometry-utils.js"></script>
+<script type="module" src="/static/js/rectangle.js"></script>
+<script type="module" src="/static/js/assignments.js"></script>
+
+
+
+
+</head>
+
+<body>
+
+<div class="top-bar">
+
+  <div class="tabs">
+    <button class="tab-button"
+            onclick="openTab('rectangle', this)">
+      Rectangle Tool
+    </button>
+
+    <button class="tab-button"
+            onclick="openTab('assignments', this)">
+      Assignments
+    </button>
+
+    <button class="tab-button"
+            id="consoleTabBtn"
+            style="display:none"
+            onclick="openTab('console', this)">
+      Debug Console
+    </button>
+  </div>
+
+  <!-- Right side controls -->
+  <div class="top-bar-controls">
+
+    <div class="global-map-id">
+      <label for="mapId">CalTopo Map ID:</label>
+      <input
+        type="text"
+        id="mapId"
+        placeholder="e.g. APC1GE5"
+        autocomplete="off"
+      />
+    </div>
+
+    <a
+      href="/help/help.pdf"
+      target="_blank"
+      class="help-link">
+      Help
+    </a>
+
+  </div>
+
+</div>
+
+
+
+
+<div id="page">
+  {% include "tabs/home.html" %}
+  {% include "tabs/rectangle.html" %}
+  {% include "tabs/assignments.html" %}
+  {% include "tabs/console.html" %}
+</div>
+
+</body>
+</html>

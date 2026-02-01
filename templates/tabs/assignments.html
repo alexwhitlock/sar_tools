@@ -1,0 +1,93 @@
+<div id="assignments" class="tab-panel">
+  <div class="tab-content">
+    <!-- Top row: message + reload -->
+    <div class="assignments-toolbar">
+
+      <div id="assignments-message" class="message-bar info hidden"></div>
+
+      <button
+        id="assignments-reload"
+        class="assignments-reload-btn"
+        title="Reload assignments">
+        ⟳ Reload
+      </button>
+
+    </div>
+
+    <div class="assignments-filters">
+
+      <!-- Text filters -->
+      <div class="filter-group">
+        <label>Assignment #</label>
+        <input type="text" id="filter-number" placeholder="e.g. 12" />
+      </div>
+
+      <div class="filter-group">
+        <label>Team</label>
+        <input type="text" id="filter-team" placeholder="e.g. C" />
+      </div>
+
+      <!-- Resource pills -->
+      <div class="filter-group">
+        <label>Resource</label>
+        <div class="pill-group" data-filter-key="resourceType">
+          <label class="pill">
+            <input type="checkbox" value="GROUND"> Ground
+          </label>
+          <label class="pill">
+            <input type="checkbox" value="AIR"> Air
+          </label>
+          <label class="pill">
+            <input type="checkbox" value="DOG"> Dog
+          </label>
+          <label class="pill">
+            <input type="checkbox" value="BIKE"> Bike
+          </label>
+          <label class="pill">
+            <input type="checkbox" value="OHV"> OHV
+          </label>
+        </div>
+      </div>
+
+      <!-- Status pills -->
+      <div class="filter-group">
+        <label>Status</label>
+        <div class="pill-group" data-filter-key="status">
+          <label class="pill status-draft">
+            <input type="checkbox" value="DRAFT"> Draft
+          </label>
+          <label class="pill status-prepared">
+            <input type="checkbox" value="PREPARED"> Prepared
+          </label>
+          <label class="pill status-inprogress">
+            <input type="checkbox" value="INPROGRESS"> In Progress
+          </label>
+          <label class="pill status-completed">
+            <input type="checkbox" value="COMPLETED"> Completed
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+
+
+    <!-- scroll container -->
+    <div class="table-container assignments-table-container">
+      <table class="data-table assignments-data-table">
+        <thead>
+          <tr>
+            <th data-key="number">Assignment #</th>
+            <th data-key="team">Team</th>
+            <th data-key="assignmentType">Type</th>
+            <th data-key="resourceType">Resource</th>
+            <th data-key="status">Status</th>
+          </tr>
+        </thead>
+        <tbody id="assignments-body">
+          <!-- populated dynamically -->
+        </tbody>
+      </table>
+    </div>    
+  </div>
+</div>
