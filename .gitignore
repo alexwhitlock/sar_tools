@@ -35,3 +35,11 @@ Thumbs.db
 # Local exports / outputs
 # =========================
 *.geojson
+
+# =========================
+# Release artifacts (local)
+# =========================
+releases/
+dist/
+build/
+
