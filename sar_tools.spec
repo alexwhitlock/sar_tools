@@ -1,10 +1,10 @@
-# CalTopo_Tools_v1.spec
+# sar_tools.spec
 # ONEDIR build – stable, recommended
 
 block_cipher = None
 
 a = Analysis(
-    ['run_desktop.py'],
+    ['sar_tools.py'],
     pathex=['.'],
     binaries=[],
     datas=[
