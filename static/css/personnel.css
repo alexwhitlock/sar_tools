@@ -51,27 +51,6 @@
   position: relative;
 }
 
-
-/* ===============================
-   Status colors
-   =============================== */
-
-.status-draft {
-  color: #5596fd;
-}
-
-.status-prepared {
-  color: #f68c21;
-}
-
-.status-inprogress {
-  color: #ec3f3b;
-}
-
-.status-completed {
-  color: #901cfc;
-}
-
 /* ===============================
    Filters
    =============================== */
@@ -99,4 +78,183 @@
 .personnel-filters .filter-group {
   display: flex;
   flex-direction: column;
+}
+
+/* ===============================
+   Personnel: Actions column
+   =============================== */
+
+.actions-col {
+  width: 44px;
+}
+
+.actions-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+
+/* Kebab button — escape global button rules */
+.person-menu-btn {
+  width: auto !important;
+  min-width: 0;
+  padding: 2px 6px;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* ===============================
+   Popup menu (Edit / Delete)
+   =============================== */
+
+.popup-menu {
+  position: fixed;
+  z-index: 3000;
+  background: #fff;
+  border: 1px solid #999;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  min-width: 140px;
+  padding: 2px 0;
+}
+
+.popup-menu.hidden {
+  display: none;
+}
+
+/* Override global button styling INSIDE the menu */
+.popup-menu .menu-item {
+  width: 100% !important;
+  display: block;
+  background: none;
+  border: none;
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 0.8rem;
+  color: #000;
+  cursor: pointer;
+}
+
+.popup-menu .menu-item:hover {
+  background: #eee;
+}
+
+.popup-menu .menu-item.danger {
+  color: #b00020;
+}
+
+/* ===============================
+   Modal backdrop
+   =============================== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop.hidden {
+  display: none;
+}
+
+/* ===============================
+   Modal container
+   =============================== */
+
+.modal {
+  background: #fff;
+  border: 1px solid #999;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-bottom: 1px solid #ccc;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+/* Close button — escape global rules */
+.modal-close {
+  width: auto !important;
+  padding: 2px 6px;
+}
+
+/* Body */
+.modal-body {
+  padding: 8px;
+}
+
+.modal-body label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+
+/* Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid #ccc;
+}
+
+/* Footer buttons — escape global rules */
+.modal-footer button {
+  width: auto reminderimportant;
+  padding: 4px 10px;
+}
+/* ===============================
+   Kebab (row actions) button
+   =============================== */
+
+.person-menu-btn {
+  width: auto !important;
+  min-width: 0;
+  padding: 2px 6px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #555;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+
+  /* Prevent inherited styles */
+  box-shadow: none;
+  outline: none;
+}
+
+/* Hover / focus: subtle ghost background */
+.person-menu-btn:hover,
+.person-menu-btn:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  color: #000;
+}
+
+/* Active (mouse down) */
+.person-menu-btn:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Optional: hide focus ring unless keyboard */
+.person-menu-btn:focus {
+  outline: none;
 }

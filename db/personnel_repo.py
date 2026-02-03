@@ -42,3 +42,31 @@ def add_person(incident_name: str, *, name: str) -> int:
             (name,)
         )
         return cur.lastrowid
+
+def update_person(incident_name: str, *, person_id: int, name: str) -> bool:
+    """
+    Update a person's name. Returns True if a row was updated.
+    """
+    with get_connection(incident_name) as conn:
+        run_migrations(conn)
+        cur = conn.execute(
+            "UPDATE personnel SET name = ? WHERE id = ?",
+            (name, person_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
+def delete_person(incident_name: str, *, person_id: int) -> bool:
+    """
+    Delete a person. Returns True if a row was deleted.
+    """
+    with get_connection(incident_name) as conn:
+        run_migrations(conn)
+        cur = conn.execute(
+            "DELETE FROM personnel WHERE id = ?",
+            (person_id,),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+

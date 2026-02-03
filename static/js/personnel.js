@@ -4,6 +4,13 @@ import { initMessageBar } from "./message-bar.js";
 let personnelTable = null;
 let personnelMessage = null;
 
+// Keep a local cache of the currently loaded personnel list (for edit lookup)
+let personnelCache = [];
+
+// Popup/menu + modal state
+let activePersonKey = null; // id or fallback key
+let modalMode = "add"; // "add" | "edit"
+
 /* ===============================
    Helpers
    =============================== */
@@ -16,7 +23,6 @@ function getCurrentIncidentName() {
 function requireIncidentOrError() {
   const incidentName = getCurrentIncidentName();
   if (!incidentName) {
-    // Clear stale data + show hard error
     if (personnelTable) personnelTable.setData([]);
     if (personnelMessage) {
       personnelMessage.show(
@@ -35,15 +41,48 @@ function updateAddButtonEnabled() {
   addBtn.disabled = !getCurrentIncidentName();
 }
 
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/**
+ * Choose a stable key for a person record.
+ * Prefer id fields if present, else fall back to name (last resort).
+ */
+function getPersonKey(p) {
+  return (
+    p.id ??
+    p.personId ??
+    p.person_id ??
+    p.uuid ??
+    p.name // fallback (works until you add real ids)
+  );
+}
+
 /* ===============================
    Row renderer
    =============================== */
 
 function renderPersonnelRow(p) {
+  const key = getPersonKey(p);
+
   const tr = document.createElement("tr");
   tr.innerHTML = `
-    <td>${p.name ?? ""}</td>
-    <td>${p.team ?? ""}</td>
+    <td>${escapeHtml(p.name)}</td>
+    <td>${escapeHtml(p.team)}</td>
+    <td class="actions-cell">
+      <button
+        type="button"
+        class="person-menu-btn"
+        data-person-key="${escapeHtml(key)}"
+        title="Actions"
+        aria-label="Actions">⋮</button>
+    </td>
   `;
   return tr;
 }
@@ -60,7 +99,9 @@ async function loadPersonnel() {
   if (!incidentName) return;
 
   try {
-    const resp = await fetch(`/api/personnel?incidentName=${encodeURIComponent(incidentName)}`);
+    const resp = await fetch(
+      `/api/personnel?incidentName=${encodeURIComponent(incidentName)}`
+    );
     const data = await resp.json().catch(() => ({}));
 
     if (!resp.ok) {
@@ -69,54 +110,188 @@ async function loadPersonnel() {
 
     logMessage("INFO", "Personnel received", data);
 
-    if (!Array.isArray(data) || !data.length) {
-      personnelMessage.show("No personnel yet. Click + Person to add someone.", "info");
+    // Normalize to array
+    const arr = Array.isArray(data) ? data : [];
+    personnelCache = arr;
+
+    if (!arr.length) {
+      personnelMessage.show(
+        "No personnel yet. Click + Person to add someone.",
+        "info"
+      );
       personnelTable.setData([]);
       return;
     }
 
-    personnelMessage.show(`Loaded ${data.length} people.`, "info");
-    personnelTable.setData(data);
-
+    personnelMessage.show(`Loaded ${arr.length} people.`, "info");
+    personnelTable.setData(arr);
   } catch (err) {
     logMessage("ERROR", "Failed to load personnel", err.message);
+    personnelCache = [];
     personnelTable.setData([]);
     personnelMessage.show(`Failed to load personnel: ${err.message}`, "error");
   }
 }
 
 /* ===============================
-   Add person
+   Modal + Menu wiring
+   Requires HTML elements:
+     #personMenu
+     #personModalBackdrop
+     #personModalTitle
+     #personModalClose
+     #personModalCancel
+     #personModalSave
+     #personName
    =============================== */
 
-async function addPerson() {
-  try {
-    const incidentName = requireIncidentOrError();
-    if (!incidentName) return;
+function getUiEls() {
+  return {
+    menu: document.getElementById("personMenu"),
+    backdrop: document.getElementById("personModalBackdrop"),
+    titleEl: document.getElementById("personModalTitle"),
+    closeBtn: document.getElementById("personModalClose"),
+    cancelBtn: document.getElementById("personModalCancel"),
+    saveBtn: document.getElementById("personModalSave"),
+    nameInput: document.getElementById("personName"),
+  };
+}
 
-    const name = (window.prompt("Enter person name:") || "").trim();
-    if (!name) return;
+function openMenu(anchorBtn, personKey) {
+  const { menu } = getUiEls();
+  if (!menu) return;
 
-    personnelMessage.show("Adding person…", "info");
+  activePersonKey = personKey;
 
-    const resp = await fetch("/api/personnel/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ incidentName, name })
-    });
+  const rect = anchorBtn.getBoundingClientRect();
 
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || data.ok === false) {
-      throw new Error(data.error || `Add failed (HTTP ${resp.status})`);
-    }
+  // Show menu so we can measure it (safe even if it was hidden)
+  menu.classList.remove("hidden");
 
-    personnelMessage.show("Person added.", "info");
-    await loadPersonnel();
+  // Tight to the LEFT and just BELOW the button
+  const gapY = 4;  // tune: 0, 2, 4
+  const gapX = -2;  // tune: -2, 0, 2
 
-  } catch (err) {
-    logMessage("ERROR", "Failed to add person", err.message);
-    personnelMessage.show(`Failed to add person: ${err.message}`, "error");
+  let top = rect.bottom + gapY; // viewport coords (because menu is position: fixed)
+  let left = rect.left + gapX;
+
+  menu.style.top = `${top}px`;
+  menu.style.left = `${left}px`;
+
+  // Keep inside viewport horizontally
+  let mRect = menu.getBoundingClientRect();
+
+  if (mRect.right > window.innerWidth - 8) {
+    left = window.innerWidth - mRect.width - 8;
+    menu.style.left = `${left}px`;
+    mRect = menu.getBoundingClientRect();
   }
+  if (mRect.left < 8) {
+    left = 8;
+    menu.style.left = `${left}px`;
+    mRect = menu.getBoundingClientRect();
+  }
+
+  // Optional: if menu would go off bottom, flip above the button
+  if (mRect.bottom > window.innerHeight - 8) {
+    top = rect.top - mRect.height - gapY;
+    menu.style.top = `${Math.max(8, top)}px`;
+  }
+}
+
+
+
+
+function closeMenu() {
+  const { menu } = getUiEls();
+  if (!menu) return;
+  menu.classList.add("hidden");
+}
+
+function openPersonModal(mode, person = null) {
+  const { backdrop, titleEl, nameInput} = getUiEls();
+  if (!backdrop || !titleEl || !nameInput) return;
+
+  modalMode = mode;
+  titleEl.textContent = mode === "add" ? "Add Person" : "Edit Person";
+
+  nameInput.value = person?.name ?? "";
+
+  backdrop.classList.remove("hidden");
+  backdrop.setAttribute("aria-hidden", "false");
+
+  // Focus first input
+  nameInput.focus();
+}
+
+function closePersonModal() {
+  const { backdrop } = getUiEls();
+  if (!backdrop) return;
+  backdrop.classList.add("hidden");
+  backdrop.setAttribute("aria-hidden", "true");
+}
+
+function findPersonInCache(personKey) {
+  return personnelCache.find(p => String(getPersonKey(p)) === String(personKey)) || null;
+}
+
+/* ===============================
+   API actions (Add / Update / Delete)
+   =============================== */
+
+async function apiAddPerson({ incidentName, name}) {
+  const resp = await fetch("/api/personnel/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, name}),
+  });
+
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) {
+    throw new Error(data.error || `Add failed (HTTP ${resp.status})`);
+  }
+  return data;
+}
+
+// You’ll likely need to implement these server-side.
+async function apiUpdatePerson({ incidentName, personKey, name}) {
+  const resp = await fetch("/api/personnel/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, personKey, name}),
+  });
+
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) {
+    throw new Error(data.error || `Update failed (HTTP ${resp.status})`);
+  }
+  return data;
+}
+
+async function apiDeletePerson({ incidentName, personKey }) {
+  const resp = await fetch("/api/personnel/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, personKey }),
+  });
+
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) {
+    throw new Error(data.error || `Delete failed (HTTP ${resp.status})`);
+  }
+  return data;
+}
+
+/* ===============================
+   Add person (now modal-based)
+   =============================== */
+
+function addPerson() {
+  const incidentName = requireIncidentOrError();
+  if (!incidentName) return;
+
+  activePersonKey = null;
+  openPersonModal("add", null);
 }
 
 /* ===============================
@@ -161,7 +336,147 @@ function watchPersonnelTab() {
 
   observer.observe(panel, {
     attributes: true,
-    attributeFilter: ["class"]
+    attributeFilter: ["class"],
+  });
+}
+
+/* ===============================
+   UI event wiring (menu + modal)
+   =============================== */
+
+function wireMenuAndModal() {
+  const {
+    menu,
+    backdrop,
+    closeBtn,
+    cancelBtn,
+    saveBtn,
+    nameInput,
+  } = getUiEls();
+
+  if (!menu) {
+    logMessage("ERROR", "Missing #personMenu HTML in Personnel tab.");
+    return;
+  }
+  if (!backdrop || !closeBtn || !cancelBtn || !saveBtn || !nameInput ) {
+    logMessage("ERROR", "Missing modal HTML elements for Personnel add/edit.");
+    return;
+  }
+
+  // Kebab click (event delegation so it works after table rerenders)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".person-menu-btn");
+    if (!btn) return;
+
+    // Only care when personnel tab exists (avoid cross-tab weirdness)
+    const panel = document.getElementById("personnel");
+    if (!panel) return;
+
+    e.preventDefault();
+
+    const key = btn.dataset.personKey;
+    // toggle menu if clicking same record while open
+    const isOpen = !menu.classList.contains("hidden");
+    if (isOpen && String(activePersonKey) === String(key)) {
+      closeMenu();
+      return;
+    }
+
+    openMenu(btn, key);
+  });
+
+  // Click outside closes menu (ignore kebab + menu clicks)
+  document.addEventListener("click", (e) => {
+    if (menu.classList.contains("hidden")) return;
+    if (e.target.closest("#personMenu")) return;
+    if (e.target.closest(".person-menu-btn")) return;
+    closeMenu();
+  });
+
+  // Menu actions
+  menu.addEventListener("click", async (e) => {
+    const item = e.target.closest("[data-action]");
+    if (!item) return;
+
+    const action = item.dataset.action;
+    closeMenu();
+
+    const incidentName = requireIncidentOrError();
+    if (!incidentName) return;
+
+    if (action === "edit") {
+      const person = findPersonInCache(activePersonKey);
+      if (!person) {
+        personnelMessage.show("Could not find that person record.", "error");
+        return;
+      }
+      openPersonModal("edit", person);
+      return;
+    }
+
+    if (action === "delete") {
+      const person = findPersonInCache(activePersonKey);
+      const label = person?.name ? ` "${person.name}"` : "";
+      if (!window.confirm(`Delete${label}? This cannot be undone.`)) return;
+
+      try {
+        personnelMessage.show("Deleting person…", "info");
+        await apiDeletePerson({ incidentName, personKey: activePersonKey });
+        personnelMessage.show("Person deleted.", "info");
+        await loadPersonnel();
+      } catch (err) {
+        logMessage("ERROR", "Failed to delete person", err.message);
+        personnelMessage.show(`Failed to delete person: ${err.message}`, "error");
+      }
+    }
+  });
+
+  // Modal close/cancel
+  closeBtn.addEventListener("click", closePersonModal);
+  cancelBtn.addEventListener("click", closePersonModal);
+
+  // Click backdrop closes modal
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closePersonModal();
+  });
+
+  // Escape closes both
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeMenu();
+      closePersonModal();
+    }
+  });
+
+  // Save (Add or Edit)
+  saveBtn.addEventListener("click", async () => {
+    const incidentName = requireIncidentOrError();
+    if (!incidentName) return;
+
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      window.alert("Name is required.");
+      nameInput.focus();
+      return;
+    }
+
+    try {
+      personnelMessage.show(modalMode === "add" ? "Adding person…" : "Saving changes…", "info");
+
+      if (modalMode === "add") {
+        await apiAddPerson({ incidentName, name});
+      } else {
+        await apiUpdatePerson({ incidentName, personKey: activePersonKey, name});
+      }
+
+      closePersonModal();
+      await loadPersonnel();
+      personnelMessage.show(modalMode === "add" ? "Person added." : "Changes saved.", "info");
+    } catch (err) {
+      logMessage("ERROR", "Failed to save person", err.message);
+      personnelMessage.show(`Failed to save: ${err.message}`, "error");
+    }
   });
 }
 
@@ -172,7 +487,10 @@ function watchPersonnelTab() {
 document.addEventListener("DOMContentLoaded", () => {
   const panel = document.getElementById("personnel");
   if (!panel) {
-    logMessage("ERROR", "Personnel panel (#personnel) not found in DOM. Are you editing the file Flask is serving?");
+    logMessage(
+      "ERROR",
+      "Personnel panel (#personnel) not found in DOM. Are you editing the file Flask is serving?"
+    );
     return;
   }
 
@@ -187,7 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   personnelTable = createTable({
     tableEl,
-    rowRenderer: renderPersonnelRow
+    rowRenderer: renderPersonnelRow,
   });
 
   const addBtn = document.getElementById("person-add");
@@ -201,7 +519,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (incidentSelect) {
     incidentSelect.addEventListener("change", () => {
       updateAddButtonEnabled();
-      // If Personnel tab is currently active, reload immediately
       if (panel.classList.contains("active")) {
         loadPersonnel();
       }
@@ -210,4 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   wireFilters(personnelTable);
   watchPersonnelTab();
+
+  // NEW: menu + modal wiring (requires the HTML blocks exist)
+  wireMenuAndModal();
 });

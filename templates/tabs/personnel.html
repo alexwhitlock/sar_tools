@@ -29,8 +29,6 @@
 
     </div>
 
-
-
     <!-- scroll container -->
     <div class="table-container personnel-table-container">
       <table class="data-table personnel-data-table">
@@ -38,12 +36,56 @@
           <tr>
             <th data-key="name">Name</th>
             <th data-key="team">Team</th>
+            <!-- NEW: actions column -->
+            <th data-key="actions" class="actions-col"></th>
           </tr>
         </thead>
+
         <tbody id="personnel-body">
           <!-- populated dynamically -->
+          <!-- Example row your JS should render:
+          <tr>
+            <td>John Smith</td>
+            <td>C</td>
+            <td class="actions-cell">
+              <button type="button" class="person-menu-btn" data-person-id="123" title="Actions">⋮</button>
+            </td>
+          </tr>
+          -->
         </tbody>
       </table>
-    </div>    
+    </div>
+
+    <!-- ================================================= -->
+    <!-- Shared UI elements (ONE copy only) -->
+    <!-- ================================================= -->
+
+    <!-- Kebab popup menu (text only) -->
+    <div id="personMenu" class="popup-menu hidden" role="menu" aria-label="Person actions">
+      <button type="button" class="menu-item" data-action="edit" role="menuitem">Edit</button>
+      <button type="button" class="menu-item danger" data-action="delete" role="menuitem">Delete</button>
+    </div>
+
+    <!-- Add/Edit Person modal -->
+    <div id="personModalBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="personModalTitle">
+        <div class="modal-header">
+          <div id="personModalTitle" class="modal-title">Add Person</div>
+          <button type="button" id="personModalClose" class="modal-close" aria-label="Close">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <label>Name
+            <input id="personName" type="text" />
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="personModalCancel">Cancel</button>
+          <button type="button" id="personModalSave">Save</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
