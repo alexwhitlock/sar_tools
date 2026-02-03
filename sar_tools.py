@@ -15,6 +15,10 @@ logging.basicConfig(level=logging.INFO)
 import requests
 from flask import Flask, jsonify, request, render_template, send_from_directory
 
+from db.database import get_connection, get_db_path_for_incident
+from db.migrations import run_migrations
+from db.schema_dump import write_schema_dump 
+
 CALTOPO_BASE_URL = "https://caltopo.com"
 
 # ================= Flask App =================
@@ -296,12 +300,7 @@ def get_assignments_for_map(map_id: str) -> List[Dict[str, Any]]:
 
     return assignments
 
-# ==================  Create Incident ===========================
-from flask import request, jsonify
-from db.database import get_connection, get_db_path_for_incident
-from db.migrations import run_migrations
-from db.schema_dump import write_schema_dump  # optional
-
+# ==================  Create Incident ==========================
 @app.post("/api/incident/init")
 def api_incident_init():
     data = request.get_json(force=True) or {}
@@ -324,18 +323,12 @@ def api_incident_init():
 
 
 # ================= Test Create db ==========================
-from db.database import get_connection, get_db_path_for_incident
-from db.migrations import run_migrations
-from db.schema_dump import write_schema_dump
-
 incident_name = "Blue Lake Search"
 
 with get_connection(incident_name) as conn:
     run_migrations(conn)
     db_path = get_db_path_for_incident(incident_name)
     write_schema_dump(conn, db_path, incident_name)
-
-
 
 # ================= Startup =================
 
