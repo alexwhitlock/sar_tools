@@ -46,11 +46,17 @@
 }
 
 .form-row input {
-  width: 150px;
+  width: 200px;
 }
 
 .form-row select {
-  width: 260px;
+  width: 300px;
+}
+
+/* Fixed-width Create button */
+#incidentCreateBtn {
+  flex: 0 0 auto;
+  width: 85px !important;  
 }
 
 /* Optional helper text */
