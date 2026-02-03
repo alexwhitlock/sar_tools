@@ -1,0 +1,102 @@
+/* ===============================
+   personnel tab layout
+   =============================== */
+
+#personnel {
+  height: 100%;
+  position: relative;
+  min-height: 0;
+}
+
+#personnel .tab-content {
+  min-height: 0;              /* critical for nested flex */
+}
+
+
+/* ===============================
+   Toolbar (message + reload)
+   =============================== */
+
+.personnel-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+
+  height: 2.4rem;
+  padding: 0 0.25rem;
+  margin-bottom: 0.4rem;
+}
+
+/* Add person button */
+.personnel-toolbar-btn {
+  width: auto;              /* override global 100% */
+  padding: 0.3rem 0.6rem;
+  flex: 0 0 auto;
+}
+
+
+/* ===============================
+   Scrollable table container
+   =============================== */
+
+.personnel-table-container {
+  flex: 1 1 auto;             /* ✅ fill remaining space */
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  position: relative;
+}
+
+
+/* ===============================
+   Status colors
+   =============================== */
+
+.status-draft {
+  color: #5596fd;
+}
+
+.status-prepared {
+  color: #f68c21;
+}
+
+.status-inprogress {
+  color: #ec3f3b;
+}
+
+.status-completed {
+  color: #901cfc;
+}
+
+/* ===============================
+   Filters
+   =============================== */
+
+#filter-name {
+  max-width: 20rem;
+}
+
+#filter-team {
+  max-width: 4rem;
+}
+
+/* ===============================
+   Filters (same row)
+   =============================== */
+
+.personnel-filters {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  align-items: flex-end;   /* lines up inputs nicely */
+  margin-bottom: 0.4rem;
+}
+
+.personnel-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+}

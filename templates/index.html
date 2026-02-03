@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="/static/css/rectangle.css">
 <link rel="stylesheet" href="/static/css/console.css">
 <link rel="stylesheet" href="/static/css/assignments.css">
+<link rel="stylesheet" href="/static/css/personnel.css">
 
 
 
@@ -30,6 +31,7 @@
 <script src="/static/js/geometry-utils.js"></script>
 <script type="module" src="/static/js/rectangle.js"></script>
 <script type="module" src="/static/js/assignments.js"></script>
+<script type="module" src="/static/js/personnel.js"></script>
 
 
 
@@ -51,6 +53,11 @@
       Assignments
     </button>
 
+    <button class="tab-button"
+            onclick="openTab('personnel', this)">
+      Personnel
+    </button>
+  
     <button class="tab-button"
             id="consoleTabBtn"
             style="display:none"
@@ -90,6 +97,7 @@
   {% include "tabs/home.html" %}
   {% include "tabs/rectangle.html" %}
   {% include "tabs/assignments.html" %}
+  {% include "tabs/personnel.html" %}
   {% include "tabs/console.html" %}
 </div>
 

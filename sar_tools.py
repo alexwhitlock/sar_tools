@@ -17,7 +17,12 @@ from flask import Flask, jsonify, request, render_template, send_from_directory
 
 from db.database import get_connection, get_db_path_for_incident
 from db.migrations import run_migrations
-from db.schema_dump import write_schema_dump 
+from db.schema_dump import write_schema_dump
+
+from db.personnel_repo import (
+    list_personnel_with_team,
+    add_person
+)
 
 CALTOPO_BASE_URL = "https://caltopo.com"
 
@@ -320,6 +325,37 @@ def api_incident_init():
             pass
 
     return jsonify({"ok": True, "incidentName": incident_name})
+
+
+# ======================= GET personnel ===================================
+@app.get("/api/personnel")
+def api_personnel_list():
+    incident_name = (request.args.get("incidentName") or "").strip()
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName is required"}), 400
+
+    try:
+        rows = list_personnel_with_team(incident_name)
+        return jsonify(rows)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.post("/api/personnel/add")
+def api_personnel_add():
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    name = (data.get("name") or "").strip()
+
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName is required"}), 400
+    if not name:
+        return jsonify({"ok": False, "error": "name is required"}), 400
+
+    try:
+        new_id = add_person(incident_name, name=name)
+        return jsonify({"ok": True, "id": new_id})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ================= Test Create db ==========================

@@ -1,57 +1,44 @@
-from typing import List, Optional, Dict, Any
+# db/personnel_repo.py
+from typing import List, Dict, Any
 from .database import get_connection
+from .migrations import run_migrations
 
 
-def add_personnel(
-    incident_name: str,
-    *,
-    callsign: str,
-    first_name: Optional[str] = None,
-    last_name: Optional[str] = None,
-    role: Optional[str] = None,
-    status: Optional[str] = None,
-) -> int:
+def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
     """
-    Insert a personnel record and return its ID.
+    Return all personnel with their assigned team name (if any).
+    One row per person.
     """
     with get_connection(incident_name) as conn:
+        run_migrations(conn)
+
+        rows = conn.execute("""
+            SELECT
+                p.id AS id,
+                p.name AS name,
+                t.name AS team
+            FROM personnel p
+            LEFT JOIN team_members tm ON tm.personnel_id = p.id
+            LEFT JOIN teams t ON t.id = tm.team_id
+            ORDER BY p.name COLLATE NOCASE;
+        """).fetchall()
+
+    return [{
+        "id": r["id"],
+        "name": r["name"],
+        "team": r["team"]
+    } for r in rows]
+
+
+def add_person(incident_name: str, *, name: str) -> int:
+    """
+    Add a person to the incident and return the new ID.
+    """
+    with get_connection(incident_name) as conn:
+        run_migrations(conn)
+
         cur = conn.execute(
-            """
-            INSERT INTO personnel (callsign, first_name, last_name, role, status)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (callsign, first_name, last_name, role, status),
+            "INSERT INTO personnel (name) VALUES (?)",
+            (name,)
         )
         return cur.lastrowid
-
-
-def list_personnel(incident_name: str) -> List[Dict[str, Any]]:
-    """
-    Return all personnel records for an incident.
-    """
-    with get_connection(incident_name) as conn:
-        rows = conn.execute(
-            """
-            SELECT *
-            FROM personnel
-            ORDER BY callsign
-            """
-        ).fetchall()
-
-    return [dict(r) for r in rows]
-
-
-def get_personnel_by_callsign(
-    incident_name: str, callsign: str
-) -> Optional[Dict[str, Any]]:
-    with get_connection(incident_name) as conn:
-        row = conn.execute(
-            """
-            SELECT *
-            FROM personnel
-            WHERE callsign = ?
-            """,
-            (callsign,),
-        ).fetchone()
-
-    return dict(row) if row else None
