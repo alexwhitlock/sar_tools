@@ -5,42 +5,34 @@ let personnelTable = null;
 let personnelMessage = null;
 
 /* ===============================
-   Incident helpers
+   Helpers
    =============================== */
 
-const INCIDENT_STORAGE_KEY = "sarTools.incidentName";
-
-function getIncidentName() {
-  return (localStorage.getItem(INCIDENT_STORAGE_KEY) || "").trim();
+function getCurrentIncidentName() {
+  const sel = document.getElementById("incidentSelect");
+  return sel ? sel.value.trim() : "";
 }
 
-function setIncidentName(name) {
-  localStorage.setItem(INCIDENT_STORAGE_KEY, name);
-}
-
-/* Optional: very simple incident prompt for now */
-async function ensureIncidentName() {
-  let name = getIncidentName();
-  if (name) return name;
-
-  // Keep it minimal: prompt only when a DB-backed tab is activated.
-  name = (window.prompt("Enter incident name to create/open the incident database:") || "").trim();
-  if (!name) return "";
-
-  // Ask backend to create/open DB + run migrations
-  const resp = await fetch("/api/incident/init", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentName: name })
-  });
-
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || !data.ok) {
-    throw new Error(data.error || `Init failed (HTTP ${resp.status})`);
+function requireIncidentOrError() {
+  const incidentName = getCurrentIncidentName();
+  if (!incidentName) {
+    // Clear stale data + show hard error
+    if (personnelTable) personnelTable.setData([]);
+    if (personnelMessage) {
+      personnelMessage.show(
+        "No incident selected. Go to Home and select (or create) an incident.",
+        "error"
+      );
+    }
+    return "";
   }
+  return incidentName;
+}
 
-  setIncidentName(data.incidentName);
-  return data.incidentName;
+function updateAddButtonEnabled() {
+  const addBtn = document.getElementById("person-add");
+  if (!addBtn) return;
+  addBtn.disabled = !getCurrentIncidentName();
 }
 
 /* ===============================
@@ -61,38 +53,35 @@ function renderPersonnelRow(p) {
    =============================== */
 
 async function loadPersonnel() {
-  // Unlike CalTopo calls, this is local DB-backed. Offline browser state isn’t very meaningful,
-  // but if your Flask server isn’t reachable, fetch will fail and we handle it.
-
   personnelMessage.show("Loading personnel…", "info");
   logMessage("INFO", "Loading personnel");
 
+  const incidentName = requireIncidentOrError();
+  if (!incidentName) return;
+
   try {
-    const incidentName = await ensureIncidentName();
-    if (!incidentName) {
+    const resp = await fetch(`/api/personnel?incidentName=${encodeURIComponent(incidentName)}`);
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      throw new Error(data.error || `HTTP ${resp.status}`);
+    }
+
+    logMessage("INFO", "Personnel received", data);
+
+    if (!Array.isArray(data) || !data.length) {
+      personnelMessage.show("No personnel yet. Click + Person to add someone.", "info");
       personnelTable.setData([]);
-      personnelMessage.show("Personnel requires an incident database. Enter an incident name to continue.", "info");
       return;
     }
 
-    const resp = await fetch(`/api/personnel?incidentName=${encodeURIComponent(incidentName)}`);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-    const data = await resp.json();
-    logMessage("INFO", "Personnel received", data);
-
-    if (!data.length) {
-      personnelMessage.show("No personnel yet. Click + Person to add someone.", "info");
-    } else {
-      personnelMessage.show(`Loaded ${data.length} people.`, "info");
-    }
-
+    personnelMessage.show(`Loaded ${data.length} people.`, "info");
     personnelTable.setData(data);
 
   } catch (err) {
     logMessage("ERROR", "Failed to load personnel", err.message);
     personnelTable.setData([]);
-    personnelMessage.show("Failed to load personnel. See console for details.", "error");
+    personnelMessage.show(`Failed to load personnel: ${err.message}`, "error");
   }
 }
 
@@ -102,7 +91,7 @@ async function loadPersonnel() {
 
 async function addPerson() {
   try {
-    const incidentName = await ensureIncidentName();
+    const incidentName = requireIncidentOrError();
     if (!incidentName) return;
 
     const name = (window.prompt("Enter person name:") || "").trim();
@@ -117,7 +106,7 @@ async function addPerson() {
     });
 
     const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || !data.ok) {
+    if (!resp.ok || data.ok === false) {
       throw new Error(data.error || `Add failed (HTTP ${resp.status})`);
     }
 
@@ -126,7 +115,7 @@ async function addPerson() {
 
   } catch (err) {
     logMessage("ERROR", "Failed to add person", err.message);
-    personnelMessage.show("Failed to add person. See console for details.", "error");
+    personnelMessage.show(`Failed to add person: ${err.message}`, "error");
   }
 }
 
@@ -164,6 +153,7 @@ function watchPersonnelTab() {
     const isActive = panel.classList.contains("active");
     if (isActive && !wasActive) {
       logMessage("INFO", "Personnel tab activated");
+      updateAddButtonEnabled();
       loadPersonnel();
     }
     wasActive = isActive;
@@ -193,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   personnelMessage = initMessageBar("personnel-message");
-  personnelMessage.show("Open the Personnel tab to load incident personnel.", "info");
+  personnelMessage.show("Select an incident on Home, then open the Personnel tab.", "info");
 
   personnelTable = createTable({
     tableEl,
@@ -203,7 +193,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const addBtn = document.getElementById("person-add");
   if (addBtn) addBtn.addEventListener("click", addPerson);
 
+  // Disable + Person until an incident is selected
+  updateAddButtonEnabled();
+
+  // If incident changes while app is open, keep Personnel consistent
+  const incidentSelect = document.getElementById("incidentSelect");
+  if (incidentSelect) {
+    incidentSelect.addEventListener("change", () => {
+      updateAddButtonEnabled();
+      // If Personnel tab is currently active, reload immediately
+      if (panel.classList.contains("active")) {
+        loadPersonnel();
+      }
+    });
+  }
+
   wireFilters(personnelTable);
   watchPersonnelTab();
 });
-

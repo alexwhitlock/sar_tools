@@ -7,6 +7,8 @@ import threading
 import time
 import webbrowser
 from typing import Any, Dict, List, Tuple
+from pathlib import Path
+
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -314,17 +316,19 @@ def api_incident_init():
     if not incident_name:
         return jsonify({"ok": False, "error": "incidentName is required"}), 400
 
-    # Create/open the DB file, apply schema, and (optionally) write schema dump
     with get_connection(incident_name) as conn:
         run_migrations(conn)
         db_path = get_db_path_for_incident(incident_name)
-        try:
-            write_schema_dump(conn, db_path, incident_name)
-        except Exception:
-            # keep it non-fatal; DB init should still succeed
-            pass
 
-    return jsonify({"ok": True, "incidentName": incident_name})
+    incident_id = os.path.splitext(os.path.basename(db_path))[0]
+
+    return jsonify({
+        "ok": True,
+        "incidentName": incident_name,
+        "incidentId": incident_id   # ✅ THIS is the key
+    })
+
+
 
 
 # ======================= GET personnel ===================================
@@ -357,14 +361,20 @@ def api_personnel_add():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+#================== Get Incidents ============================
+@app.get("/api/incidents")
+def api_incidents_list():
+    probe_path = Path(get_db_path_for_incident("__probe__"))  # e.g. .../foo.sqlite3
+    inc_dir = probe_path.parent
+    suffix = probe_path.suffix  # ".sqlite3"
 
-# ================= Test Create db ==========================
-incident_name = "Blue Lake Search"
+    inc_dir.mkdir(parents=True, exist_ok=True)
 
-with get_connection(incident_name) as conn:
-    run_migrations(conn)
-    db_path = get_db_path_for_incident(incident_name)
-    write_schema_dump(conn, db_path, incident_name)
+    incidents = [{"incidentName": p.stem} for p in inc_dir.glob(f"*{suffix}")]
+    incidents.sort(key=lambda x: x["incidentName"].lower())
+
+    return jsonify({"ok": True, "incidents": incidents})
+
 
 # ================= Startup =================
 

@@ -64,7 +64,7 @@ async function loadAssignments() {
     assignmentsTable.setData([]);
     assignmentsMessage.show(
       "Enter a CalTopo Map ID to load assignments.",
-      "info"
+      "error"
     );
     logMessage("ERROR", "Map ID is required to load assignments");
     return;
@@ -200,7 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initial state (no map ID yet)
   assignmentsMessage.show(
     "Enter a CalTopo Map ID to load assignments.",
-    "info"
+    "error"
   );
 
   /* ===============================

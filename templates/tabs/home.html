@@ -1,8 +1,59 @@
 <div id="home" class="tab-panel active">
-  <p>
-    A collection of tools for creating and uploading geometry to CalTopo maps.
-  </p>
-  <ul>
-    <li><b>Rectangle Tool</b> – Build rectangles or grids using MGRS or Lat/Lon</li>
-  </ul>
+  <div class="home-dashboard">
+
+    <div class="home-grid">
+
+      <div class="home-card card-info">
+        <h2>Welcome</h2>
+        <p>
+          A collection of tools for creating and uploading geometry to CalTopo maps.
+        </p>
+        <ul>
+          <li><b>Rectangle Tool</b> – Build rectangles or grids using MGRS or Lat/Lon</li>
+        </ul>
+      </div>
+
+      <div class="home-card card-caltopo">
+        <h2>CalTopo</h2>
+
+        <div class="form-row">
+          <label for="mapId">CalTopo Map ID</label>
+          <input
+            type="text"
+            id="mapId"
+            placeholder="e.g. APC1GE5"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="home-hint">
+          Used by all tools when uploading data.
+        </div>
+      </div>
+
+      <div class="home-card">
+        <h2>Incident</h2>
+
+        <div class="form-row">
+          <label for="incidentSelect">Current Incident</label>
+          <select id="incidentSelect"></select>
+        </div>
+
+        <div class="form-row">
+          <label for="incidentNewName">New Incident</label>
+          <input
+            type="text"
+            id="incidentNewName"
+            placeholder="e.g. 2026-02-03 Lost Hiker"
+            autocomplete="off"
+          />
+          <button id="incidentCreateBtn" type="button">Create</button>
+        </div>
+
+        <div class="home-hint" id="incidentHint">Select or create an incident database.</div>
+      </div>
+
+
+    </div>
+  </div>
 </div>

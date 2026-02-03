@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="/static/css/console.css">
 <link rel="stylesheet" href="/static/css/assignments.css">
 <link rel="stylesheet" href="/static/css/personnel.css">
+<link rel="stylesheet" href="/static/css/home.css">
 
 
 
@@ -32,6 +33,7 @@
 <script type="module" src="/static/js/rectangle.js"></script>
 <script type="module" src="/static/js/assignments.js"></script>
 <script type="module" src="/static/js/personnel.js"></script>
+<script type="module" src="/static/js/home.js"></script>
 
 
 
@@ -43,6 +45,11 @@
 <div class="top-bar">
 
   <div class="tabs">
+<button class="tab-button"
+            onclick="openTab('home', this)">
+      Home
+    </button>
+
     <button class="tab-button"
             onclick="openTab('rectangle', this)">
       Rectangle Tool
@@ -68,16 +75,6 @@
 
   <!-- Right side controls -->
   <div class="top-bar-controls">
-
-    <div class="global-map-id">
-      <label for="mapId">CalTopo Map ID:</label>
-      <input
-        type="text"
-        id="mapId"
-        placeholder="e.g. APC1GE5"
-        autocomplete="off"
-      />
-    </div>
 
     <a
       href="/help/help.pdf"
