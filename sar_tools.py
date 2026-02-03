@@ -8,6 +8,10 @@ import time
 import webbrowser
 from typing import Any, Dict, List, Tuple
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
+
 import requests
 from flask import Flask, jsonify, request, render_template, send_from_directory
 
@@ -291,6 +295,45 @@ def get_assignments_for_map(map_id: str) -> List[Dict[str, Any]]:
         })
 
     return assignments
+
+# ==================  Create Incident ===========================
+from flask import request, jsonify
+from db.database import get_connection, get_db_path_for_incident
+from db.migrations import run_migrations
+from db.schema_dump import write_schema_dump  # optional
+
+@app.post("/api/incident/init")
+def api_incident_init():
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName is required"}), 400
+
+    # Create/open the DB file, apply schema, and (optionally) write schema dump
+    with get_connection(incident_name) as conn:
+        run_migrations(conn)
+        db_path = get_db_path_for_incident(incident_name)
+        try:
+            write_schema_dump(conn, db_path, incident_name)
+        except Exception:
+            # keep it non-fatal; DB init should still succeed
+            pass
+
+    return jsonify({"ok": True, "incidentName": incident_name})
+
+
+# ================= Test Create db ==========================
+from db.database import get_connection, get_db_path_for_incident
+from db.migrations import run_migrations
+from db.schema_dump import write_schema_dump
+
+incident_name = "Blue Lake Search"
+
+with get_connection(incident_name) as conn:
+    run_migrations(conn)
+    db_path = get_db_path_for_incident(incident_name)
+    write_schema_dump(conn, db_path, incident_name)
 
 
 
