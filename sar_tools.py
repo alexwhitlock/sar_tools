@@ -2,24 +2,13 @@ import json
 import os
 import threading
 import webbrowser
-from pathlib import Path
+
 
 
 import logging
 logging.basicConfig(level=logging.INFO)
 
-from flask import Flask, jsonify, request, render_template, send_from_directory
-
-from db.database import get_connection, get_db_path_for_incident
-from db.migrations import run_migrations
-from db.schema_dump import write_schema_dump
-
-from db.personnel_repo import (
-    list_personnel_with_team,
-    add_person,
-    update_person,
-    delete_person
-)
+from flask import Flask, jsonify, render_template, send_from_directory
 
 # ================= Flask App =================
 app = Flask(
@@ -28,12 +17,15 @@ app = Flask(
     static_folder="static"
 )
 
-# ============== Regiser the blueprints (routes in other files)
+# ============== Register the blueprints (routes in other files)
 from routes.caltopo import bp as caltopo_bp
 app.register_blueprint(caltopo_bp)
 
 from routes.incidents import bp as incidents_bp
 app.register_blueprint(incidents_bp)
+
+from routes.personnel import bp as personnel_bp
+app.register_blueprint(personnel_bp)
 
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
@@ -75,77 +67,8 @@ def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
 
-# ======================= Personnel ===================================
-@app.get("/api/personnel")
-def api_personnel_list():
-    incident_name = (request.args.get("incidentName") or "").strip()
-    if not incident_name:
-        return jsonify({"ok": False, "error": "incidentName is required"}), 400
-
-    try:
-        rows = list_personnel_with_team(incident_name)
-        return jsonify(rows)
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-@app.post("/api/personnel/add")
-def api_personnel_add():
-    data = request.get_json(force=True) or {}
-    incident_name = (data.get("incidentName") or "").strip()
-    name = (data.get("name") or "").strip()
-
-    if not incident_name:
-        return jsonify({"ok": False, "error": "incidentName is required"}), 400
-    if not name:
-        return jsonify({"ok": False, "error": "name is required"}), 400
-
-    try:
-        new_id = add_person(incident_name, name=name)
-        return jsonify({"ok": True, "id": new_id})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-    
-@app.post("/api/personnel/update")
-def api_personnel_update():
-    data = request.get_json(force=True) or {}
-    incident_name = (data.get("incidentName") or "").strip()
-    person_key = data.get("personKey")
-    name = (data.get("name") or "").strip()
-
-    if not incident_name:
-        return jsonify({"ok": False, "error": "incidentName is required"}), 400
-    if person_key in (None, ""):
-        return jsonify({"ok": False, "error": "personKey is required"}), 400
-    if not name:
-        return jsonify({"ok": False, "error": "name is required"}), 400
-
-    try:
-        ok = update_person(incident_name, person_id=int(person_key), name=name)
-        if not ok:
-            return jsonify({"ok": False, "error": "person not found"}), 404
-        return jsonify({"ok": True})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.post("/api/personnel/delete")
-def api_personnel_delete():
-    data = request.get_json(force=True) or {}
-    incident_name = (data.get("incidentName") or "").strip()
-    person_key = data.get("personKey")
-
-    if not incident_name:
-        return jsonify({"ok": False, "error": "incidentName is required"}), 400
-    if person_key in (None, ""):
-        return jsonify({"ok": False, "error": "personKey is required"}), 400
-
-    try:
-        ok = delete_person(incident_name, person_id=int(person_key))
-        if not ok:
-            return jsonify({"ok": False, "error": "person not found"}), 404
-        return jsonify({"ok": True})
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 
