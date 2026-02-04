@@ -2,12 +2,8 @@ import json
 import os
 import threading
 import webbrowser
-
-
-
 import logging
 logging.basicConfig(level=logging.INFO)
-
 from flask import Flask, jsonify, render_template, send_from_directory
 
 # ================= Flask App =================
@@ -67,16 +63,10 @@ def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
 
-
-
-
-
-
 # ================= Startup =================
 
 def open_browser():
     webbrowser.open("http://localhost:5000")
-
 
 if __name__ == "__main__":
     threading.Timer(1, open_browser).start()
