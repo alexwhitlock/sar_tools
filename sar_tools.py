@@ -21,8 +21,6 @@ from db.personnel_repo import (
     delete_person
 )
 
-
-
 # ================= Flask App =================
 app = Flask(
     __name__,
@@ -33,6 +31,9 @@ app = Flask(
 # ============== Regiser the blueprints (routes in other files)
 from routes.caltopo import bp as caltopo_bp
 app.register_blueprint(caltopo_bp)
+
+from routes.incidents import bp as incidents_bp
+app.register_blueprint(incidents_bp)
 
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
@@ -73,30 +74,6 @@ def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
-
-# ==================  Create Incident ==========================
-@app.post("/api/incident/init")
-def api_incident_init():
-    data = request.get_json(force=True) or {}
-    incident_name = (data.get("incidentName") or "").strip()
-
-    if not incident_name:
-        return jsonify({"ok": False, "error": "incidentName is required"}), 400
-
-    with get_connection(incident_name) as conn:
-        run_migrations(conn)
-        db_path = get_db_path_for_incident(incident_name)
-
-    incident_id = os.path.splitext(os.path.basename(db_path))[0]
-
-    return jsonify({
-        "ok": True,
-        "incidentName": incident_name,
-        "incidentId": incident_id   # ✅ THIS is the key
-    })
-
-
-
 
 # ======================= Personnel ===================================
 @app.get("/api/personnel")
@@ -170,21 +147,6 @@ def api_personnel_delete():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
-   
-
-#================== Get Incidents ============================
-@app.get("/api/incidents")
-def api_incidents_list():
-    probe_path = Path(get_db_path_for_incident("__probe__"))  # e.g. .../foo.sqlite3
-    inc_dir = probe_path.parent
-    suffix = probe_path.suffix  # ".sqlite3"
-
-    inc_dir.mkdir(parents=True, exist_ok=True)
-
-    incidents = [{"incidentName": p.stem} for p in inc_dir.glob(f"*{suffix}")]
-    incidents.sort(key=lambda x: x["incidentName"].lower())
-
-    return jsonify({"ok": True, "incidents": incidents})
 
 
 # ================= Startup =================

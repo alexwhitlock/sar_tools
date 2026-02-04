@@ -19,8 +19,8 @@ async function loadIncidents(selectName = "") {
   sel.appendChild(ph);
 
   try {
-    const res = await fetch("/api/incidents");
-    if (!res.ok) throw new Error(`GET /api/incidents failed (${res.status})`);
+    const res = await fetch("/api/get_incidents");
+    if (!res.ok) throw new Error(`GET /api/get_incidents failed (${res.status})`);
     const data = await res.json();
 
     const incidents = data.incidents || [];
@@ -34,9 +34,11 @@ async function loadIncidents(selectName = "") {
 
     if (selectName && [...sel.options].some(o => o.value === selectName)) {
       sel.value = selectName;
+      sel.dataset.prev = selectName; // remember active
       setHint(`Active: ${selectName}`);
     } else {
       sel.value = "";
+      sel.dataset.prev = "";
       setHint(incidents.length ? "No incident selected." : "No incidents yet. Create one.");
     }
   } catch (e) {
@@ -45,12 +47,26 @@ async function loadIncidents(selectName = "") {
   }
 }
 
-async function createIncident() {
-  const nameInput = document.getElementById("incidentNewName");
-  const btn = document.getElementById("incidentCreateBtn");
-  const hint = document.getElementById("incidentHint");
+async function openIncident(incidentName) {
+  const res = await fetch("/api/incident/open", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName }),
+  });
 
-  const name = nameInput.value.trim();
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Failed to open incident");
+  }
+  return data;
+}
+
+async function createIncident() {
+  const nameInput = $("incidentNewName");
+  const btn = $("incidentCreateBtn");
+  const hint = $("incidentHint");
+
+  const name = (nameInput?.value || "").trim();
   if (!name) {
     hint.textContent = "Enter an incident name.";
     return;
@@ -60,7 +76,7 @@ async function createIncident() {
   hint.textContent = "Creating incident...";
 
   try {
-    const res = await fetch("/api/incident/init", {
+    const res = await fetch("/api/incident/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ incidentName: name })
@@ -73,8 +89,18 @@ async function createIncident() {
 
     nameInput.value = "";
 
-    // 🔑 reload and auto-select the created incident
+    // reload and auto-select the created incident
     await loadIncidents(data.incidentId);
+
+    // ensure backend is "opened" too (migrations/readiness)
+    try {
+      await openIncident(data.incidentId);
+    } catch (e) {
+      console.error(e);
+      // keep UI selection; just surface the backend-open problem
+      setHint(`Created, but open failed: ${e.message}`);
+      return;
+    }
 
     hint.textContent = `Active: ${data.incidentId}`;
   } catch (e) {
@@ -85,6 +111,32 @@ async function createIncident() {
   }
 }
 
+/* ===============================
+   Home tab activation watcher
+   =============================== */
+
+function watchHomeTab() {
+  const panel = document.getElementById("home");
+  if (!panel) return;
+
+  let wasActive = panel.classList.contains("active");
+
+  const observer = new MutationObserver(() => {
+    const isActive = panel.classList.contains("active");
+    if (isActive && !wasActive) {
+      logMessage("INFO", "Home tab activated");
+      const sel = $("incidentSelect");
+      const current = sel ? sel.value.trim() : "";
+      loadIncidents(current); // refresh list, keep current selection if possible
+    }
+    wasActive = isActive;
+  });
+
+  observer.observe(panel, {
+    attributes: true,
+    attributeFilter: ["class"]
+  });
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[home.js] DOMContentLoaded");
@@ -94,9 +146,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  $("incidentSelect").addEventListener("change", (e) => {
-    const val = e.target.value.trim();
-    setHint(val ? `Active: ${val}` : "No incident selected.");
+  $("incidentSelect").addEventListener("change", async (e) => {
+    const sel = e.target;
+    const val = sel.value.trim();
+    const prev = sel.dataset.prev || "";
+
+    if (!val) {
+      sel.dataset.prev = "";
+      setHint("No incident selected.");
+      return;
+    }
+
+    setHint(`Opening: ${val}...`);
+
+    try {
+      await openIncident(val);
+      sel.dataset.prev = val;
+      setHint(`Active: ${val}`);
+    } catch (err) {
+      console.error(err);
+      sel.value = prev;
+      setHint(`Open failed: ${err.message}`);
+    }
   });
 
   $("incidentCreateBtn")?.addEventListener("click", () => {
@@ -104,5 +175,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     createIncident();
   });
 
+  watchHomeTab();       // ✅ IMPORTANT: start watching activation
   await loadIncidents("");
 });
