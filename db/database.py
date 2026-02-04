@@ -27,7 +27,6 @@ def get_db_path_for_incident(incident_name: str) -> str:
     Return the filesystem path for an incident SQLite DB file.
     This is the single source of truth for incident DB locations.
     """
-    ensure_dirs()
     filename = incident_name_to_filename(incident_name)
     return os.path.join(INCIDENT_DIR, filename)
 

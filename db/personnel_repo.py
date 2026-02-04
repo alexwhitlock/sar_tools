@@ -10,8 +10,6 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
     One row per person.
     """
     with get_connection(incident_name) as conn:
-        run_migrations(conn)
-
         rows = conn.execute("""
             SELECT
                 p.id AS id,
@@ -35,8 +33,6 @@ def add_person(incident_name: str, *, name: str) -> int:
     Add a person to the incident and return the new ID.
     """
     with get_connection(incident_name) as conn:
-        run_migrations(conn)
-
         cur = conn.execute(
             "INSERT INTO personnel (name) VALUES (?)",
             (name,)
@@ -48,7 +44,6 @@ def update_person(incident_name: str, *, person_id: int, name: str) -> bool:
     Update a person's name. Returns True if a row was updated.
     """
     with get_connection(incident_name) as conn:
-        run_migrations(conn)
         cur = conn.execute(
             "UPDATE personnel SET name = ? WHERE id = ?",
             (name, person_id),
@@ -62,7 +57,6 @@ def delete_person(incident_name: str, *, person_id: int) -> bool:
     Delete a person. Returns True if a row was deleted.
     """
     with get_connection(incident_name) as conn:
-        run_migrations(conn)
         cur = conn.execute(
             "DELETE FROM personnel WHERE id = ?",
             (person_id,),
