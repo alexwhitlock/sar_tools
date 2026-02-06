@@ -40,6 +40,7 @@ function renderAssignmentRow(a) {
     <td class="status-${(a.status || "").toLowerCase()}">
       ${a.status ?? ""}
     </td>
+    <td>${a.op ?? ""}</td>
   `;
 
   return tr;

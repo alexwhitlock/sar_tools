@@ -204,6 +204,17 @@ def get_assignments_for_map(map_id):
     data = get_from_caltopo(endpoint)
 
     features = data.get("state", {}).get("features", [])
+
+    # Build lookup: OperationalPeriod feature id -> useful fields
+    op_lookup = {}
+    for f in features:
+        props = f.get("properties", {})
+        if props.get("class") == "OperationalPeriod":
+            op_lookup[f.get("id")] = {
+                "title": props.get("title"),
+                "updated": props.get("updated"),
+            }
+
     assignments = []
 
     for f in features:
@@ -211,7 +222,7 @@ def get_assignments_for_map(map_id):
         if props.get("class") != "Assignment":
             continue
 
-        geometry = f.get("geometry", {})
+        geometry = f.get("geometry", {}) or {}
         geom_type = geometry.get("type")
 
         if geom_type == "Polygon":
@@ -224,6 +235,9 @@ def get_assignments_for_map(map_id):
         letter_raw = (props.get("letter") or "").strip()
         team = letter_raw.replace("X", "").strip() or ""
 
+        op_id = props.get("operationalPeriodId")
+        op_info = op_lookup.get(op_id, {})
+
         assignments.append({
             "id": f.get("id"),
             "number": props.get("number"),
@@ -231,6 +245,7 @@ def get_assignments_for_map(map_id):
             "assignmentType": assignment_type,
             "resourceType": props.get("resourceType"),
             "status": props.get("status"),
+            "op": op_info.get("title"),
         })
 
     return assignments
