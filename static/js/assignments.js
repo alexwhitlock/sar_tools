@@ -134,6 +134,14 @@ function wireFilters(table) {
     });
   }
 
+    /* ---- Op Period (text) ---- */
+  const opInput = document.getElementById("filter-op");
+  if (opInput) {
+    opInput.addEventListener("input", e => {
+      table.setFilter("op", e.target.value);
+    });
+  }
+
   /* ---- Pill checkbox groups ---- */
   document.querySelectorAll(".pill-group").forEach(group => {
     const key = group.dataset.filterKey;
