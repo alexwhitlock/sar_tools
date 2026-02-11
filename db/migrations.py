@@ -69,6 +69,8 @@ def migration_001_initial_schema(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             name TEXT NOT NULL,
+            d4h_ref TEXT,
+            source TEXT NOT NULL DEFAULT 'MANUAL',
 
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))

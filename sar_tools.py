@@ -23,6 +23,9 @@ app.register_blueprint(incidents_bp)
 from routes.personnel import bp as personnel_bp
 app.register_blueprint(personnel_bp)
 
+from routes.d4h import bp as d4h_bp
+app.register_blueprint(d4h_bp)
+
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
@@ -31,13 +34,20 @@ try:
         config = json.load(f)
         CRED_ID = config.get("cred_id", "").strip()
         CRED_SECRET_B64 = config.get("cred_secret_b64", "").strip()
-        if not CRED_ID or not CRED_SECRET_B64:
-            raise ValueError("Missing cred_id or cred_secret_b64")
+        D4H_API_TOKEN = config.get("D4H_API_TOKEN", "").strip()
+        D4H_TEAM_ID = config.get("D4H_TEAM_ID", "").strip()
+        D4H_BASE_URL = config.get("D4H_BASE_URL", "").strip()
+        if not CRED_ID or not CRED_SECRET_B64 or not D4H_API_TOKEN or not D4H_TEAM_ID or not D4H_BASE_URL:
+            raise ValueError("Missing config parameter")
 except Exception as e:
     raise RuntimeError(f"Failed to load API config: {e}")
 
 app.config["CRED_ID"] = CRED_ID
 app.config["CRED_SECRET_B64"] = CRED_SECRET_B64
+app.config["D4H_D4H_API_TOKEN"] = D4H_API_TOKEN
+app.config["D4H_TEAM_ID"] = D4H_TEAM_ID
+app.config["D4H_BASE_URL"] = D4H_BASE_URL
+
 
 # ================= Routes =================
 
