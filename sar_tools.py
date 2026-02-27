@@ -44,7 +44,7 @@ except Exception as e:
 
 app.config["CRED_ID"] = CRED_ID
 app.config["CRED_SECRET_B64"] = CRED_SECRET_B64
-app.config["D4H_D4H_API_TOKEN"] = D4H_API_TOKEN
+app.config["D4H_API_TOKEN"] = D4H_API_TOKEN
 app.config["D4H_TEAM_ID"] = D4H_TEAM_ID
 app.config["D4H_BASE_URL"] = D4H_BASE_URL
 

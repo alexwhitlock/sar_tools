@@ -85,6 +85,7 @@ function renderPersonnelRow(p) {
   tr.innerHTML = `
     <td>${escapeHtml(p.name)}</td>
     <td>${escapeHtml(p.team)}</td>
+    <td>${escapeHtml(p.source)}</td>
     <td class="actions-cell">
       <button
         type="button"
@@ -307,21 +308,39 @@ function addPerson() {
    Add from D4H (stub for now)
    =============================== */
 
-function addFromD4h() {
+async function addFromD4h() {
   const incidentName = requireIncidentOrError();
   if (!incidentName) return;
 
   const activityId = getCurrentD4hActivityId();
   if (!activityId) {
-    // Should be disabled already, but keep safety
     personnelMessage.show("Enter a D4H Activity ID on Home first.", "error");
     return;
   }
 
-  personnelMessage.show(
-    `D4H import for activity ${activityId} not wired yet.`,
-    "info"
-  );
+  try {
+    personnelMessage.show("Importing from D4H…", "info");
+
+    const resp = await fetch("/api/personnel/import-d4h", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ incidentName, activityId }),
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.ok === false) {
+      throw new Error(data.error || `Import failed (HTTP ${resp.status})`);
+    }
+
+    personnelMessage.show(
+      `Imported ${data.imported} (updated ${data.updated}, skipped ${data.skipped}).`,
+      "info"
+    );
+    await loadPersonnel();
+  } catch (err) {
+    logMessage("ERROR", "D4H import failed", err.message);
+    personnelMessage.show(`D4H import failed: ${err.message}`, "error");
+  }
 }
 
 /* ===============================
