@@ -20,6 +20,11 @@ function getCurrentIncidentName() {
   return sel ? sel.value.trim() : "";
 }
 
+function getCurrentD4hActivityId() {
+  const el = document.getElementById("d4h_activity");
+  return el ? el.value.trim() : "";
+}
+
 function requireIncidentOrError() {
   const incidentName = getCurrentIncidentName();
   if (!incidentName) {
@@ -35,10 +40,15 @@ function requireIncidentOrError() {
   return incidentName;
 }
 
-function updateAddButtonEnabled() {
+function updateAddButtonsEnabled() {
+  const incidentOk = !!getCurrentIncidentName();
+
   const addBtn = document.getElementById("person-add");
-  if (!addBtn) return;
-  addBtn.disabled = !getCurrentIncidentName();
+  if (addBtn) addBtn.disabled = !incidentOk;
+
+  const d4hBtn = document.getElementById("d4h-add");
+  const d4hOk = !!getCurrentD4hActivityId();
+  if (d4hBtn) d4hBtn.disabled = !(incidentOk && d4hOk);
 }
 
 function escapeHtml(s) {
@@ -169,8 +179,8 @@ function openMenu(anchorBtn, personKey) {
   menu.classList.remove("hidden");
 
   // Tight to the LEFT and just BELOW the button
-  const gapY = 4;  // tune: 0, 2, 4
-  const gapX = -2;  // tune: -2, 0, 2
+  const gapY = 4; // tune: 0, 2, 4
+  const gapX = -2; // tune: -2, 0, 2
 
   let top = rect.bottom + gapY; // viewport coords (because menu is position: fixed)
   let left = rect.left + gapX;
@@ -199,9 +209,6 @@ function openMenu(anchorBtn, personKey) {
   }
 }
 
-
-
-
 function closeMenu() {
   const { menu } = getUiEls();
   if (!menu) return;
@@ -209,7 +216,7 @@ function closeMenu() {
 }
 
 function openPersonModal(mode, person = null) {
-  const { backdrop, titleEl, nameInput} = getUiEls();
+  const { backdrop, titleEl, nameInput } = getUiEls();
   if (!backdrop || !titleEl || !nameInput) return;
 
   modalMode = mode;
@@ -232,18 +239,21 @@ function closePersonModal() {
 }
 
 function findPersonInCache(personKey) {
-  return personnelCache.find(p => String(getPersonKey(p)) === String(personKey)) || null;
+  return (
+    personnelCache.find((p) => String(getPersonKey(p)) === String(personKey)) ||
+    null
+  );
 }
 
 /* ===============================
    API actions (Add / Update / Delete)
    =============================== */
 
-async function apiAddPerson({ incidentName, name}) {
+async function apiAddPerson({ incidentName, name }) {
   const resp = await fetch("/api/personnel/add", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentName, name}),
+    body: JSON.stringify({ incidentName, name }),
   });
 
   const data = await resp.json().catch(() => ({}));
@@ -253,12 +263,11 @@ async function apiAddPerson({ incidentName, name}) {
   return data;
 }
 
-// You’ll likely need to implement these server-side.
-async function apiUpdatePerson({ incidentName, personKey, name}) {
+async function apiUpdatePerson({ incidentName, personKey, name }) {
   const resp = await fetch("/api/personnel/update", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentName, personKey, name}),
+    body: JSON.stringify({ incidentName, personKey, name }),
   });
 
   const data = await resp.json().catch(() => ({}));
@@ -295,20 +304,41 @@ function addPerson() {
 }
 
 /* ===============================
+   Add from D4H (stub for now)
+   =============================== */
+
+function addFromD4h() {
+  const incidentName = requireIncidentOrError();
+  if (!incidentName) return;
+
+  const activityId = getCurrentD4hActivityId();
+  if (!activityId) {
+    // Should be disabled already, but keep safety
+    personnelMessage.show("Enter a D4H Activity ID on Home first.", "error");
+    return;
+  }
+
+  personnelMessage.show(
+    `D4H import for activity ${activityId} not wired yet.`,
+    "info"
+  );
+}
+
+/* ===============================
    Filters
    =============================== */
 
 function wireFilters(table) {
   const nameInput = document.getElementById("filter-name");
   if (nameInput) {
-    nameInput.addEventListener("input", e => {
+    nameInput.addEventListener("input", (e) => {
       table.setFilter("name", e.target.value);
     });
   }
 
   const teamInput = document.getElementById("filter-team");
   if (teamInput) {
-    teamInput.addEventListener("input", e => {
+    teamInput.addEventListener("input", (e) => {
       table.setFilter("team", e.target.value);
     });
   }
@@ -328,7 +358,7 @@ function watchPersonnelTab() {
     const isActive = panel.classList.contains("active");
     if (isActive && !wasActive) {
       logMessage("INFO", "Personnel tab activated");
-      updateAddButtonEnabled();
+      updateAddButtonsEnabled();
       loadPersonnel();
     }
     wasActive = isActive;
@@ -345,20 +375,13 @@ function watchPersonnelTab() {
    =============================== */
 
 function wireMenuAndModal() {
-  const {
-    menu,
-    backdrop,
-    closeBtn,
-    cancelBtn,
-    saveBtn,
-    nameInput,
-  } = getUiEls();
+  const { menu, backdrop, closeBtn, cancelBtn, saveBtn, nameInput } = getUiEls();
 
   if (!menu) {
     logMessage("ERROR", "Missing #personMenu HTML in Personnel tab.");
     return;
   }
-  if (!backdrop || !closeBtn || !cancelBtn || !saveBtn || !nameInput ) {
+  if (!backdrop || !closeBtn || !cancelBtn || !saveBtn || !nameInput) {
     logMessage("ERROR", "Missing modal HTML elements for Personnel add/edit.");
     return;
   }
@@ -426,7 +449,10 @@ function wireMenuAndModal() {
         await loadPersonnel();
       } catch (err) {
         logMessage("ERROR", "Failed to delete person", err.message);
-        personnelMessage.show(`Failed to delete person: ${err.message}`, "error");
+        personnelMessage.show(
+          `Failed to delete person: ${err.message}`,
+          "error"
+        );
       }
     }
   });
@@ -462,17 +488,27 @@ function wireMenuAndModal() {
     }
 
     try {
-      personnelMessage.show(modalMode === "add" ? "Adding person…" : "Saving changes…", "info");
+      personnelMessage.show(
+        modalMode === "add" ? "Adding person…" : "Saving changes…",
+        "info"
+      );
 
       if (modalMode === "add") {
-        await apiAddPerson({ incidentName, name});
+        await apiAddPerson({ incidentName, name });
       } else {
-        await apiUpdatePerson({ incidentName, personKey: activePersonKey, name});
+        await apiUpdatePerson({
+          incidentName,
+          personKey: activePersonKey,
+          name,
+        });
       }
 
       closePersonModal();
       await loadPersonnel();
-      personnelMessage.show(modalMode === "add" ? "Person added." : "Changes saved.", "info");
+      personnelMessage.show(
+        modalMode === "add" ? "Person added." : "Changes saved.",
+        "info"
+      );
     } catch (err) {
       logMessage("ERROR", "Failed to save person", err.message);
       personnelMessage.show(`Failed to save: ${err.message}`, "error");
@@ -496,7 +532,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const tableEl = panel.querySelector(".personnel-data-table");
   if (!tableEl) {
-    logMessage("ERROR", "Personnel panel exists, but .personnel-data-table not found inside it");
+    logMessage(
+      "ERROR",
+      "Personnel panel exists, but .personnel-data-table not found inside it"
+    );
     return;
   }
 
@@ -511,23 +550,37 @@ document.addEventListener("DOMContentLoaded", () => {
   const addBtn = document.getElementById("person-add");
   if (addBtn) addBtn.addEventListener("click", addPerson);
 
-  // Disable + Person until an incident is selected
-  updateAddButtonEnabled();
+  const d4hBtn = document.getElementById("d4h-add");
+  if (d4hBtn) d4hBtn.addEventListener("click", addFromD4h);
+
+  // Disable buttons until required fields are set
+  updateAddButtonsEnabled();
 
   // If incident changes while app is open, keep Personnel consistent
   const incidentSelect = document.getElementById("incidentSelect");
   if (incidentSelect) {
     incidentSelect.addEventListener("change", () => {
-      updateAddButtonEnabled();
+      updateAddButtonsEnabled();
       if (panel.classList.contains("active")) {
         loadPersonnel();
       }
     });
   }
 
+  // Watch the Home page D4H activity input as well
+  const d4hActivityInput = document.getElementById("d4h_activity");
+  if (d4hActivityInput) {
+    d4hActivityInput.addEventListener("input", () => {
+      updateAddButtonsEnabled();
+    });
+    d4hActivityInput.addEventListener("change", () => {
+      updateAddButtonsEnabled();
+    });
+  }
+
   wireFilters(personnelTable);
   watchPersonnelTab();
 
-  // NEW: menu + modal wiring (requires the HTML blocks exist)
+  // menu + modal wiring
   wireMenuAndModal();
 });
