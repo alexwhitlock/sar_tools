@@ -95,5 +95,23 @@
       </div>
     </div>
 
+    <!-- D4H Conflict Resolution Modal -->
+    <div id="conflictModalBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal conflict-modal" role="dialog" aria-modal="true" aria-labelledby="conflictModalTitle">
+        <div class="modal-header">
+          <div id="conflictModalTitle" class="modal-title">Resolve Import Conflicts</div>
+          <button type="button" id="conflictModalClose" class="modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body conflict-modal-body">
+          <p id="conflictSummary" class="conflict-summary"></p>
+          <div id="conflictList" class="conflict-list"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="conflictModalCancel">Cancel</button>
+          <button type="button" id="conflictModalImport">Import</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>

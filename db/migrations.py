@@ -112,5 +112,6 @@ def migration_001_initial_schema(conn):
     # Helpful indexes
     conn.execute("CREATE INDEX IF NOT EXISTS idx_personnel_name ON personnel(name);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_personnel_d4h_ref ON personnel(d4h_ref);")
 
 

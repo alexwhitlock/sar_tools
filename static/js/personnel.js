@@ -292,6 +292,39 @@ async function apiDeletePerson({ incidentName, personKey }) {
   return data;
 }
 
+async function apiCheckName({ incidentName, name }) {
+  const resp = await fetch("/api/personnel/check-name", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, name }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) throw new Error(data.error || "Check failed");
+  return data; // { exact: [...], similar: [...] }
+}
+
+async function apiCheckNames({ incidentName, members }) {
+  const resp = await fetch("/api/personnel/check-names", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, members }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) throw new Error(data.error || "Batch check failed");
+  return data; // { results: [...] }
+}
+
+async function apiLinkD4h({ incidentName, personId, d4hRef }) {
+  const resp = await fetch("/api/personnel/link-d4h", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, personId, d4hRef }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) throw new Error(data.error || "Link failed");
+  return data;
+}
+
 /* ===============================
    Add person (now modal-based)
    =============================== */
@@ -305,8 +338,19 @@ function addPerson() {
 }
 
 /* ===============================
-   Add from D4H (stub for now)
+   Add from D4H — two-phase import
    =============================== */
+
+async function _doImport(incidentName, members) {
+  const resp = await fetch("/api/personnel/import-d4h", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, members }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) throw new Error(data.error || "Import failed");
+  return data; // { imported, updated, skipped }
+}
 
 async function addFromD4h() {
   const incidentName = requireIncidentOrError();
@@ -319,24 +363,106 @@ async function addFromD4h() {
   }
 
   try {
-    personnelMessage.show("Importing from D4H…", "info");
-
-    const resp = await fetch("/api/personnel/import-d4h", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ incidentName, activityId }),
-    });
-
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok || data.ok === false) {
-      throw new Error(data.error || `Import failed (HTTP ${resp.status})`);
+    // Phase 1: fetch D4H attending members
+    personnelMessage.show("Fetching D4H members…", "info");
+    const membersResp = await fetch(
+      `/api/d4h/activity/${encodeURIComponent(activityId)}/attending-members`
+    );
+    const membersData = await membersResp.json().catch(() => ({}));
+    if (!membersResp.ok || membersData.error) {
+      throw new Error(membersData.error || `Fetch failed (HTTP ${membersResp.status})`);
     }
 
-    personnelMessage.show(
-      `Imported ${data.imported} (updated ${data.updated}, skipped ${data.skipped}).`,
-      "info"
-    );
-    await loadPersonnel();
+    const members = (membersData.members || []).filter(m => m.name && m.d4hRef);
+    if (!members.length) {
+      personnelMessage.show("No attending members found for that activity.", "info");
+      return;
+    }
+
+    // Phase 2: batch conflict check
+    personnelMessage.show("Checking for conflicts…", "info");
+    const checkData = await apiCheckNames({ incidentName, members });
+    const results   = checkData.results || [];
+
+    const linked    = results.filter(r => r.status === "linked");
+    const newOnes   = results.filter(r => r.status === "new");
+    const conflicts = results.filter(r => r.status === "name_conflict");
+
+    if (!conflicts.length) {
+      // No conflicts — import all new ones directly
+      if (!newOnes.length) {
+        personnelMessage.show(
+          `Nothing new to import. ${linked.length} already linked.`,
+          "info"
+        );
+        return;
+      }
+      const stats = await _doImport(incidentName, newOnes);
+      personnelMessage.show(
+        `Imported ${stats.imported}` +
+        (linked.length ? `, ${linked.length} already linked` : "") +
+        `.`,
+        "info"
+      );
+      await loadPersonnel();
+      return;
+    }
+
+    // Conflicts found — open resolution modal
+    openConflictModal({
+      incidentName,
+      newOnes,
+      linked,
+      conflicts,
+      onImport: async (resolutions) => {
+        const toLink = [];
+        const toAdd  = [];
+
+        for (const [d4hRef, choice] of resolutions) {
+          if (choice.action === "link") {
+            toLink.push({ d4hRef, personId: choice.personId });
+          } else if (choice.action === "add") {
+            const orig = conflicts.find(c => c.d4hRef === d4hRef);
+            if (orig) toAdd.push({ name: orig.name, d4hRef });
+          }
+          // "skip" → no-op
+        }
+
+        // Execute links
+        const linkErrors = [];
+        for (const { d4hRef, personId } of toLink) {
+          try {
+            await apiLinkD4h({ incidentName, personId, d4hRef });
+          } catch (err) {
+            linkErrors.push(`Link ${d4hRef}: ${err.message}`);
+          }
+        }
+
+        // Import new + "add as new" resolutions in one call
+        const toImport = [...newOnes, ...toAdd];
+        let importStats = { imported: 0, updated: 0, skipped: 0 };
+        if (toImport.length) {
+          importStats = await _doImport(incidentName, toImport);
+        }
+
+        await loadPersonnel();
+
+        const totalLinked  = toLink.length - linkErrors.length;
+        const totalSkipped = [...resolutions.values()].filter(r => r.action === "skip").length;
+        let msg = `Imported ${importStats.imported}`;
+        if (totalLinked)      msg += `, linked ${totalLinked}`;
+        if (totalSkipped)     msg += `, skipped ${totalSkipped}`;
+        if (linked.length)    msg += `, ${linked.length} already linked`;
+        msg += ".";
+
+        if (linkErrors.length) {
+          personnelMessage.show(`${msg} Errors: ${linkErrors.join("; ")}`, "error");
+        } else {
+          personnelMessage.show(msg, "info");
+        }
+      },
+    });
+
   } catch (err) {
     logMessage("ERROR", "D4H import failed", err.message);
     personnelMessage.show(`D4H import failed: ${err.message}`, "error");
@@ -485,11 +611,12 @@ function wireMenuAndModal() {
     if (e.target === backdrop) closePersonModal();
   });
 
-  // Escape closes both
+  // Escape closes all overlays
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeMenu();
       closePersonModal();
+      closeConflictModal();
     }
   });
 
@@ -513,6 +640,22 @@ function wireMenuAndModal() {
       );
 
       if (modalMode === "add") {
+        let dupes;
+        try { dupes = await apiCheckName({ incidentName, name }); }
+        catch (err) {
+          personnelMessage.show(`Check failed: ${err.message}`, "error");
+          return;
+        }
+
+        if (dupes.exact.length || dupes.similar.length) {
+          const names = [...dupes.exact, ...dupes.similar].map(p => `"${p.name}"`).join(", ");
+          const label = dupes.exact.length ? "already exists" : "is similar to existing person(s)";
+          if (!window.confirm(`"${name}" ${label}: ${names}.\n\nAdd as a separate person anyway?`)) {
+            nameInput.focus();
+            return;
+          }
+        }
+
         await apiAddPerson({ incidentName, name });
       } else {
         await apiUpdatePerson({
@@ -531,6 +674,137 @@ function wireMenuAndModal() {
     } catch (err) {
       logMessage("ERROR", "Failed to save person", err.message);
       personnelMessage.show(`Failed to save: ${err.message}`, "error");
+    }
+  });
+}
+
+/* ===============================
+   D4H Conflict Resolution Modal
+   =============================== */
+
+let _conflictResolutions = new Map(); // d4hRef → { action: "link"|"add"|"skip", personId? }
+let _conflictOnImport = null;
+
+function closeConflictModal() {
+  const backdrop = document.getElementById("conflictModalBackdrop");
+  if (!backdrop) return;
+  backdrop.classList.add("hidden");
+  backdrop.setAttribute("aria-hidden", "true");
+  _conflictResolutions = new Map();
+  _conflictOnImport = null;
+}
+
+function _setConflictResolution(d4hRef, action, topMatch, rowEl) {
+  const resolution = { action };
+  if (action === "link" && topMatch) {
+    resolution.personId = topMatch.id;
+  }
+  _conflictResolutions.set(d4hRef, resolution);
+
+  rowEl.classList.remove("action-link", "action-add", "action-skip");
+  rowEl.classList.add(`action-${action}`);
+
+  rowEl.querySelectorAll("[data-action]").forEach(btn => {
+    btn.style.outline = btn.dataset.action === action ? "2px solid #333" : "";
+  });
+}
+
+function _buildConflictRow(result) {
+  const row = document.createElement("div");
+  row.className = "conflict-row";
+  row.dataset.d4hRef = result.d4hRef;
+
+  const similarityLabel = result.similarity === "exact" ? "Exact match" : "Similar match";
+
+  const matchLines = (result.matches || []).map(m => {
+    const pct = (m.ratio && m.ratio < 1) ? ` (${Math.round(m.ratio * 100)}%)` : "";
+    return `<div>${escapeHtml(m.name)} — ${escapeHtml(m.source)}${escapeHtml(pct)}</div>`;
+  }).join("");
+
+  row.innerHTML = `
+    <div class="conflict-row-header">
+      Incoming: <strong>${escapeHtml(result.name)}</strong>
+      <span style="font-weight:400;color:#888;">(D4H ref: ${escapeHtml(result.d4hRef)})</span>
+    </div>
+    <div class="conflict-row-match">
+      ${escapeHtml(similarityLabel)} with existing:
+      ${matchLines}
+    </div>
+    <div class="conflict-row-actions">
+      <button type="button" data-action="link"
+              title="Add D4H ref to the existing person">Link to Existing</button>
+      <button type="button" class="btn-secondary" data-action="add"
+              title="Import as a new separate person">Add as New</button>
+      <button type="button" class="btn-secondary" data-action="skip"
+              title="Don't import this person">Skip</button>
+    </div>
+  `;
+
+  const topMatch = result.matches?.[0] ?? null;
+  const defaultAction =
+    (result.similarity === "exact" && (result.matches || []).length === 1) ? "link" : "add";
+
+  row.querySelectorAll("[data-action]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      _setConflictResolution(result.d4hRef, btn.dataset.action, topMatch, row);
+    });
+  });
+
+  _setConflictResolution(result.d4hRef, defaultAction, topMatch, row);
+  return row;
+}
+
+function openConflictModal({ incidentName: _inc, newOnes, linked, conflicts, onImport }) {
+  _conflictResolutions = new Map();
+  _conflictOnImport = onImport;
+
+  const backdrop  = document.getElementById("conflictModalBackdrop");
+  const summaryEl = document.getElementById("conflictSummary");
+  const listEl    = document.getElementById("conflictList");
+  if (!backdrop || !summaryEl || !listEl) {
+    logMessage("ERROR", "Conflict modal HTML elements missing.");
+    return;
+  }
+
+  summaryEl.textContent =
+    `${conflicts.length} name conflict(s) need your review. ` +
+    `${newOnes.length} will import automatically. ` +
+    `${linked.length} already linked.`;
+
+  listEl.innerHTML = "";
+  for (const result of conflicts) {
+    listEl.appendChild(_buildConflictRow(result));
+  }
+
+  backdrop.classList.remove("hidden");
+  backdrop.setAttribute("aria-hidden", "false");
+}
+
+function wireConflictModal() {
+  const backdrop  = document.getElementById("conflictModalBackdrop");
+  const closeBtn  = document.getElementById("conflictModalClose");
+  const cancelBtn = document.getElementById("conflictModalCancel");
+  const importBtn = document.getElementById("conflictModalImport");
+
+  if (!backdrop || !closeBtn || !cancelBtn || !importBtn) {
+    logMessage("ERROR", "Missing conflict modal HTML elements.");
+    return;
+  }
+
+  closeBtn.addEventListener("click",  closeConflictModal);
+  cancelBtn.addEventListener("click", closeConflictModal);
+  backdrop.addEventListener("click",  (e) => { if (e.target === backdrop) closeConflictModal(); });
+
+  importBtn.addEventListener("click", async () => {
+    if (!_conflictOnImport) return;
+    const cb = _conflictOnImport;
+    closeConflictModal();
+    try {
+      personnelMessage.show("Applying resolutions…", "info");
+      await cb(_conflictResolutions);
+    } catch (err) {
+      logMessage("ERROR", "Conflict resolution import failed", err.message);
+      personnelMessage.show(`Import error: ${err.message}`, "error");
     }
   });
 }
@@ -602,4 +876,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // menu + modal wiring
   wireMenuAndModal();
+  wireConflictModal();
 });

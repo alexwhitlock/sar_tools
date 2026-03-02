@@ -1,7 +1,88 @@
 # db/personnel_repo.py
+import difflib
+import sqlite3
 from typing import List, Dict, Any, Iterable, Tuple
 from .database import get_connection
 from .migrations import run_migrations
+
+_FUZZY_THRESHOLD = 0.75
+
+
+def _match_rows(name: str, rows, exclude_d4h_ref=None):
+    """Classify existing personnel rows as exact or similar matches for `name`."""
+    norm = name.strip().lower()
+    exact, similar = [], []
+    for r in rows:
+        if exclude_d4h_ref and r["d4h_ref"] == str(exclude_d4h_ref):
+            continue
+        ratio = difflib.SequenceMatcher(None, norm, (r["name"] or "").strip().lower()).ratio()
+        rec = {"id": r["id"], "name": r["name"], "source": r["source"], "d4hRef": r["d4h_ref"]}
+        if ratio == 1.0:
+            exact.append(rec)
+        elif ratio >= _FUZZY_THRESHOLD:
+            rec["ratio"] = round(ratio, 3)
+            similar.append(rec)
+    similar.sort(key=lambda x: x["ratio"], reverse=True)
+    return {"exact": exact, "similar": similar}
+
+
+def find_name_matches(incident_name: str, name: str, exclude_d4h_ref=None) -> dict:
+    """Return exact and similar name matches for `name` within an incident's personnel."""
+    with get_connection(incident_name) as conn:
+        rows = conn.execute("SELECT id, name, source, d4h_ref FROM personnel").fetchall()
+    return _match_rows(name, rows, exclude_d4h_ref)
+
+
+def find_name_matches_batch(incident_name: str, members: list) -> list:
+    """
+    Check a list of {name, d4hRef} members against existing personnel.
+
+    Returns a list of result dicts, each with:
+      status: "linked"        - d4h_ref already in DB (no action needed)
+              "new"           - no d4h_ref match, no name match (safe to import)
+              "name_conflict" - no d4h_ref match but name match found (needs resolution)
+      matches: list of matching existing personnel (for name_conflict only)
+      similarity: "exact" | "similar" (for name_conflict only)
+    """
+    with get_connection(incident_name) as conn:
+        rows = conn.execute("SELECT id, name, source, d4h_ref FROM personnel").fetchall()
+    known_refs = {str(r["d4h_ref"]) for r in rows if r["d4h_ref"]}
+
+    results = []
+    for m in members:
+        name = (m.get("name") or "").strip()
+        d4h_ref = str(m.get("d4hRef") or "").strip()
+        if not name or not d4h_ref:
+            continue
+        if d4h_ref in known_refs:
+            results.append({"name": name, "d4hRef": d4h_ref, "status": "linked",
+                             "matches": None, "similarity": None})
+            continue
+        found = _match_rows(name, rows)
+        if found["exact"] or found["similar"]:
+            all_matches = found["exact"] + found["similar"]
+            results.append({"name": name, "d4hRef": d4h_ref, "status": "name_conflict",
+                             "matches": all_matches,
+                             "similarity": "exact" if found["exact"] else "similar"})
+        else:
+            results.append({"name": name, "d4hRef": d4h_ref, "status": "new",
+                             "matches": None, "similarity": None})
+    return results
+
+
+def link_d4h_to_person(incident_name: str, *, person_id: int, d4h_ref: str) -> bool:
+    """
+    Add a D4H ref to an existing person and mark source as D4H.
+    Raises sqlite3.IntegrityError if the d4h_ref is already linked to another person.
+    Returns True if a row was updated, False if person_id not found.
+    """
+    with get_connection(incident_name) as conn:
+        cur = conn.execute(
+            "UPDATE personnel SET d4h_ref = ?, source = 'D4H', updated_at = datetime('now') WHERE id = ?",
+            (str(d4h_ref), person_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
 
 
 def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
@@ -78,9 +159,6 @@ def upsert_people_from_d4h(
     with get_connection(incident_name) as conn:
         # Ensure migrations ran (safe even if already created)
         run_migrations(conn)
-
-        # Unique index for D4H linkage
-        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_personnel_d4h_ref ON personnel(d4h_ref);")
 
         for name, d4h_ref in people:
             name = (name or "").strip()

@@ -1,5 +1,7 @@
 # routes/personnel.py
 
+import sqlite3
+
 from flask import Blueprint, jsonify, request
 
 from db.personnel_repo import (
@@ -8,6 +10,9 @@ from db.personnel_repo import (
     update_person,
     delete_person,
     upsert_people_from_d4h,
+    find_name_matches,
+    find_name_matches_batch,
+    link_d4h_to_person,
 )
 
 from routes.d4h import (
@@ -94,21 +99,104 @@ def api_personnel_delete():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
     
-@bp.post("/api/personnel/import-d4h")
-def api_personnel_import_d4h():
+@bp.post("/api/personnel/check-name")
+def api_personnel_check_name():
     """
-    Body: { incidentName: "...", activityId: "330704" }
-
-    Imports ATTENDING members from D4H activity into personnel table.
+    Body: { incidentName: "...", name: "..." }
+    Returns: { exact: [...], similar: [...] }
+    Used by the manual add flow to detect duplicates before saving.
     """
     data = request.get_json(force=True) or {}
     incident_name = (data.get("incidentName") or "").strip()
-    activity_id = str(data.get("activityId") or "").strip()
+    name = (data.get("name") or "").strip()
+
+    if not incident_name or not name:
+        return jsonify({"ok": False, "error": "incidentName and name are required"}), 400
+
+    try:
+        return jsonify(find_name_matches(incident_name, name))
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.post("/api/personnel/check-names")
+def api_personnel_check_names():
+    """
+    Body: { incidentName: "...", members: [{name, d4hRef}, ...] }
+    Returns: { results: [{name, d4hRef, status, matches?, similarity?}, ...] }
+    Used by the D4H import flow to classify each incoming member before import.
+    """
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    members = data.get("members") or []
 
     if not incident_name:
         return jsonify({"ok": False, "error": "incidentName is required"}), 400
+
+    try:
+        return jsonify({"results": find_name_matches_batch(incident_name, members)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.post("/api/personnel/link-d4h")
+def api_personnel_link_d4h():
+    """
+    Body: { incidentName: "...", personId: 7, d4hRef: "1002" }
+    Links a D4H member ref to an existing person (merge action).
+    """
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    person_id = data.get("personId")
+    d4h_ref = str(data.get("d4hRef") or "").strip()
+
+    if not incident_name or person_id is None or not d4h_ref:
+        return jsonify({"ok": False, "error": "incidentName, personId, and d4hRef are required"}), 400
+
+    try:
+        ok = link_d4h_to_person(incident_name, person_id=int(person_id), d4h_ref=d4h_ref)
+        if not ok:
+            return jsonify({"ok": False, "error": "Person not found"}), 404
+        return jsonify({"ok": True})
+    except sqlite3.IntegrityError:
+        return jsonify({"ok": False, "error": "That D4H ref is already linked to another person."}), 409
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.post("/api/personnel/import-d4h")
+def api_personnel_import_d4h():
+    """
+    Imports ATTENDING members from D4H activity into personnel table.
+
+    Two calling modes:
+      A) { incidentName, members: [{name, d4hRef}, ...] }  — frontend pre-resolved conflicts
+      B) { incidentName, activityId }                       — fetch directly from D4H
+    """
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName is required"}), 400
+
+    # Path A: frontend already resolved conflicts and passes members directly
+    members_from_body = data.get("members")
+    if isinstance(members_from_body, list):
+        try:
+            people = [
+                (m.get("name", "").strip(), str(m.get("d4hRef", "")).strip())
+                for m in members_from_body
+                if m.get("name") and m.get("d4hRef")
+            ]
+            stats = upsert_people_from_d4h(incident_name, people)
+            return jsonify({"ok": True, "incidentName": incident_name, **stats})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    # Path B: fetch from D4H using activityId
+    activity_id = str(data.get("activityId") or "").strip()
     if not activity_id:
-        return jsonify({"ok": False, "error": "activityId is required"}), 400
+        return jsonify({"ok": False, "error": "Either 'members' list or 'activityId' is required"}), 400
 
     try:
         base_url, token, team_id = _get_d4h_config()

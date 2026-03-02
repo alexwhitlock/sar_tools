@@ -260,3 +260,71 @@
 .person-menu-btn:focus {
   outline: none;
 }
+
+/* ===============================
+   Conflict resolution modal
+   =============================== */
+
+.conflict-modal {
+  width: 500px;
+  max-width: calc(100vw - 32px);
+}
+
+.conflict-modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.conflict-summary {
+  font-size: 0.8rem;
+  margin: 0 0 0.5rem;
+  color: #555;
+}
+
+.conflict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.conflict-row {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.conflict-row-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.conflict-row-match {
+  font-size: 0.75rem;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.conflict-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.conflict-row-actions button {
+  width: auto !important;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+}
+
+.conflict-row-actions .btn-secondary {
+  background-color: #888;
+}
+
+.conflict-row-actions .btn-secondary:hover {
+  background-color: #666;
+}
+
+.conflict-row.action-link  { border-color: #2e7d32; background: #f1f8e9; }
+.conflict-row.action-add   { border-color: #1565c0; background: #e3f2fd; }
+.conflict-row.action-skip  { border-color: #aaa; background: #f5f5f5; opacity: 0.6; }
