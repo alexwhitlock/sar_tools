@@ -694,63 +694,101 @@ function closeConflictModal() {
   _conflictOnImport = null;
 }
 
-function _setConflictResolution(d4hRef, action, topMatch, rowEl) {
+function _setConflictResolution(d4hRef, action, personId) {
   const resolution = { action };
-  if (action === "link" && topMatch) {
-    resolution.personId = topMatch.id;
+  if (action === "link" && personId != null) {
+    resolution.personId = personId;
   }
   _conflictResolutions.set(d4hRef, resolution);
+}
 
-  rowEl.classList.remove("action-link", "action-add", "action-skip");
-  rowEl.classList.add(`action-${action}`);
-
-  rowEl.querySelectorAll("[data-action]").forEach(btn => {
-    btn.style.outline = btn.dataset.action === action ? "2px solid #333" : "";
-  });
+function _updateConflictImportBtn() {
+  const btn = document.getElementById("conflictModalImport");
+  if (!btn) return;
+  let count = 0;
+  for (const [, res] of _conflictResolutions) {
+    if (res.action === "link" || res.action === "add") count++;
+  }
+  btn.textContent = count > 0 ? `Import (${count})` : "Import";
 }
 
 function _buildConflictRow(result) {
-  const row = document.createElement("div");
+  const row = document.createElement("tr");
   row.className = "conflict-row";
   row.dataset.d4hRef = result.d4hRef;
 
-  const similarityLabel = result.similarity === "exact" ? "Exact match" : "Similar match";
+  const matches = result.matches || [];
+  const topMatch = matches[0] ?? null;
+  const hasMultipleMatches = matches.length > 1;
 
-  const matchLines = (result.matches || []).map(m => {
-    const pct = (m.ratio && m.ratio < 1) ? ` (${Math.round(m.ratio * 100)}%)` : "";
-    return `<div>${escapeHtml(m.name)} — ${escapeHtml(m.source)}${escapeHtml(pct)}</div>`;
+  const defaultAction =
+    (result.similarity === "exact" && matches.length === 1) ? "link" : "add";
+
+  const matchListHtml = matches.map(m => {
+    const pct = (m.ratio && m.ratio < 1)
+      ? `<span class="conflict-match-pct">(${Math.round(m.ratio * 100)}%)</span>`
+      : "";
+    return `<div class="conflict-match-item">
+      <span class="conflict-match-name">${escapeHtml(m.name)}</span>
+      <span class="conflict-match-source">${escapeHtml(m.source)}</span>
+      ${pct}
+    </div>`;
   }).join("");
 
+  const linkOptionsHtml = matches.map(m =>
+    `<option value="${escapeHtml(String(m.id))}">${escapeHtml(m.name)} — ${escapeHtml(m.source)}</option>`
+  ).join("");
+
   row.innerHTML = `
-    <div class="conflict-row-header">
-      Incoming: <strong>${escapeHtml(result.name)}</strong>
-      <span style="font-weight:400;color:#888;">(D4H ref: ${escapeHtml(result.d4hRef)})</span>
-    </div>
-    <div class="conflict-row-match">
-      ${escapeHtml(similarityLabel)} with existing:
-      ${matchLines}
-    </div>
-    <div class="conflict-row-actions">
-      <button type="button" data-action="link"
-              title="Add D4H ref to the existing person">Link to Existing</button>
-      <button type="button" class="btn-secondary" data-action="add"
-              title="Import as a new separate person">Add as New</button>
-      <button type="button" class="btn-secondary" data-action="skip"
-              title="Don't import this person">Skip</button>
-    </div>
+    <td class="conflict-td-name">
+      <strong>${escapeHtml(result.name)}</strong>
+      <span class="conflict-d4h-ref">D4H #${escapeHtml(result.d4hRef)}</span>
+    </td>
+    <td class="conflict-td-matches">${matchListHtml}</td>
+    <td class="conflict-td-action">
+      <select class="conflict-action-select">
+        ${matches.length > 0 ? `<option value="link">Link to Existing</option>` : ""}
+        <option value="add">Add as New</option>
+        <option value="skip">Skip</option>
+      </select>
+      ${hasMultipleMatches ? `<select class="conflict-link-target">${linkOptionsHtml}</select>` : ""}
+    </td>
   `;
 
-  const topMatch = result.matches?.[0] ?? null;
-  const defaultAction =
-    (result.similarity === "exact" && (result.matches || []).length === 1) ? "link" : "add";
+  const actionSel = row.querySelector(".conflict-action-select");
+  const targetSel = row.querySelector(".conflict-link-target");
 
-  row.querySelectorAll("[data-action]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      _setConflictResolution(result.d4hRef, btn.dataset.action, topMatch, row);
-    });
+  actionSel.value = defaultAction;
+  if (targetSel) {
+    targetSel.style.display = defaultAction === "link" ? "" : "none";
+  }
+
+  const initPersonId = defaultAction === "link"
+    ? (hasMultipleMatches ? parseInt(targetSel.value, 10) : (topMatch?.id ?? null))
+    : null;
+  _setConflictResolution(result.d4hRef, defaultAction, initPersonId);
+
+  actionSel.addEventListener("change", () => {
+    const action = actionSel.value;
+    if (action === "link") {
+      const personId = hasMultipleMatches
+        ? parseInt(targetSel.value, 10)
+        : (topMatch?.id ?? null);
+      _setConflictResolution(result.d4hRef, "link", personId);
+      if (targetSel) targetSel.style.display = "";
+    } else {
+      _setConflictResolution(result.d4hRef, action, null);
+      if (targetSel) targetSel.style.display = "none";
+    }
+    _updateConflictImportBtn();
   });
 
-  _setConflictResolution(result.d4hRef, defaultAction, topMatch, row);
+  if (targetSel) {
+    targetSel.addEventListener("change", () => {
+      _setConflictResolution(result.d4hRef, "link", parseInt(targetSel.value, 10));
+    });
+  }
+
   return row;
 }
 
@@ -766,16 +804,56 @@ function openConflictModal({ incidentName: _inc, newOnes, linked, conflicts, onI
     return;
   }
 
-  summaryEl.textContent =
-    `${conflicts.length} name conflict(s) need your review. ` +
-    `${newOnes.length} will import automatically. ` +
-    `${linked.length} already linked.`;
+  summaryEl.innerHTML =
+    `<strong>${conflicts.length}</strong> conflict(s) need review &nbsp;&middot;&nbsp; ` +
+    `<strong>${newOnes.length}</strong> will import automatically &nbsp;&middot;&nbsp; ` +
+    `<strong>${linked.length}</strong> already linked`;
 
   listEl.innerHTML = "";
-  for (const result of conflicts) {
-    listEl.appendChild(_buildConflictRow(result));
-  }
 
+  // Bulk action bar
+  const bulkBar = document.createElement("div");
+  bulkBar.className = "conflict-bulk-bar";
+  bulkBar.innerHTML = `
+    <span class="conflict-bulk-label">Set all to:</span>
+    <select id="conflictBulkAction" class="conflict-bulk-select">
+      <option value="add">Add as New</option>
+      <option value="skip">Skip</option>
+    </select>
+    <button type="button" id="conflictBulkApply" class="conflict-bulk-btn">Apply to all</button>
+  `;
+  listEl.appendChild(bulkBar);
+
+  // Build table
+  const table = document.createElement("table");
+  table.className = "conflict-table";
+  const thead = document.createElement("thead");
+  thead.innerHTML = `<tr>
+    <th>D4H Member</th>
+    <th>Existing Match(es)</th>
+    <th>Action</th>
+  </tr>`;
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  for (const result of conflicts) {
+    tbody.appendChild(_buildConflictRow(result));
+  }
+  table.appendChild(tbody);
+  listEl.appendChild(table);
+
+  // Wire bulk apply
+  document.getElementById("conflictBulkApply").addEventListener("click", () => {
+    const action = document.getElementById("conflictBulkAction").value;
+    tbody.querySelectorAll(".conflict-action-select").forEach(sel => {
+      if (sel.value !== action) {
+        sel.value = action;
+        sel.dispatchEvent(new Event("change"));
+      }
+    });
+  });
+
+  _updateConflictImportBtn();
   backdrop.classList.remove("hidden");
   backdrop.setAttribute("aria-hidden", "false");
 }
