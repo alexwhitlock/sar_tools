@@ -314,11 +314,11 @@ async function apiCheckNames({ incidentName, members }) {
   return data; // { results: [...] }
 }
 
-async function apiLinkD4h({ incidentName, personId, d4hRef }) {
+async function apiLinkD4h({ incidentName, personId, d4hRef, name }) {
   const resp = await fetch("/api/personnel/link-d4h", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentName, personId, d4hRef }),
+    body: JSON.stringify({ incidentName, personId, d4hRef, name }),
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || data.ok === false) throw new Error(data.error || "Link failed");
@@ -420,7 +420,8 @@ async function addFromD4h() {
 
         for (const [d4hRef, choice] of resolutions) {
           if (choice.action === "link") {
-            toLink.push({ d4hRef, personId: choice.personId });
+            const orig = conflicts.find(c => c.d4hRef === d4hRef);
+            toLink.push({ d4hRef, personId: choice.personId, name: orig?.name });
           } else if (choice.action === "add") {
             const orig = conflicts.find(c => c.d4hRef === d4hRef);
             if (orig) toAdd.push({ name: orig.name, d4hRef });
@@ -430,9 +431,9 @@ async function addFromD4h() {
 
         // Execute links
         const linkErrors = [];
-        for (const { d4hRef, personId } of toLink) {
+        for (const { d4hRef, personId, name } of toLink) {
           try {
-            await apiLinkD4h({ incidentName, personId, d4hRef });
+            await apiLinkD4h({ incidentName, personId, d4hRef, name });
           } catch (err) {
             linkErrors.push(`Link ${d4hRef}: ${err.message}`);
           }
@@ -704,8 +705,8 @@ function _setConflictResolution(d4hRef, action, topMatch, rowEl) {
   rowEl.classList.remove("action-link", "action-add", "action-skip");
   rowEl.classList.add(`action-${action}`);
 
-  rowEl.querySelectorAll("[data-action]").forEach(btn => {
-    btn.style.outline = btn.dataset.action === action ? "2px solid #333" : "";
+  rowEl.querySelectorAll(".conflict-action-btn").forEach(btn => {
+    btn.classList.toggle("selected", btn.dataset.action === action);
   });
 }
 
@@ -731,11 +732,11 @@ function _buildConflictRow(result) {
       ${matchLines}
     </div>
     <div class="conflict-row-actions">
-      <button type="button" data-action="link"
+      <button type="button" class="conflict-action-btn" data-action="link"
               title="Add D4H ref to the existing person">Link to Existing</button>
-      <button type="button" class="btn-secondary" data-action="add"
+      <button type="button" class="conflict-action-btn" data-action="add"
               title="Import as a new separate person">Add as New</button>
-      <button type="button" class="btn-secondary" data-action="skip"
+      <button type="button" class="conflict-action-btn" data-action="skip"
               title="Don't import this person">Skip</button>
     </div>
   `;
@@ -798,10 +799,11 @@ function wireConflictModal() {
   importBtn.addEventListener("click", async () => {
     if (!_conflictOnImport) return;
     const cb = _conflictOnImport;
+    const resolutions = new Map(_conflictResolutions); // snapshot before close clears it
     closeConflictModal();
     try {
       personnelMessage.show("Applying resolutions…", "info");
-      await cb(_conflictResolutions);
+      await cb(resolutions);
     } catch (err) {
       logMessage("ERROR", "Conflict resolution import failed", err.message);
       personnelMessage.show(`Import error: ${err.message}`, "error");

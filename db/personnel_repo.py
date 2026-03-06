@@ -70,17 +70,24 @@ def find_name_matches_batch(incident_name: str, members: list) -> list:
     return results
 
 
-def link_d4h_to_person(incident_name: str, *, person_id: int, d4h_ref: str) -> bool:
+def link_d4h_to_person(incident_name: str, *, person_id: int, d4h_ref: str, new_name: str | None = None) -> bool:
     """
-    Add a D4H ref to an existing person and mark source as D4H.
+    Link a D4H ref to an existing person: sets d4h_ref, source='D4H', and
+    optionally updates the name to the D4H name.
     Raises sqlite3.IntegrityError if the d4h_ref is already linked to another person.
     Returns True if a row was updated, False if person_id not found.
     """
     with get_connection(incident_name) as conn:
-        cur = conn.execute(
-            "UPDATE personnel SET d4h_ref = ?, source = 'D4H', updated_at = datetime('now') WHERE id = ?",
-            (str(d4h_ref), person_id),
-        )
+        if new_name:
+            cur = conn.execute(
+                "UPDATE personnel SET d4h_ref = ?, name = ?, source = 'D4H', updated_at = datetime('now') WHERE id = ?",
+                (str(d4h_ref), new_name.strip(), person_id),
+            )
+        else:
+            cur = conn.execute(
+                "UPDATE personnel SET d4h_ref = ?, source = 'D4H', updated_at = datetime('now') WHERE id = ?",
+                (str(d4h_ref), person_id),
+            )
         conn.commit()
         return cur.rowcount > 0
 

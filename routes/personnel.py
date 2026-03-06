@@ -149,12 +149,13 @@ def api_personnel_link_d4h():
     incident_name = (data.get("incidentName") or "").strip()
     person_id = data.get("personId")
     d4h_ref = str(data.get("d4hRef") or "").strip()
+    new_name = (data.get("name") or "").strip() or None
 
     if not incident_name or person_id is None or not d4h_ref:
         return jsonify({"ok": False, "error": "incidentName, personId, and d4hRef are required"}), 400
 
     try:
-        ok = link_d4h_to_person(incident_name, person_id=int(person_id), d4h_ref=d4h_ref)
+        ok = link_d4h_to_person(incident_name, person_id=int(person_id), d4h_ref=d4h_ref, new_name=new_name)
         if not ok:
             return jsonify({"ok": False, "error": "Person not found"}), 404
         return jsonify({"ok": True})

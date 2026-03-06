@@ -309,22 +309,38 @@
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-.conflict-row-actions button {
+/* Base: ghost/outline buttons — NOT filled */
+.conflict-action-btn {
   width: auto !important;
-  padding: 3px 8px;
+  padding: 3px 10px;
   font-size: 0.75rem;
+  font-weight: 600;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+  border: 1.5px solid transparent;
 }
 
-.conflict-row-actions .btn-secondary {
-  background-color: #888;
-}
+/* Unselected colors (text + border only) */
+.conflict-action-btn[data-action="link"]  { color: #2e7d32; border-color: #2e7d32; }
+.conflict-action-btn[data-action="add"]   { color: #1565c0; border-color: #1565c0; }
+.conflict-action-btn[data-action="skip"]  { color: #555;    border-color: #999; }
 
-.conflict-row-actions .btn-secondary:hover {
-  background-color: #666;
-}
+/* Hover: slight tint */
+.conflict-action-btn[data-action="link"]:hover  { background: #e8f5e9; }
+.conflict-action-btn[data-action="add"]:hover   { background: #e3f2fd; }
+.conflict-action-btn[data-action="skip"]:hover  { background: #f0f0f0; }
 
+/* Selected: filled solid */
+.conflict-action-btn[data-action="link"].selected  { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+.conflict-action-btn[data-action="add"].selected   { background: #1565c0; color: #fff; border-color: #1565c0; }
+.conflict-action-btn[data-action="skip"].selected  { background: #555;    color: #fff; border-color: #555; }
+
+/* Row background tint matches selected action */
 .conflict-row.action-link  { border-color: #2e7d32; background: #f1f8e9; }
-.conflict-row.action-add   { border-color: #1565c0; background: #e3f2fd; }
-.conflict-row.action-skip  { border-color: #aaa; background: #f5f5f5; opacity: 0.6; }
+.conflict-row.action-add   { border-color: #1565c0; background: #e8f0fb; }
+.conflict-row.action-skip  { border-color: #999; background: #f5f5f5; opacity: 0.7; }
