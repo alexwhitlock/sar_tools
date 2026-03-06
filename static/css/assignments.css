@@ -1,4 +1,11 @@
 /* ===============================
+   Op Period column toggle
+   =============================== */
+
+.col-op-period { display: none; }
+.show-op-period .col-op-period { display: table-cell; }
+
+/* ===============================
    Assignments tab layout
    =============================== */
 
@@ -76,6 +83,10 @@
    Filters
    =============================== */
 
+.assignments-filters {
+  align-items: flex-end;
+}
+
 #filter-number {
   max-width: 4rem;
 }
@@ -86,4 +97,9 @@
 
 #filter-op {
   max-width: 4rem;
+  display: none;
+}
+
+.filter-group-check.op-expanded #filter-op {
+  display: block;
 }

@@ -27,11 +27,6 @@
         <input type="text" id="filter-team" placeholder="e.g. C" />
       </div>
 
-      <div class="filter-group">
-        <label>Op Period</label>
-        <input type="text" id="filter-op" placeholder="e.g. 1" />
-      </div>
-
       <!-- Resource pills -->
       <div class="filter-group">
         <label>Resource</label>
@@ -73,6 +68,15 @@
         </div>
       </div>
 
+      <!-- Column toggles -->
+      <div class="filter-group filter-group-check">
+        <label class="check-label">
+          <input type="checkbox" id="toggle-op-period" />
+          Op Period
+        </label>
+        <input type="text" id="filter-op" placeholder="e.g. 1" />
+      </div>
+
     </div>
 
 
@@ -87,7 +91,7 @@
             <th data-key="assignmentType">Type</th>
             <th data-key="resourceType">Resource</th>
             <th data-key="status">Status</th>
-            <th data-key="op">Op Period</th>
+            <th data-key="op" class="col-op-period">Op Period</th>
           </tr>
         </thead>
         <tbody id="assignments-body">

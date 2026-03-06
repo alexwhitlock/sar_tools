@@ -40,7 +40,7 @@ function renderAssignmentRow(a) {
     <td class="status-${(a.status || "").toLowerCase()}">
       ${a.status ?? ""}
     </td>
-    <td>${a.op ?? ""}</td>
+    <td class="col-op-period">${a.op ?? ""}</td>
   `;
 
   return tr;
@@ -139,6 +139,23 @@ function wireFilters(table) {
   if (opInput) {
     opInput.addEventListener("input", e => {
       table.setFilter("op", e.target.value);
+    });
+  }
+
+  /* ---- Op Period column + filter toggle ---- */
+  const opToggle = document.getElementById("toggle-op-period");
+  if (opToggle) {
+    const tableEl = document.querySelector(".assignments-data-table");
+    const opGroup = opToggle.closest(".filter-group-check");
+    const opInput = document.getElementById("filter-op");
+    opToggle.addEventListener("change", () => {
+      const on = opToggle.checked;
+      if (tableEl) tableEl.classList.toggle("show-op-period", on);
+      if (opGroup)  opGroup.classList.toggle("op-expanded", on);
+      if (!on && opInput) {
+        opInput.value = "";
+        table.setFilter("op", "");
+      }
     });
   }
 

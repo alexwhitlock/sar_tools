@@ -86,6 +86,7 @@ function renderPersonnelRow(p) {
     <td>${escapeHtml(p.name)}</td>
     <td>${escapeHtml(p.team)}</td>
     <td>${escapeHtml(p.source)}</td>
+    <td class="col-d4href">${escapeHtml(p.d4hRef)}</td>
     <td class="actions-cell">
       <button
         type="button"
@@ -486,6 +487,14 @@ function wireFilters(table) {
   if (teamInput) {
     teamInput.addEventListener("input", (e) => {
       table.setFilter("team", e.target.value);
+    });
+  }
+
+  const d4hRefToggle = document.getElementById("toggle-d4href");
+  if (d4hRefToggle) {
+    const tableEl = document.querySelector(".personnel-data-table");
+    d4hRefToggle.addEventListener("change", () => {
+      if (tableEl) tableEl.classList.toggle("show-d4href", d4hRefToggle.checked);
     });
   }
 }

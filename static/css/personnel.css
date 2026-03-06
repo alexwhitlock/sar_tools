@@ -64,6 +64,13 @@
 }
 
 /* ===============================
+   D4H Ref column toggle
+   =============================== */
+
+.col-d4href { display: none; }
+.show-d4href .col-d4href { display: table-cell; }
+
+/* ===============================
    Filters (same row)
    =============================== */
 
@@ -78,6 +85,23 @@
 .personnel-filters .filter-group {
   display: flex;
   flex-direction: column;
+}
+
+.filter-group-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.check-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  padding-bottom: 2px; /* align with input bottom edge */
 }
 
 /* ===============================
