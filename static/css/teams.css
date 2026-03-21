@@ -47,7 +47,7 @@
   display: flex !important;
   align-items: center;
   justify-content: center;
-  padding: 0.3rem 0.5rem;
+  padding: 0.5rem 1.2rem;
   border: none;
   border-radius: 0;
   background: #fff;
@@ -245,27 +245,26 @@
 .kanban-col.collapsed .kanban-col-header {
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   flex-shrink: 1;
   height: 100%;
   padding: 0.5rem 0.3rem;
   gap: 0.4rem;
 }
 
-/* Rotate the status label text */
+/* Count badge floats to top */
+.kanban-col.collapsed .kanban-col-count {
+  order: -1;
+  writing-mode: horizontal-tb;
+  flex-shrink: 0;
+}
+
+/* Rotate the status label text, top-justified */
 .kanban-col.collapsed .kanban-col-header .kanban-col-label {
   writing-mode: vertical-rl;
   transform: rotate(180deg);   /* read bottom-to-top */
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 0 0 auto;
   white-space: nowrap;
-}
-
-/* Count badge stays horizontal */
-.kanban-col.collapsed .kanban-col-count {
-  writing-mode: horizontal-tb;
 }
 
 /* Column header colours matching status */
