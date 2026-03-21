@@ -20,16 +20,34 @@
 
 /* Single, neutral card style */
 .home-card {
-  background: #eeeeee;
+  background: #ffffff;
   border-radius: 12px;
   padding: 16px 18px;
-  border: 1px solid #dddddd;
+  border: 1px solid #d0d0d0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-/* Card headings */
+/* Card header: title + optional link checkbox */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
 .home-card h2 {
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 18px;
+}
+
+.link-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 /* Form row layout */
@@ -53,16 +71,18 @@
   width: 300px;
 }
 
-/* Fixed-width Create button */
 #incidentCreateBtn {
   flex: 0 0 auto;
-  width: 85px !important;  
+  width: auto;
 }
 
-/* Optional helper text */
-.home-hint {
-  margin-top: 10px;
-  font-size: 13px;
-  color: #555;
+.lookup-btn {
+  flex: 0 0 auto;
+  width: 60px;
 }
+
+.home-card .message-bar {
+  margin-top: 10px;
+}
+
 

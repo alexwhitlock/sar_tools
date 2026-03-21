@@ -30,7 +30,6 @@
 /* Add person button */
 .personnel-toolbar-btn {
   width: auto;              /* override global 100% */
-  padding: 0.3rem 0.6rem;
   flex: 0 0 auto;
 }
 

@@ -22,11 +22,17 @@
           <button id="incidentCreateBtn" type="button">Create</button>
         </div>
 
-        <div class="home-hint" id="incidentHint">Select or create an incident database.</div>
+        <div class="message-bar hidden" id="incidentHint"></div>
       </div>
 
       <div class="home-card card-caltopo">
-        <h2>CalTopo</h2>
+        <div class="card-header">
+          <h2>CalTopo</h2>
+          <label class="link-label" id="caltopoLinkRow" style="display:none">
+            <input type="checkbox" id="caltopoLinkCheck" />
+            Link to Incident
+          </label>
+        </div>
 
         <div class="form-row">
           <label for="mapId">CalTopo Map ID</label>
@@ -36,11 +42,20 @@
             placeholder="e.g. APC1GE5"
             autocomplete="off"
           />
+          <button id="mapIdLookupBtn" type="button" class="lookup-btn" title="Look up map">Apply</button>
         </div>
+
+        <div class="message-bar hidden" id="caltopoHint"></div>
       </div>
 
       <div class="home-card card-d4h">
-        <h2>D4H Activity</h2>
+        <div class="card-header">
+          <h2>D4H Activity</h2>
+          <label class="link-label" id="d4hLinkRow" style="display:none">
+            <input type="checkbox" id="d4hLinkCheck" />
+            Link to Incident
+          </label>
+        </div>
 
         <div class="form-row">
           <label for="d4h_activity">D4H Activity ID</label>
@@ -50,7 +65,10 @@
             placeholder="e.g. 327349"
             autocomplete="off"
           />
+          <button id="d4hLookupBtn" type="button" class="lookup-btn" title="Look up activity">Apply</button>
         </div>
+
+        <div class="message-bar hidden" id="d4hHint"></div>
       </div>
 
     </div>

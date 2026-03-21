@@ -44,6 +44,7 @@ def run_migrations(conn):
 
     migrations = [
         (1, migration_001_initial_schema),
+        (2, migration_002_settings),
     ]
 
     for version, migration in migrations:
@@ -113,5 +114,18 @@ def migration_001_initial_schema(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_personnel_name ON personnel(name);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_personnel_d4h_ref ON personnel(d4h_ref);")
+
+
+def migration_002_settings(conn):
+    """
+    Adds a key-value settings table for per-incident configuration.
+    Used to store linked D4H activity ID and CalTopo map ID.
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+    """)
 
 

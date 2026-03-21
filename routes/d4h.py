@@ -13,6 +13,41 @@ bp = Blueprint("d4h", __name__)
 # API Routes
 # ===============================
 
+@bp.get("/api/d4h/activity/<activity_id>")
+def get_d4h_activity(activity_id):
+    """
+    Returns the title/name of a D4H activity by ID.
+    { "activityId": "330704", "title": "Search Callout – Gatineau Park" }
+    """
+    try:
+        base_url, token, team_id = _get_d4h_config()
+        headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+
+        # D4H separates activities by type — try list endpoints with id filter
+        activity_types = ["incidents", "events", "exercises"]
+        activity = None
+        for atype in activity_types:
+            url = f"{base_url}/v3/team/{team_id}/{atype}"
+            try:
+                data = _d4h_get_json(url, headers=headers, params={"id": str(activity_id)})
+                results = data.get("results") or []
+                if results:
+                    activity = results[0]
+                    break
+            except RuntimeError:
+                continue
+
+        if not activity:
+            return jsonify({"error": f"Activity {activity_id} not found"}), 404
+
+        title = (activity.get("referenceDescription") or "").strip()
+
+        return jsonify({"activityId": str(activity_id), "title": title or None})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @bp.get("/api/d4h/activity/<activity_id>/attending-members")
 def get_d4h_attending_members(activity_id):
     """

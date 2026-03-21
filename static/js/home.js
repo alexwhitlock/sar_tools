@@ -1,17 +1,21 @@
+import { initMessageBar } from "./message-bar.js";
+
 console.log("[home.js] LOADED");
 
 function $(id) { return document.getElementById(id); }
 
-function setHint(msg) {
-  const el = $("incidentHint");
-  if (el) el.textContent = msg;
-}
+let incidentMsg = null;
+let caltopoMsg  = null;
+let d4hMsg      = null;
+
+// ===============================
+// Incident list
+// ===============================
 
 async function loadIncidents(selectName = "") {
   const sel = $("incidentSelect");
   if (!sel) return;
 
-  // Always show placeholder immediately
   sel.innerHTML = "";
   const ph = document.createElement("option");
   ph.value = "";
@@ -34,16 +38,17 @@ async function loadIncidents(selectName = "") {
 
     if (selectName && [...sel.options].some(o => o.value === selectName)) {
       sel.value = selectName;
-      sel.dataset.prev = selectName; // remember active
-      setHint(`Active: ${selectName}`);
+      sel.dataset.prev = selectName;
+      incidentMsg.show(`Active: ${selectName}`, "info");
     } else {
       sel.value = "";
       sel.dataset.prev = "";
-      setHint(incidents.length ? "No incident selected." : "No incidents yet. Create one.");
+      if (!incidents.length) incidentMsg.show("No incidents yet. Create one.", "warning");
+      else incidentMsg.clear();
     }
   } catch (e) {
     console.error(e);
-    setHint(`Incident list error: ${e.message}`);
+    incidentMsg.show(`Incident list error: ${e.message}`, "error");
   }
 }
 
@@ -64,16 +69,15 @@ async function openIncident(incidentName) {
 async function createIncident() {
   const nameInput = $("incidentNewName");
   const btn = $("incidentCreateBtn");
-  const hint = $("incidentHint");
 
   const name = (nameInput?.value || "").trim();
   if (!name) {
-    hint.textContent = "Enter an incident name.";
+    incidentMsg.show("Enter an incident name.", "warning");
     return;
   }
 
   btn.disabled = true;
-  hint.textContent = "Creating incident...";
+  incidentMsg.show("Creating incident...", "info");
 
   try {
     const res = await fetch("/api/incident/create", {
@@ -88,32 +92,163 @@ async function createIncident() {
     }
 
     nameInput.value = "";
-
-    // reload and auto-select the created incident
     await loadIncidents(data.incidentId);
 
-    // ensure backend is "opened" too (migrations/readiness)
     try {
       await openIncident(data.incidentId);
     } catch (e) {
       console.error(e);
-      // keep UI selection; just surface the backend-open problem
-      setHint(`Created, but open failed: ${e.message}`);
+      incidentMsg.show(`Created, but open failed: ${e.message}`, "error");
       return;
     }
 
-    hint.textContent = `Active: ${data.incidentId}`;
+    incidentMsg.show(`Active: ${data.incidentId}`, "info");
+    updateLinkCheckboxVisibility();
+    await loadIncidentSettings(data.incidentId);
   } catch (e) {
     console.error(e);
-    hint.textContent = e.message;
+    incidentMsg.show(e.message, "error");
   } finally {
     btn.disabled = false;
   }
 }
 
-/* ===============================
-   Home tab activation watcher
-   =============================== */
+// ===============================
+// Link checkbox visibility
+// ===============================
+
+function getCurrentIncident() {
+  const sel = $("incidentSelect");
+  return sel ? sel.value.trim() : "";
+}
+
+function updateLinkCheckboxVisibility() {
+  const hasIncident = !!getCurrentIncident();
+  const caltopoLinkRow = $("caltopoLinkRow");
+  const d4hLinkRow = $("d4hLinkRow");
+  if (caltopoLinkRow) caltopoLinkRow.style.display = hasIncident ? "" : "none";
+  if (d4hLinkRow) d4hLinkRow.style.display = hasIncident ? "" : "none";
+}
+
+// ===============================
+// Input lock helpers
+// ===============================
+
+function setCaltopoLinked(linked) {
+  const input = $("mapId");
+  const check = $("caltopoLinkCheck");
+  const btn   = $("mapIdLookupBtn");
+  if (input) input.disabled = linked;
+  if (check) check.checked  = linked;
+  if (btn)   btn.disabled   = linked;
+}
+
+function setD4hLinked(linked) {
+  const input = $("d4h_activity");
+  const check = $("d4hLinkCheck");
+  const btn   = $("d4hLookupBtn");
+  if (input) input.disabled = linked;
+  if (check) check.checked  = linked;
+  if (btn)   btn.disabled   = linked;
+}
+
+// ===============================
+// Name hint lookups
+// ===============================
+
+async function fetchCaltopoMapName(mapId) {
+  if (!mapId) { caltopoMsg.clear(); return; }
+  caltopoMsg.show("Looking up map…", "info");
+  try {
+    const res = await fetch(`/api/caltopo/map/${encodeURIComponent(mapId)}`);
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      caltopoMsg.show(data.error || "Map not found.", "error");
+      return;
+    }
+    caltopoMsg.show(data.title ? `Current Map: ${data.title}` : "Map found (no title).", "info");
+  } catch (e) {
+    caltopoMsg.show("Error looking up map.", "error");
+  }
+}
+
+async function fetchD4hActivityName(activityId) {
+  if (!activityId) { d4hMsg.clear(); return; }
+  d4hMsg.show("Looking up activity…", "info");
+  try {
+    const res = await fetch(`/api/d4h/activity/${encodeURIComponent(activityId)}`);
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      d4hMsg.show(data.error || "Activity not found.", "error");
+      return;
+    }
+    d4hMsg.show(data.title ? `Current Activity: ${data.title}` : "Activity found (no title).", "info");
+  } catch (e) {
+    d4hMsg.show("Error looking up activity.", "error");
+  }
+}
+
+// ===============================
+// Incident settings (link/unlink)
+// ===============================
+
+async function saveSetting(key, value) {
+  const incident = getCurrentIncident();
+  if (!incident) return;
+  await fetch("/api/incident/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName: incident, key, value }),
+  });
+}
+
+async function loadIncidentSettings(incidentName) {
+  // No incident: unlock everything, clear hints
+  if (!incidentName) {
+    $("mapId").value = "";
+    $("d4h_activity").value = "";
+    setCaltopoLinked(false);
+    setD4hLinked(false);
+    caltopoMsg.clear();
+    d4hMsg.clear();
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/incident/settings?incidentName=${encodeURIComponent(incidentName)}`);
+    const data = await res.json();
+    if (!res.ok || !data.ok) return;
+
+    const caltopoMapId    = data.caltopoMapId;
+    const d4hActivityId   = data.d4hActivityId;
+
+    if (caltopoMapId) {
+      $("mapId").value = caltopoMapId;
+      setCaltopoLinked(true);
+      fetchCaltopoMapName(caltopoMapId);
+    } else {
+      $("mapId").value = "";
+      setCaltopoLinked(false);
+      caltopoMsg.clear();
+    }
+
+    if (d4hActivityId) {
+      $("d4h_activity").value = d4hActivityId;
+      setD4hLinked(true);
+      fetchD4hActivityName(d4hActivityId);
+    } else {
+      $("d4h_activity").value = "";
+      setD4hLinked(false);
+      d4hMsg.clear();
+    }
+  } catch (e) {
+    console.error("[home.js] loadIncidentSettings error:", e);
+  }
+}
+
+// ===============================
+// Home tab activation watcher
+// ===============================
 
 function watchHomeTab() {
   const panel = document.getElementById("home");
@@ -127,16 +262,17 @@ function watchHomeTab() {
       logMessage("INFO", "Home tab activated");
       const sel = $("incidentSelect");
       const current = sel ? sel.value.trim() : "";
-      loadIncidents(current); // refresh list, keep current selection if possible
+      loadIncidents(current);
     }
     wasActive = isActive;
   });
 
-  observer.observe(panel, {
-    attributes: true,
-    attributeFilter: ["class"]
-  });
+  observer.observe(panel, { attributes: true, attributeFilter: ["class"] });
 }
+
+// ===============================
+// Init
+// ===============================
 
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[home.js] DOMContentLoaded");
@@ -146,6 +282,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  incidentMsg = initMessageBar("incidentHint");
+  caltopoMsg  = initMessageBar("caltopoHint");
+  d4hMsg      = initMessageBar("d4hHint");
+
+  // Incident selector
   $("incidentSelect").addEventListener("change", async (e) => {
     const sel = e.target;
     const val = sel.value.trim();
@@ -153,20 +294,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!val) {
       sel.dataset.prev = "";
-      setHint("No incident selected.");
+      incidentMsg.show("No incident selected.", "warning");
+      updateLinkCheckboxVisibility();
+      await loadIncidentSettings("");
       return;
     }
 
-    setHint(`Opening: ${val}...`);
+    incidentMsg.show(`Opening: ${val}…`, "info");
 
     try {
       await openIncident(val);
       sel.dataset.prev = val;
-      setHint(`Active: ${val}`);
+      incidentMsg.show(`Active: ${val}`, "info");
+      updateLinkCheckboxVisibility();
+      await loadIncidentSettings(val);
     } catch (err) {
       console.error(err);
       sel.value = prev;
-      setHint(`Open failed: ${err.message}`);
+      incidentMsg.show(`Open failed: ${err.message}`, "error");
+      updateLinkCheckboxVisibility();
     }
   });
 
@@ -175,6 +321,64 @@ document.addEventListener("DOMContentLoaded", async () => {
     createIncident();
   });
 
-  watchHomeTab();       // ✅ IMPORTANT: start watching activation
+  // CalTopo — lookup on button click or Enter key
+  async function doCaltopoLookup() {
+    if ($("mapId").disabled) return;
+    $("mapIdLookupBtn").disabled = true;
+    const mapId = ($("mapId")?.value || "").trim();
+    await fetchCaltopoMapName(mapId);
+  }
+  $("mapIdLookupBtn")?.addEventListener("click", doCaltopoLookup);
+  $("mapId")?.addEventListener("keydown", (e) => { if (e.key === "Enter") doCaltopoLookup(); });
+  $("mapId")?.addEventListener("input", () => {
+    if (!$("mapId").disabled) {
+      caltopoMsg.clear();
+      $("mapIdLookupBtn").disabled = false;
+    }
+  });
+
+  // D4H — lookup on button click or Enter key
+  async function doD4hLookup() {
+    if ($("d4h_activity").disabled) return;
+    $("d4hLookupBtn").disabled = true;
+    const actId = ($("d4h_activity")?.value || "").trim();
+    await fetchD4hActivityName(actId);
+  }
+  $("d4hLookupBtn")?.addEventListener("click", doD4hLookup);
+  $("d4h_activity")?.addEventListener("keydown", (e) => { if (e.key === "Enter") doD4hLookup(); });
+  $("d4h_activity")?.addEventListener("input", () => {
+    if (!$("d4h_activity").disabled) {
+      d4hMsg.clear();
+      $("d4hLookupBtn").disabled = false;
+    }
+  });
+
+  // CalTopo link checkbox
+  $("caltopoLinkCheck")?.addEventListener("change", async (e) => {
+    const mapId = ($("mapId")?.value || "").trim();
+    if (e.target.checked) {
+      if (!mapId) { e.target.checked = false; return; }
+      await saveSetting("linked_caltopo_map_id", mapId);
+      setCaltopoLinked(true);
+    } else {
+      await saveSetting("linked_caltopo_map_id", null);
+      setCaltopoLinked(false);
+    }
+  });
+
+  // D4H link checkbox
+  $("d4hLinkCheck")?.addEventListener("change", async (e) => {
+    const actId = ($("d4h_activity")?.value || "").trim();
+    if (e.target.checked) {
+      if (!actId) { e.target.checked = false; return; }
+      await saveSetting("linked_d4h_activity_id", actId);
+      setD4hLinked(true);
+    } else {
+      await saveSetting("linked_d4h_activity_id", null);
+      setD4hLinked(false);
+    }
+  });
+
+  watchHomeTab();
   await loadIncidents("");
 });

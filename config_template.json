@@ -1,4 +1,8 @@
 {
-  "cred_id": "NMV3Q8RMD3Q2",
-  "cred_secret_b64": "mk/Oi8b5ON4dIy5HkTH0bvRfDOuwTKaQQhnTbQaYmfg="
+  "cred_id": "<your CalTopo credential ID>",
+  "cred_secret_b64": "<your CalTopo credential secret (base64)>",
+  "CALTOPO_TEAM_ID": "<your CalTopo team ID>",
+  "D4H_API_TOKEN": "<your D4H personal access token>",
+  "D4H_TEAM_ID": "<your D4H team ID>",
+  "D4H_BASE_URL": "https://api.team-manager.ca.d4h.com"
 }

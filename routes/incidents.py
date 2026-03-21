@@ -70,3 +70,48 @@ def api_get_incidents():
     incidents.sort(key=lambda x: x["incidentName"].lower())
 
     return jsonify({"ok": True, "incidents": incidents})
+
+
+_ALLOWED_SETTINGS_KEYS = {"linked_d4h_activity_id", "linked_caltopo_map_id"}
+
+
+@bp.get("/api/incident/settings")
+def api_incident_get_settings():
+    incident_name = (request.args.get("incidentName") or "").strip()
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName required"}), 400
+
+    with get_connection(incident_name) as conn:
+        rows = conn.execute("SELECT key, value FROM settings").fetchall()
+
+    s = {row[0]: row[1] for row in rows}
+    return jsonify({
+        "ok": True,
+        "d4hActivityId": s.get("linked_d4h_activity_id"),
+        "caltopoMapId": s.get("linked_caltopo_map_id"),
+    })
+
+
+@bp.post("/api/incident/settings")
+def api_incident_save_settings():
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    key = (data.get("key") or "").strip()
+    value = data.get("value")  # None = delete the setting
+
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName required"}), 400
+    if key not in _ALLOWED_SETTINGS_KEYS:
+        return jsonify({"ok": False, "error": f"invalid key: {key}"}), 400
+
+    with get_connection(incident_name) as conn:
+        if value is None:
+            conn.execute("DELETE FROM settings WHERE key = ?", (key,))
+        else:
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?)"
+                " ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, str(value))
+            )
+
+    return jsonify({"ok": True})

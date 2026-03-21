@@ -34,6 +34,7 @@ try:
         config = json.load(f)
         CRED_ID = config.get("cred_id", "").strip()
         CRED_SECRET_B64 = config.get("cred_secret_b64", "").strip()
+        CALTOPO_TEAM_ID = config.get("CALTOPO_TEAM_ID", "").strip()
         D4H_API_TOKEN = config.get("D4H_API_TOKEN", "").strip()
         D4H_TEAM_ID = config.get("D4H_TEAM_ID", "").strip()
         D4H_BASE_URL = config.get("D4H_BASE_URL", "").strip()
@@ -44,6 +45,7 @@ except Exception as e:
 
 app.config["CRED_ID"] = CRED_ID
 app.config["CRED_SECRET_B64"] = CRED_SECRET_B64
+app.config["CALTOPO_TEAM_ID"] = CALTOPO_TEAM_ID
 app.config["D4H_API_TOKEN"] = D4H_API_TOKEN
 app.config["D4H_TEAM_ID"] = D4H_TEAM_ID
 app.config["D4H_BASE_URL"] = D4H_BASE_URL

@@ -37,7 +37,6 @@
 /* Reload button */
 .assignments-reload-btn {
   width: auto;              /* override global 100% */
-  padding: 0.3rem 0.6rem;
   flex: 0 0 auto;
 }
 

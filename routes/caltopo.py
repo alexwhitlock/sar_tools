@@ -11,9 +11,46 @@ bp = Blueprint("caltopo", __name__)
 
 caltopo_base_url = "https://caltopo.com"
 
+# Simple in-memory cache for account feature list (5-minute TTL)
+_acct_cache = {"data": None, "ts": 0}
+_ACCT_CACHE_TTL = 300  # seconds
+
 # ===============================
 # API Routes
 # ===============================
+
+@bp.get("/api/caltopo/map/<map_id>")
+def api_caltopo_map_info(map_id):
+    """
+    Returns the title of a CalTopo map by ID.
+    Looks up the map in the team account's feature list (cached 5 min).
+    { "mapId": "APC1GE5", "title": "Gatineau Park SAR" }
+    """
+    try:
+        team_id = _cfg("CALTOPO_TEAM_ID")
+        features = _get_acct_features(team_id)
+
+        for feat in features:
+            if feat.get("id") == map_id:
+                title = (feat.get("properties") or {}).get("title", "").strip()
+                return jsonify({"mapId": map_id, "title": title or None})
+
+        return jsonify({"error": f"Map {map_id} not found in team account"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _get_acct_features(team_id):
+    """Returns cached account features, refreshing if older than TTL."""
+    now = time.time()
+    if _acct_cache["data"] is not None and (now - _acct_cache["ts"]) < _ACCT_CACHE_TTL:
+        return _acct_cache["data"]
+    data = get_from_caltopo(f"/api/v1/acct/{team_id}/since/0")
+    features = data.get("features") or []
+    _acct_cache["data"] = features
+    _acct_cache["ts"] = now
+    return features
+
 
 @bp.get("/api/assignments")
 def api_assignments():
