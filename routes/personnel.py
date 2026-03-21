@@ -8,11 +8,13 @@ from db.personnel_repo import (
     list_personnel_with_team,
     add_person,
     update_person,
+    update_person_status,
     delete_person,
     upsert_people_from_d4h,
     find_name_matches,
     find_name_matches_batch,
     link_d4h_to_person,
+    VALID_STATUSES,
 )
 
 from routes.d4h import (
@@ -161,6 +163,29 @@ def api_personnel_link_d4h():
         return jsonify({"ok": True})
     except sqlite3.IntegrityError:
         return jsonify({"ok": False, "error": "That D4H ref is already linked to another person."}), 409
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.post("/api/personnel/status")
+def api_personnel_status():
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    person_key = data.get("personKey")
+    status = (data.get("status") or "").strip()
+
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName is required"}), 400
+    if person_key in (None, ""):
+        return jsonify({"ok": False, "error": "personKey is required"}), 400
+    if status not in VALID_STATUSES:
+        return jsonify({"ok": False, "error": f"invalid status: {status}"}), 400
+
+    try:
+        ok = update_person_status(incident_name, person_id=int(person_key), status=status)
+        if not ok:
+            return jsonify({"ok": False, "error": "person not found"}), 404
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

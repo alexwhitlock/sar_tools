@@ -80,11 +80,14 @@ function getPersonKey(p) {
 
 function renderPersonnelRow(p) {
   const key = getPersonKey(p);
+  const status = p.status || "Added";
 
   const tr = document.createElement("tr");
+  tr.dataset.status = status;
   tr.innerHTML = `
     <td>${escapeHtml(p.name)}</td>
     <td>${escapeHtml(p.team)}</td>
+    <td>${escapeHtml(status)}</td>
     <td>${escapeHtml(p.source)}</td>
     <td class="col-d4href">${escapeHtml(p.d4hRef)}</td>
     <td class="actions-cell">
@@ -122,8 +125,13 @@ async function loadPersonnel() {
 
     logMessage("INFO", "Personnel received", data);
 
-    // Normalize to array
-    const arr = Array.isArray(data) ? data : [];
+    // Normalize to array and compute synthetic teamFilter field
+    const arr = (Array.isArray(data) ? data : []).map(p => ({
+      ...p,
+      teamFilter: p.status === "Checked In"
+        ? (p.team ? "Assigned" : "Unassigned")
+        : "",
+    }));
     personnelCache = arr;
 
     if (!arr.length) {
@@ -174,6 +182,19 @@ function openMenu(anchorBtn, personKey) {
   if (!menu) return;
 
   activePersonKey = personKey;
+
+  const person = findPersonInCache(personKey);
+  const status = person?.status ?? "Added";
+
+  function showIf(action, condition) {
+    const el = menu.querySelector(`[data-action='${action}']`);
+    if (el) el.style.display = condition ? "" : "none";
+  }
+
+  const previousStatus = person?.previousStatus ?? null;
+  showIf("check-in",      status === "Added" || status === "Checked Out");
+  showIf("undo-check-in", status === "Checked In" && previousStatus === "Added");
+  showIf("check-out",     status === "Checked In");
 
   const rect = anchorBtn.getBoundingClientRect();
 
@@ -228,8 +249,6 @@ function openPersonModal(mode, person = null) {
 
   backdrop.classList.remove("hidden");
   backdrop.setAttribute("aria-hidden", "false");
-
-  // Focus first input
   nameInput.focus();
 }
 
@@ -313,6 +332,18 @@ async function apiCheckNames({ incidentName, members }) {
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || data.ok === false) throw new Error(data.error || "Batch check failed");
   return data; // { results: [...] }
+}
+
+
+async function apiUpdatePersonStatus({ incidentName, personKey, status }) {
+  const resp = await fetch("/api/personnel/status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ incidentName, personKey, status }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) throw new Error(data.error || `Status update failed (HTTP ${resp.status})`);
+  return data;
 }
 
 async function apiLinkD4h({ incidentName, personId, d4hRef, name }) {
@@ -490,6 +521,42 @@ function wireFilters(table) {
     });
   }
 
+  // Scope pill queries to the personnel panel to avoid collision with assignments tab
+  const personnelPanel = document.getElementById("personnel");
+
+  // Status pill filter
+  const statusPillGroup = personnelPanel?.querySelector(".pill-group[data-filter-key='status']");
+  if (statusPillGroup) {
+    statusPillGroup.addEventListener("change", () => {
+      const values = Array.from(statusPillGroup.querySelectorAll("input:checked")).map(cb => cb.value);
+      table.setFilter("status", values, "in");
+    });
+  }
+
+  // Team assignment pills — mutually exclusive + auto-select Checked In
+  const teamPillGroup = personnelPanel?.querySelector(".pill-group[data-filter-key='teamFilter']");
+  const checkedInPill = statusPillGroup?.querySelector("input[value='Checked In']");
+  if (teamPillGroup) {
+    teamPillGroup.addEventListener("change", (e) => {
+      const clicked = e.target;
+
+      // Mutual exclusion — uncheck the other pill
+      teamPillGroup.querySelectorAll("input[type=checkbox]").forEach(cb => {
+        if (cb !== clicked) cb.checked = false;
+      });
+
+      if (clicked.checked) {
+        // Force Checked In pill on — use .click() so browser re-evaluates :has() styles
+        if (checkedInPill && !checkedInPill.checked) checkedInPill.click();
+        const statusValues = Array.from(statusPillGroup.querySelectorAll("input:checked")).map(cb => cb.value);
+        table.setFilter("status", statusValues, "in");
+        table.setFilter("teamFilter", [clicked.value], "in");
+      } else {
+        table.setFilter("teamFilter", [], "in");
+      }
+    });
+  }
+
   const d4hRefToggle = document.getElementById("toggle-d4href");
   if (d4hRefToggle) {
     const tableEl = document.querySelector(".personnel-data-table");
@@ -582,6 +649,21 @@ function wireMenuAndModal() {
     const incidentName = requireIncidentOrError();
     if (!incidentName) return;
 
+    if (action === "check-in" || action === "undo-check-in" || action === "check-out") {
+      const newStatus = action === "check-in" ? "Checked In"
+                      : action === "check-out" ? "Checked Out"
+                      : "Added";
+      try {
+        personnelMessage.show(`Updating status…`, "info");
+        await apiUpdatePersonStatus({ incidentName, personKey: activePersonKey, status: newStatus });
+        await loadPersonnel();
+        personnelMessage.show(`Status updated to ${newStatus}.`, "info");
+      } catch (err) {
+        personnelMessage.show(`Failed to update status: ${err.message}`, "error");
+      }
+      return;
+    }
+
     if (action === "edit") {
       const person = findPersonInCache(activePersonKey);
       if (!person) {
@@ -668,11 +750,7 @@ function wireMenuAndModal() {
 
         await apiAddPerson({ incidentName, name });
       } else {
-        await apiUpdatePerson({
-          incidentName,
-          personKey: activePersonKey,
-          name,
-        });
+        await apiUpdatePerson({ incidentName, personKey: activePersonKey, name });
       }
 
       closePersonModal();
