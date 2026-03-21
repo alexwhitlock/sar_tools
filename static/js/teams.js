@@ -11,6 +11,13 @@ const TEAM_STATUSES = [
   "Retired",
 ];
 
+const IN_PROGRESS_TEAM_STATES = new Set([
+  "Travelling to Assignment",
+  "On Assignment",
+  "Returning from Assignment",
+  "Awaiting Debrief",
+]);
+
 const STATUS_BADGE_CLASS = {
   "Out of Service":            "ts-badge-oos",
   "Staged":                    "ts-badge-staged",
@@ -71,6 +78,26 @@ function requireIncidentOrError() {
     return "";
   }
   return incidentName;
+}
+
+/**
+ * Validate a proposed team status change against assignment rules.
+ * Returns an error string if the change should be blocked, null if OK.
+ */
+function validateTeamStatusChange(team, newStatus) {
+  const hasInProgress = getInProgressAssignmentsForTeam(team.name).length > 0;
+
+  // Can't enter an in-progress state without an active assignment
+  if (IN_PROGRESS_TEAM_STATES.has(newStatus) && !hasInProgress) {
+    return `Team ${team.name} cannot be set to "${newStatus}" — they have no in-progress CalTopo assignment.`;
+  }
+
+  // Can't leave an in-progress state while still on an active assignment
+  if (!IN_PROGRESS_TEAM_STATES.has(newStatus) && IN_PROGRESS_TEAM_STATES.has(team.status) && hasInProgress) {
+    return `Team ${team.name} is still assigned to an in-progress assignment. Complete the assignment in CalTopo before changing status to "${newStatus}".`;
+  }
+
+  return null;
 }
 
 function updateAddButtonEnabled() {
@@ -244,6 +271,15 @@ async function loadTeams() {
         const missing = findMissingTeams(kanbanAssignments, teamsCache);
         if (missing.length > 0) {
           warnings.push(`Teams in CalTopo not in database: ${missing.join(", ")}`);
+        }
+
+        // Warn if any team is OOS but has an in-progress CalTopo assignment
+        const oosWithAssignment = teamsCache.filter(t =>
+          t.status === "Out of Service" && getInProgressAssignmentsForTeam(t.name).length > 0
+        );
+        if (oosWithAssignment.length > 0) {
+          const names = oosWithAssignment.map(t => `Team ${t.name}`).join(", ");
+          warnings.push(`${names} marked Out of Service but assigned to an in-progress assignment`);
         }
       }
 
@@ -429,6 +465,9 @@ function wireTouchDnd(card, teamId) {
     const incidentName = getCurrentIncidentName();
     if (!incidentName) return;
 
+    const err = validateTeamStatusChange(team, newStatus);
+    if (err) { teamsMessage.show(`⚠ ${err}`, "error"); return; }
+
     try {
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus });
       team.status = newStatus;
@@ -558,9 +597,10 @@ function renderKanban(teams) {
       if (!team || team.status === newStatus) return;
       const incidentName = getCurrentIncidentName();
       if (!incidentName) return;
+      const err = validateTeamStatusChange(team, newStatus);
+      if (err) { teamsMessage.show(`⚠ ${err}`, "error"); return; }
       try {
         await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus });
-        // Update the local cache and re-render — avoids a full network reload
         team.status = newStatus;
         renderKanban(teamsCache);
       } catch (err) {
@@ -823,6 +863,18 @@ async function saveTeamModal() {
     window.alert("Team name is required.");
     document.getElementById("teamName")?.focus();
     return;
+  }
+
+  // Validate status change rules for edits (create always starts at the chosen status with no assignment)
+  if (modalMode === "edit") {
+    const currentTeam = teamsCache.find(t => t.id === activeTeamId);
+    if (currentTeam && currentTeam.status !== status) {
+      const err = validateTeamStatusChange(currentTeam, status);
+      if (err) {
+        teamsMessage.show(`⚠ ${err}`, "error");
+        return;
+      }
+    }
   }
 
   teamsMessage.show(modalMode === "create" ? "Creating team…" : "Saving changes…", "info");
