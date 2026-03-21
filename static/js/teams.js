@@ -562,25 +562,42 @@ function renderKanban(teams) {
 function switchView(view) {
   currentView = view;
 
-  const tableView = document.getElementById("teams-table-view");
-  const kanbanView = document.getElementById("teams-kanban-view");
+  const tableView        = document.getElementById("teams-table-view");
+  const kanbanView       = document.getElementById("teams-kanban-view");
   const statusFilterGroup = document.getElementById("teams-status-filter-group");
-  const tableBtn = document.getElementById("view-table-btn");
-  const kanbanBtn = document.getElementById("view-kanban-btn");
+  const tableBtn         = document.getElementById("view-table-btn");
+  const kanbanBtn        = document.getElementById("view-kanban-btn");
+  const addBtn           = document.getElementById("team-add");
+  const toolbar          = document.querySelector(".teams-toolbar");
+  const filtersRow       = document.querySelector(".teams-filters");
+  const searchGroup      = document.getElementById("teams-search-group");
 
   if (view === "table") {
     tableView?.classList.remove("hidden");
     kanbanView?.classList.add("hidden");
     if (statusFilterGroup) statusFilterGroup.style.display = "";
+    if (addBtn) addBtn.style.display = "";
+    if (filtersRow) filtersRow.style.display = "";
     tableBtn?.classList.add("active");
     kanbanBtn?.classList.remove("active");
+    // Move search back into filters row
+    if (searchGroup && filtersRow && searchGroup.parentElement !== filtersRow) {
+      filtersRow.prepend(searchGroup);
+    }
     teamsTable.setData(teamsCache);
   } else {
     tableView?.classList.add("hidden");
     kanbanView?.classList.remove("hidden");
     if (statusFilterGroup) statusFilterGroup.style.display = "none";
+    if (addBtn) addBtn.style.display = "none";
+    if (filtersRow) filtersRow.style.display = "none";
     tableBtn?.classList.remove("active");
     kanbanBtn?.classList.add("active");
+    // Move search into toolbar (before the view toggle)
+    if (searchGroup && toolbar) {
+      const toggle = toolbar.querySelector(".view-toggle");
+      toolbar.insertBefore(searchGroup, toggle);
+    }
     renderKanban(teamsCache);
   }
 }

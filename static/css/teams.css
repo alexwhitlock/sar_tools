@@ -66,6 +66,32 @@
 }
 
 
+/* Search group when moved inline into toolbar (kanban view) */
+.teams-toolbar #teams-search-group {
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.teams-toolbar #teams-search-group label {
+  font-size: 0.78rem;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.teams-toolbar #teams-search-group #teams-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  height: 1.8rem;
+  font-size: 0.78rem;
+  padding: 0 0.4rem;
+  box-sizing: border-box;
+}
+
+
 /* ===============================
    Filters
    =============================== */
