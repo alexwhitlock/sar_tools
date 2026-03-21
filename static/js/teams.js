@@ -466,7 +466,7 @@ function wireTouchDnd(card, teamId) {
     if (!incidentName) return;
 
     const err = validateTeamStatusChange(team, newStatus);
-    if (err) { teamsMessage.show(`⚠ ${err}`, "error"); return; }
+    if (err) { teamsMessage.show(`⚠ ${err}`, "error", 6000); return; }
 
     try {
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus });
@@ -871,7 +871,7 @@ async function saveTeamModal() {
     if (currentTeam && currentTeam.status !== status) {
       const err = validateTeamStatusChange(currentTeam, status);
       if (err) {
-        teamsMessage.show(`⚠ ${err}`, "error");
+        teamsMessage.show(`⚠ ${err}`, "error", 6000);
         return;
       }
     }
