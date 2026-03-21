@@ -78,6 +78,31 @@ function updateAddButtonEnabled() {
   if (btn) btn.disabled = !getCurrentIncidentName();
 }
 
+/** Parse "id:name|id:name" member_data string into [{id, name}] array. */
+function parseMemberData(memberData) {
+  if (!memberData) return [];
+  return memberData.split("|").filter(Boolean).map(s => {
+    const colon = s.indexOf(":");
+    return colon > -1 ? { id: parseInt(s.slice(0, colon)), name: s.slice(colon + 1) } : null;
+  }).filter(Boolean);
+}
+
+/** Build members tooltip: TL first with "(TL)", rest alphabetically. */
+function memberTooltip(team) {
+  const members = parseMemberData(team.memberData);
+  if (!members.length) return "No members";
+  const tlId = team.teamLeaderId ? String(team.teamLeaderId) : null;
+  const tl    = tlId ? members.find(m => String(m.id) === tlId) : null;
+  const rest  = members
+    .filter(m => !tl || String(m.id) !== tlId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const lines = [
+    ...(tl   ? [`${tl.name} (TL)`] : []),
+    ...rest.map(m => m.name),
+  ];
+  return lines.map(l => escapeHtml(l)).join("&#10;");
+}
+
 function escapeHtml(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
@@ -115,14 +140,6 @@ async function apiLoadTeams(incidentName) {
   return Array.isArray(data) ? data : [];
 }
 
-async function apiLoadTeamMembers(incidentName, teamId) {
-  const resp = await fetch(
-    `/api/teams/members?incidentName=${encodeURIComponent(incidentName)}&teamId=${teamId}`
-  );
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
-  return Array.isArray(data) ? data : [];
-}
 
 async function apiLoadPersonnel(incidentName) {
   const resp = await fetch(`/api/personnel?incidentName=${encodeURIComponent(incidentName)}`);
@@ -137,12 +154,28 @@ async function apiLoadPersonnel(incidentName) {
 
 function renderTeamRow(t) {
   const badgeClass = STATUS_BADGE_CLASS[t.status] || "ts-badge-oos";
+  const inProgress = getInProgressAssignmentsForTeam(t.name);
+
+  let assignmentHtml;
+  if (inProgress.length === 0) {
+    assignmentHtml = "—";
+  } else if (inProgress.length === 1) {
+    assignmentHtml = escapeHtml(`Assignment ${inProgress[0].number ?? "?"}`);
+  } else {
+    const nums = inProgress.map(a => a.number ?? "?").join(", ");
+    const tip  = escapeHtml(
+      `Team ${t.name} has ${inProgress.length} in-progress assignments (${nums}). Only one should be active at a time.`
+    );
+    assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠</span>`;
+  }
+
   const tr = document.createElement("tr");
   tr.innerHTML = `
     <td>${escapeHtml(t.name)}</td>
     <td><span class="ts-badge ${badgeClass}">${escapeHtml(t.status)}</span></td>
     <td>${escapeHtml(t.teamLeaderName || "—")}</td>
-    <td>${t.memberCount ?? 0}</td>
+    <td title="${memberTooltip(t)}" style="cursor:help">${t.memberCount ?? 0}</td>
+    <td>${assignmentHtml}</td>
     <td class="actions-cell">
       <button
         type="button"
@@ -172,20 +205,41 @@ async function loadTeams() {
     if (!teams.length) {
       teamsMessage.show("No teams yet. Click + Team to create one.", "info");
     } else {
-      teamsMessage.show(`${teams.length} team${teams.length !== 1 ? "s" : ""}.`, "info");
-    }
+      // Keep "Loading teams…" until assignment checks are also done
+      const countLabel = `${teams.length} team${teams.length !== 1 ? "s" : ""}.`;
+      const warnings = [];
 
-    if (currentView === "table") {
-      teamsTable.setData(teams);
-    } else {
-      // Optionally try fetching assignments for kanban enrichment
       const mapId = getCurrentMapId();
       if (mapId) {
         try {
           const resp = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}`);
           if (resp.ok) kanbanAssignments = await resp.json().catch(() => []);
-        } catch (_) { /* optional */ }
+        } catch (_) { /* assignment enrichment is optional */ }
+
+        const conflicts = findAssignmentConflicts(kanbanAssignments);
+        if (conflicts.size > 0) {
+          const detail = [...conflicts.entries()]
+            .map(([letter, nums]) => `Team ${letter} (assignments ${nums.join(", ")})`)
+            .join("; ");
+          warnings.push(`Multiple in-progress assignments: ${detail}`);
+        }
+
+        const missing = findMissingTeams(kanbanAssignments, teamsCache);
+        if (missing.length > 0) {
+          warnings.push(`Teams in CalTopo not in database: ${missing.join(", ")}`);
+        }
       }
+
+      if (warnings.length > 0) {
+        teamsMessage.show(`${countLabel} ⚠ ${warnings.join(" — ")}`, "warning");
+      } else {
+        teamsMessage.show(countLabel, "info");
+      }
+    }
+
+    if (currentView === "table") {
+      teamsTable.setData(teams);
+    } else {
       renderKanban(teams);
     }
   } catch (err) {
@@ -200,12 +254,88 @@ async function loadTeams() {
    Kanban
    =============================== */
 
-function getAssignmentForTeam(teamName) {
-  if (!kanbanAssignments.length) return null;
-  const match = kanbanAssignments.find(
-    a => (a.team || "").trim().toLowerCase() === (teamName || "").trim().toLowerCase()
+/**
+ * Parse a CalTopo assignment team field into individual single-letter codes.
+ * Handles "ABC", "A,B,C", "A-B-C", "A, B, C", etc.
+ */
+function parseAssignmentTeamLetters(teamField) {
+  if (!teamField) return [];
+  // Strip delimiters (comma, hyphen, space) then split into individual chars
+  return [...String(teamField).replace(/[\s,\-]+/g, "")]
+    .map(c => c.toUpperCase())
+    .filter(c => /[A-Z]/.test(c));
+}
+
+/**
+ * Return all in-progress assignments for a given single-letter team name.
+ * Used by the table view and conflict detection.
+ */
+function getInProgressAssignmentsForTeam(teamName) {
+  if (!kanbanAssignments.length || !teamName) return [];
+  const letter = String(teamName).trim().toUpperCase();
+  if (letter.length !== 1 || !/[A-Z]/.test(letter)) return [];
+  return kanbanAssignments.filter(a => {
+    if ((a.status || "").toUpperCase() !== "INPROGRESS") return false;
+    return parseAssignmentTeamLetters(a.team).includes(letter);
+  });
+}
+
+/**
+ * Find single-letter team codes referenced in non-completed assignments
+ * that don't exist in the local teams DB.
+ * Returns sorted string[].
+ */
+function findMissingTeams(assignments, teams) {
+  const dbLetters = new Set(
+    teams
+      .map(t => String(t.name).trim().toUpperCase())
+      .filter(n => n.length === 1 && /[A-Z]/.test(n))
   );
-  return match ? (match.number ? `Assignment ${match.number}` : null) : null;
+  const missing = new Set();
+  for (const a of (assignments || [])) {
+    if ((a.status || "").toUpperCase() === "COMPLETED") continue;
+    for (const letter of parseAssignmentTeamLetters(a.team)) {
+      if (!dbLetters.has(letter)) missing.add(letter);
+    }
+  }
+  return [...missing].sort();
+}
+
+/**
+ * Find single-letter teams that appear in more than one INPROGRESS assignment.
+ * Returns Map<letter, number[]>.
+ */
+function findAssignmentConflicts(assignments) {
+  const map = new Map();
+  for (const a of (assignments || [])) {
+    if ((a.status || "").toUpperCase() !== "INPROGRESS") continue;
+    for (const letter of parseAssignmentTeamLetters(a.team)) {
+      if (!map.has(letter)) map.set(letter, []);
+      map.get(letter).push(a.number ?? "?");
+    }
+  }
+  return new Map([...map].filter(([, nums]) => nums.length > 1));
+}
+
+/**
+ * Return the in-progress assignment number for a given team name.
+ * Team names must be a single letter to participate in assignment matching.
+ * Returns a display string like "Assignment 42" or null.
+ */
+function getAssignmentForTeam(teamName) {
+  if (!kanbanAssignments.length || !teamName) return null;
+
+  const letter = String(teamName).trim().toUpperCase();
+
+  // Only single-letter team names can be matched to CalTopo assignment fields
+  if (letter.length !== 1 || !/[A-Z]/.test(letter)) return null;
+
+  const match = kanbanAssignments.find(a => {
+    if ((a.status || "").toUpperCase() !== "INPROGRESS") return false;
+    return parseAssignmentTeamLetters(a.team).includes(letter);
+  });
+
+  return match?.number != null ? `Assignment ${match.number}` : null;
 }
 
 /* ===============================
@@ -342,20 +472,40 @@ function renderKanban(teams) {
     const cardsEl = col.querySelector(".kanban-col-cards");
 
     for (const team of statusTeams) {
-      const assignment = getAssignmentForTeam(team.name);
+      const inProgress = getInProgressAssignmentsForTeam(team.name);
+
+      let assignmentHtml;
+      if (inProgress.length === 0) {
+        assignmentHtml = "Not Assigned";
+      } else if (inProgress.length === 1) {
+        assignmentHtml = escapeHtml(`Assignment ${inProgress[0].number ?? "?"}`);
+      } else {
+        const nums = inProgress.map(a => a.number ?? "?").join(", ");
+        const tip  = escapeHtml(
+          `Team ${team.name} has ${inProgress.length} in-progress assignments (${nums}). Only one should be active at a time.`
+        );
+        assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠</span>`;
+      }
+
+      // Use first match for search matching (consistent with display)
+      const assignmentText = inProgress[0]?.number != null ? `Assignment ${inProgress[0].number}` : null;
+
       const card = document.createElement("div");
       card.className = "kanban-card";
       card.setAttribute("draggable", "true");
       card.dataset.teamId = team.id;
 
-      if (searchVal && !kanbanCardMatches(team, assignment, searchVal)) {
+      if (searchVal && !kanbanCardMatches(team, assignmentText, searchVal)) {
         card.classList.add("search-hidden");
       }
 
       card.innerHTML = `
-        <div class="kanban-card-name">Team ${escapeHtml(team.name)}</div>
+        <div class="kanban-card-header">
+          <span class="kanban-card-name">Team ${escapeHtml(team.name)}</span>
+          <span class="kanban-card-members" title="${memberTooltip(team)}">${team.memberCount ?? 0} Members</span>
+        </div>
         <div class="kanban-card-tl">TL: ${escapeHtml(team.teamLeaderName || "None")}</div>
-        <div class="kanban-card-assignment">${escapeHtml(assignment || "Not Assigned")}</div>
+        <div class="kanban-card-assignment">${assignmentHtml}</div>
       `;
 
       // Drag source
@@ -583,16 +733,8 @@ async function openTeamModal(mode, team = null) {
     allPersonnel = [];
   }
 
-  // Load current members (edit mode) or start empty
-  if (mode === "edit" && team?.id) {
-    try {
-      modalMembers = await apiLoadTeamMembers(incidentName, team.id);
-    } catch (_) {
-      modalMembers = [];
-    }
-  } else {
-    modalMembers = [];
-  }
+  // Members are already in the team object from list_teams — no extra API call needed
+  modalMembers = mode === "edit" ? parseMemberData(team?.memberData) : [];
   originalMemberIds = new Set(modalMembers.map(m => String(m.id)));
 
   refreshMemberUI();

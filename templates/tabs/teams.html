@@ -6,20 +6,8 @@
       <div id="teams-message" class="message-bar info hidden"></div>
       <button id="team-add" class="teams-toolbar-btn" title="Create Team" disabled>+ Team</button>
       <div class="view-toggle">
-        <button id="view-table-btn" class="view-toggle-btn active" title="Table view">
-          <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" aria-hidden="true">
-            <rect x="0" y="0"  width="14" height="2" rx="1"/>
-            <rect x="0" y="5"  width="14" height="2" rx="1"/>
-            <rect x="0" y="10" width="14" height="2" rx="1"/>
-          </svg>
-        </button>
-        <button id="view-kanban-btn" class="view-toggle-btn" title="Kanban view">
-          <svg width="14" height="12" viewBox="0 0 14 12" fill="currentColor" aria-hidden="true">
-            <rect x="0"    y="0" width="3" height="12" rx="1"/>
-            <rect x="5.5"  y="0" width="3" height="12" rx="1"/>
-            <rect x="11"   y="0" width="3" height="12" rx="1"/>
-          </svg>
-        </button>
+        <button id="view-table-btn" class="view-toggle-btn active" title="Table view">Table</button>
+        <button id="view-kanban-btn" class="view-toggle-btn" title="Kanban view">Kanban</button>
       </div>
     </div>
 
@@ -54,6 +42,7 @@
             <th data-key="status">Status</th>
             <th data-key="teamLeaderName">Team Leader</th>
             <th data-key="memberCount">Members</th>
+            <th data-key="assignment">Assignment</th>
             <th data-key="actions" class="actions-col"></th>
           </tr>
         </thead>

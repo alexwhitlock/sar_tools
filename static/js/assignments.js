@@ -14,6 +14,41 @@ function getCurrentMapId() {
   return el ? el.value.trim() : "";
 }
 
+function getCurrentIncidentName() {
+  const sel = document.getElementById("incidentSelect");
+  return sel ? sel.value.trim() : "";
+}
+
+function findMissingTeams(assignments, dbLetters) {
+  const missing = new Set();
+  for (const a of (assignments || [])) {
+    if ((a.status || "").toUpperCase() === "COMPLETED") continue;
+    for (const letter of parseAssignmentTeamLetters(a.team)) {
+      if (!dbLetters.has(letter)) missing.add(letter);
+    }
+  }
+  return [...missing].sort();
+}
+
+function parseAssignmentTeamLetters(teamField) {
+  if (!teamField) return [];
+  return [...String(teamField).replace(/[\s,\-]+/g, "")]
+    .map(c => c.toUpperCase())
+    .filter(c => /[A-Z]/.test(c));
+}
+
+function findAssignmentConflicts(assignments) {
+  const map = new Map();
+  for (const a of (assignments || [])) {
+    if ((a.status || "").toUpperCase() !== "INPROGRESS") continue;
+    for (const letter of parseAssignmentTeamLetters(a.team)) {
+      if (!map.has(letter)) map.set(letter, []);
+      map.get(letter).push(a.number ?? "?");
+    }
+  }
+  return new Map([...map].filter(([, nums]) => nums.length > 1));
+}
+
 function getTimeHHMMSS() {
   const d = new Date();
   return d.toLocaleTimeString("en-GB", {
@@ -88,16 +123,43 @@ async function loadAssignments() {
     logMessage("INFO", "Assignments received", data);
 
     if (!data.length) {
-      assignmentsMessage.show(
-        "No assignments found on this map.",
-        "info"
-      );
+      assignmentsMessage.show("No assignments found on this map.", "info");
     } else {
-      const ts = getTimeHHMMSS();
-      assignmentsMessage.show(
-        `Last updated ${ts}`,
-        "info"
-      );
+      const warnings = [];
+
+      const conflicts = findAssignmentConflicts(data);
+      if (conflicts.size > 0) {
+        const detail = [...conflicts.entries()]
+          .map(([letter, nums]) => `Team ${letter} (assignments ${nums.join(", ")})`)
+          .join("; ");
+        warnings.push(`Multiple in-progress assignments: ${detail}`);
+      }
+
+      // Best-effort: check for team letters not in the DB
+      const incidentName = getCurrentIncidentName();
+      if (incidentName) {
+        try {
+          const teamsResp = await fetch(`/api/teams?incidentName=${encodeURIComponent(incidentName)}`);
+          if (teamsResp.ok) {
+            const teams = await teamsResp.json().catch(() => []);
+            const dbLetters = new Set(
+              (Array.isArray(teams) ? teams : [])
+                .map(t => String(t.name).trim().toUpperCase())
+                .filter(n => n.length === 1 && /[A-Z]/.test(n))
+            );
+            const missing = findMissingTeams(data, dbLetters);
+            if (missing.length > 0) {
+              warnings.push(`Teams in CalTopo not in database: ${missing.join(", ")}`);
+            }
+          }
+        } catch (_) { /* non-fatal */ }
+      }
+
+      if (warnings.length > 0) {
+        assignmentsMessage.show(`⚠ ${warnings.join(" — ")}`, "warning");
+      } else {
+        assignmentsMessage.show(`Last updated ${getTimeHHMMSS()}`, "info");
+      }
     }
 
     assignmentsTable.setData(data);

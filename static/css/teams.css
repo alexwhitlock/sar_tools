@@ -34,36 +34,35 @@
 /* View toggle (Table / Kanban) */
 .view-toggle {
   display: flex;
-  gap: 1px;                /* gap acts as divider — no border on buttons */
+  gap: 1px;
   margin-left: auto;
   border: 1px solid #ccc;
   border-radius: 4px;
   background: #ccc;        /* gap colour = divider colour */
-  overflow: hidden;
 }
 
 .view-toggle-btn {
   width: auto !important;
+  min-width: 4.5rem;
+  flex: 0 0 auto;
   display: flex !important;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1.2rem;
+  padding: 0.3rem 0.5rem;
   border: none;
   border-radius: 0;
   background: #fff;
   color: #555;
   cursor: pointer;
-  line-height: 0;
-  flex-shrink: 0;
+  font-size: 0.78rem;
 }
+
+#view-table-btn  { border-radius: 3px 0 0 3px; }
+#view-kanban-btn { border-radius: 0 3px 3px 0; }
 
 .view-toggle-btn.active {
   background: #333;
   color: #fff;
-}
-
-.view-toggle-btn svg {
-  display: block;
 }
 
 
@@ -157,6 +156,17 @@
   outline: none;
 }
 
+
+/* ===============================
+   Assignment conflict warning
+   =============================== */
+
+.conflict-warn {
+  color: #e65100;
+  cursor: help;
+  font-size: 0.85rem;
+  margin-left: 2px;
+}
 
 /* ===============================
    Status badge (table rows)
@@ -314,10 +324,24 @@
   opacity: 0.45;
 }
 
+.kanban-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
 .kanban-card-name {
   font-size: 0.8rem;
   font-weight: 700;
-  margin-bottom: 2px;
+}
+
+.kanban-card-members {
+  font-size: 0.68rem;
+  color: #888;
+  white-space: nowrap;
+  margin-left: 4px;
+  cursor: help;
 }
 
 .kanban-card-tl {

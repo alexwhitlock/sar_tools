@@ -21,11 +21,13 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
                 t.name,
                 t.status,
                 t.team_leader_id,
-                p.name AS leader_name,
-                COUNT(tm.personnel_id) AS member_count
+                leader.name AS leader_name,
+                COUNT(tm.personnel_id) AS member_count,
+                GROUP_CONCAT(CAST(member.id AS TEXT) || ':' || member.name, '|') AS member_data
             FROM teams t
-            LEFT JOIN personnel p ON p.id = t.team_leader_id
+            LEFT JOIN personnel leader ON leader.id = t.team_leader_id
             LEFT JOIN team_members tm ON tm.team_id = t.id
+            LEFT JOIN personnel member ON member.id = tm.personnel_id
             GROUP BY t.id
             ORDER BY t.name COLLATE NOCASE
         """).fetchall()
@@ -36,6 +38,7 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
         "teamLeaderId": r["team_leader_id"],
         "teamLeaderName": r["leader_name"],
         "memberCount": r["member_count"],
+        "memberData": r["member_data"] or "",
     } for r in rows]
 
 
