@@ -7,6 +7,7 @@ const _el = () => document.getElementById("sync-countdown");
 
 let _ticker = null;
 let _secondsLeft = 0;
+let _epoch = 0;   // incremented by syncStart; lets deferred syncStop hides detect staleness
 
 function _tick() {
   _secondsLeft = Math.max(0, _secondsLeft - 1);
@@ -16,7 +17,8 @@ function _tick() {
 
 /** Start the visible countdown. Call when polling begins. */
 export function syncStart(intervalMs) {
-  syncStop();
+  _epoch++;
+  if (_ticker) { clearInterval(_ticker); _ticker = null; }
   _secondsLeft = Math.round(intervalMs / 1000);
   const el = _el();
   if (el) {
@@ -38,8 +40,9 @@ export function syncReset(intervalMs) {
  *  tab's observer wins the race and keeps the countdown visible. */
 export function syncStop() {
   if (_ticker) { clearInterval(_ticker); _ticker = null; }
+  const myEpoch = _epoch;
   setTimeout(() => {
-    if (_ticker) return; // another tab already restarted polling
+    if (_epoch !== myEpoch) return; // syncStart() was called after us
     const el = _el();
     if (el) el.classList.add("hidden");
   }, 0);
