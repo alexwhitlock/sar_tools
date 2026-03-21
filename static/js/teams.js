@@ -130,6 +130,24 @@ function memberTooltip(team) {
   return lines.map(l => escapeHtml(l)).join("&#10;");
 }
 
+/**
+ * Build a single lowercase searchable string for a team covering all
+ * meaningful text: name, status, TL, members, in-progress assignments.
+ * Called after kanbanAssignments is populated so assignment data is included.
+ */
+function buildTeamSearchText(team) {
+  const memberNames = parseMemberData(team.memberData).map(m => m.name);
+  const assignmentNums = getInProgressAssignmentsForTeam(team.name)
+    .map(a => `assignment ${a.number ?? ""}`);
+  return [
+    team.name ? `team ${team.name}` : "",
+    team.status || "",
+    team.teamLeaderName || "",
+    ...memberNames,
+    ...assignmentNums,
+  ].join(" ").toLowerCase();
+}
+
 /** Build members column HTML: TL first with "(TL)", rest alphabetically, one per line. */
 function memberListHtml(team) {
   const members = parseMemberData(team.memberData);
@@ -290,6 +308,9 @@ async function loadTeams() {
       }
     }
 
+    // Build searchText on every team after assignments are available
+    teams.forEach(t => { t.searchText = buildTeamSearchText(t); });
+
     if (currentView === "table") {
       teamsTable.setData(teams);
     } else {
@@ -370,26 +391,6 @@ function findAssignmentConflicts(assignments) {
   return new Map([...map].filter(([, nums]) => nums.length > 1));
 }
 
-/**
- * Return the in-progress assignment number for a given team name.
- * Team names must be a single letter to participate in assignment matching.
- * Returns a display string like "Assignment 42" or null.
- */
-function getAssignmentForTeam(teamName) {
-  if (!kanbanAssignments.length || !teamName) return null;
-
-  const letter = String(teamName).trim().toUpperCase();
-
-  // Only single-letter team names can be matched to CalTopo assignment fields
-  if (letter.length !== 1 || !/[A-Z]/.test(letter)) return null;
-
-  const match = kanbanAssignments.find(a => {
-    if ((a.status || "").toUpperCase() !== "INPROGRESS") return false;
-    return parseAssignmentTeamLetters(a.team).includes(letter);
-  });
-
-  return match?.number != null ? `Assignment ${match.number}` : null;
-}
 
 /* ===============================
    Touch drag-and-drop
@@ -480,15 +481,6 @@ function wireTouchDnd(card, teamId) {
   card.addEventListener("touchcancel", () => _touchCleanup(card));
 }
 
-function kanbanCardMatches(team, assignment, lowerVal) {
-  if (!lowerVal) return true;
-  const displayName = team?.name ? `team ${team.name}` : "";
-  return (
-    displayName.toLowerCase().includes(lowerVal) ||
-    (team?.teamLeaderName || "").toLowerCase().includes(lowerVal) ||
-    (assignment           || "").toLowerCase().includes(lowerVal)
-  );
-}
 
 function renderKanban(teams) {
   const container = document.getElementById("teams-kanban-view");
@@ -543,15 +535,12 @@ function renderKanban(teams) {
         assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠</span>`;
       }
 
-      // Use first match for search matching (consistent with display)
-      const assignmentText = inProgress[0]?.number != null ? `Assignment ${inProgress[0].number}` : null;
-
       const card = document.createElement("div");
       card.className = "kanban-card";
       card.setAttribute("draggable", "true");
       card.dataset.teamId = team.id;
 
-      if (searchVal && !kanbanCardMatches(team, assignmentText, searchVal)) {
+      if (searchVal && !(team.searchText || "").includes(searchVal)) {
         card.classList.add("search-hidden");
       }
 
@@ -673,15 +662,13 @@ function wireFilters() {
     searchInput.addEventListener("input", (e) => {
       const val = e.target.value;
       if (currentView === "table") {
-        teamsTable.setFilter("name", val);
+        teamsTable.setFilter("searchText", val);
       } else {
-        // Filter kanban cards
+        const lower = val.toLowerCase();
         const cards = document.querySelectorAll("#teams-kanban-view .kanban-card");
         cards.forEach(card => {
-          const teamId = card.dataset.teamId;
-          const team = findTeamInCache(teamId);
-          const assignment = getAssignmentForTeam(team?.name);
-          const match = !val || kanbanCardMatches(team, assignment, val.toLowerCase());
+          const team = findTeamInCache(card.dataset.teamId);
+          const match = !lower || (team?.searchText || "").includes(lower);
           card.classList.toggle("search-hidden", !match);
         });
       }
