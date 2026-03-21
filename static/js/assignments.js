@@ -159,8 +159,9 @@ function wireFilters(table) {
     });
   }
 
-  /* ---- Pill checkbox groups ---- */
-  document.querySelectorAll(".pill-group").forEach(group => {
+  /* ---- Pill checkbox groups (scoped to assignments panel) ---- */
+  const assignmentsPanel = document.getElementById("assignments");
+  assignmentsPanel?.querySelectorAll(".pill-group").forEach(group => {
     const key = group.dataset.filterKey;
     if (!key) return;
 

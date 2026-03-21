@@ -47,6 +47,7 @@ def run_migrations(conn):
         (2, migration_002_settings),
         (3, migration_003_personnel_status),
         (4, migration_004_personnel_previous_status),
+        (5, migration_005_teams_leader_and_status),
     ]
 
     for version, migration in migrations:
@@ -86,7 +87,7 @@ def migration_001_initial_schema(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             name TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'draft',
+            status TEXT NOT NULL DEFAULT 'Out of Service',
 
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -137,6 +138,15 @@ def migration_003_personnel_status(conn):
     conn.execute("""
         ALTER TABLE personnel ADD COLUMN status TEXT NOT NULL DEFAULT 'Added';
     """)
+
+
+def migration_005_teams_leader_and_status(conn):
+    """
+    Adds team_leader_id (FK to personnel) to teams table.
+    Migrates legacy 'draft' status to 'Out of Service'.
+    """
+    conn.execute("ALTER TABLE teams ADD COLUMN team_leader_id INTEGER REFERENCES personnel(id)")
+    conn.execute("UPDATE teams SET status = 'Out of Service' WHERE status = 'draft'")
 
 
 def migration_002_settings(conn):

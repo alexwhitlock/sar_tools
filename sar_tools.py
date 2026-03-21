@@ -26,6 +26,9 @@ app.register_blueprint(personnel_bp)
 from routes.d4h import bp as d4h_bp
 app.register_blueprint(d4h_bp)
 
+from routes.teams import bp as teams_bp
+app.register_blueprint(teams_bp)
+
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 

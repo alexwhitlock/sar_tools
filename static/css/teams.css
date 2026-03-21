@@ -1,0 +1,442 @@
+/* ===============================
+   Teams tab layout
+   =============================== */
+
+#teams {
+  height: 100%;
+  position: relative;
+  min-height: 0;
+}
+
+#teams .tab-content {
+  min-height: 0;
+}
+
+
+/* ===============================
+   Toolbar
+   =============================== */
+
+.teams-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  height: 2.4rem;
+  padding: 0 0.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.teams-toolbar-btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+/* View toggle (Table / Kanban) */
+.view-toggle {
+  display: flex;
+  gap: 1px;                /* gap acts as divider — no border on buttons */
+  margin-left: auto;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #ccc;        /* gap colour = divider colour */
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  width: auto !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.5rem;
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.view-toggle-btn.active {
+  background: #333;
+  color: #fff;
+}
+
+.view-toggle-btn svg {
+  display: block;
+}
+
+
+/* ===============================
+   Filters
+   =============================== */
+
+.teams-filters {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.4rem;
+}
+
+.teams-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+#teams-search {
+  max-width: 20rem;
+}
+
+/* Status pill colours */
+.pill.ts-oos:has(input:checked)           { background: #757575; border-color: #757575; }
+.pill.ts-staged:has(input:checked)        { background: #1565c0; border-color: #1565c0; }
+.pill.ts-travelling:has(input:checked)    { background: #e65100; border-color: #e65100; }
+.pill.ts-on-assignment:has(input:checked) { background: #2e7d32; border-color: #2e7d32; }
+.pill.ts-returning:has(input:checked)     { background: #6a1b9a; border-color: #6a1b9a; }
+.pill.ts-debrief:has(input:checked)       { background: #f57f17; border-color: #f57f17; }
+.pill.ts-retired:has(input:checked)       { background: #37474f; border-color: #37474f; }
+
+
+/* ===============================
+   Table view
+   =============================== */
+
+#teams-table-view.hidden {
+  display: none;
+}
+
+.teams-table-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.actions-col {
+  width: 44px;
+}
+
+.actions-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.team-menu-btn {
+  width: auto !important;
+  min-width: 0;
+  padding: 2px 6px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #555;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+  outline: none;
+}
+
+.team-menu-btn:hover,
+.team-menu-btn:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  color: #000;
+}
+
+.team-menu-btn:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.team-menu-btn:focus {
+  outline: none;
+}
+
+
+/* ===============================
+   Status badge (table rows)
+   =============================== */
+
+.ts-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.ts-badge-oos           { background: #757575; }
+.ts-badge-staged        { background: #1565c0; }
+.ts-badge-travelling    { background: #e65100; }
+.ts-badge-on-assignment { background: #2e7d32; }
+.ts-badge-returning     { background: #6a1b9a; }
+.ts-badge-debrief       { background: #f57f17; }
+.ts-badge-retired       { background: #37474f; }
+
+
+/* ===============================
+   Kanban view
+   =============================== */
+
+.teams-kanban {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 0.6rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0.25rem 0.5rem;
+  align-items: stretch;   /* all columns same height */
+}
+
+.teams-kanban.hidden {
+  display: none;
+}
+
+.kanban-col {
+  flex: 1 1 0;            /* expand equally to fill width */
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  background: #f0f0f0;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  overflow: hidden;
+}
+
+/* Collapsed column — shrinks to header width only */
+.kanban-col.collapsed {
+  flex: 0 0 auto;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.kanban-col.collapsed .kanban-col-cards {
+  display: none;
+}
+
+.kanban-col.drag-over {
+  background: #e3f2fd;
+  border-color: #1565c0;
+}
+
+.kanban-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Collapsed header: vertical layout */
+.kanban-col.collapsed .kanban-col-header {
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 1;
+  height: 100%;
+  padding: 0.5rem 0.3rem;
+  gap: 0.4rem;
+}
+
+/* Rotate the status label text */
+.kanban-col.collapsed .kanban-col-header .kanban-col-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);   /* read bottom-to-top */
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* Count badge stays horizontal */
+.kanban-col.collapsed .kanban-col-count {
+  writing-mode: horizontal-tb;
+}
+
+/* Column header colours matching status */
+.kanban-col[data-status="Out of Service"]             .kanban-col-header { background: #757575; }
+.kanban-col[data-status="Staged"]                     .kanban-col-header { background: #1565c0; }
+.kanban-col[data-status="Travelling to Assignment"]   .kanban-col-header { background: #e65100; }
+.kanban-col[data-status="On Assignment"]              .kanban-col-header { background: #2e7d32; }
+.kanban-col[data-status="Returning from Assignment"]  .kanban-col-header { background: #6a1b9a; }
+.kanban-col[data-status="Awaiting Debrief"]           .kanban-col-header { background: #f57f17; }
+.kanban-col[data-status="Retired"]                    .kanban-col-header { background: #37474f; }
+
+.kanban-col-count {
+  background: rgba(255,255,255,0.25);
+  border-radius: 10px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+  min-width: 18px;
+  text-align: center;
+}
+
+.kanban-col-cards {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 60px;
+}
+
+.kanban-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;   /* hand touch events to JS, not the browser */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card.dragging {
+  opacity: 0.45;
+}
+
+.kanban-card-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.kanban-card-tl {
+  font-size: 0.72rem;
+  color: #555;
+}
+
+.kanban-card-assignment {
+  font-size: 0.72rem;
+  color: #888;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.kanban-card.search-hidden {
+  display: none;
+}
+
+
+/* ===============================
+   Team modal
+   =============================== */
+
+.team-modal {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+}
+
+.team-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 10px 12px;
+}
+
+.team-modal-body label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  gap: 3px;
+}
+
+.team-modal-body select,
+.team-modal-body input[type="text"] {
+  font-size: 0.8rem;
+  padding: 3px 6px;
+}
+
+
+/* ===============================
+   Team members section (inside modal)
+   =============================== */
+
+.team-members-section {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.team-members-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+}
+
+.team-members-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.team-members-list {
+  min-height: 32px;
+  max-height: 130px;
+  overflow-y: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.team-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.team-member-row:hover {
+  background: #f5f5f5;
+}
+
+.team-member-remove {
+  width: auto !important;
+  background: transparent;
+  border: none;
+  color: #b00020;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.team-member-remove:hover {
+  color: #7f0015;
+}
+
+.team-members-add {
+  padding: 4px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.team-members-add select {
+  width: 100%;
+  font-size: 0.78rem;
+  padding: 3px 4px;
+}

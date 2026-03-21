@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="/static/css/console.css">
 <link rel="stylesheet" href="/static/css/assignments.css">
 <link rel="stylesheet" href="/static/css/personnel.css">
+<link rel="stylesheet" href="/static/css/teams.css">
 <link rel="stylesheet" href="/static/css/home.css">
 
 
@@ -33,6 +34,7 @@
 <script type="module" src="/static/js/rectangle.js"></script>
 <script type="module" src="/static/js/assignments.js"></script>
 <script type="module" src="/static/js/personnel.js"></script>
+<script type="module" src="/static/js/teams.js"></script>
 <script type="module" src="/static/js/home.js"></script>
 
 
@@ -64,7 +66,12 @@
             onclick="openTab('personnel', this)">
       Personnel
     </button>
-  
+
+    <button class="tab-button"
+            onclick="openTab('teams', this)">
+      Teams
+    </button>
+
     <button class="tab-button"
             id="consoleTabBtn"
             style="display:none"
@@ -95,6 +102,7 @@
   {% include "tabs/rectangle.html" %}
   {% include "tabs/assignments.html" %}
   {% include "tabs/personnel.html" %}
+  {% include "tabs/teams.html" %}
   {% include "tabs/console.html" %}
 </div>
 

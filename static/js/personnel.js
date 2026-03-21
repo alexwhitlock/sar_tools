@@ -174,6 +174,7 @@ function getUiEls() {
     cancelBtn: document.getElementById("personModalCancel"),
     saveBtn: document.getElementById("personModalSave"),
     nameInput: document.getElementById("personName"),
+    teamSelect: document.getElementById("personTeam"),
   };
 }
 
@@ -238,14 +239,40 @@ function closeMenu() {
   menu.classList.add("hidden");
 }
 
-function openPersonModal(mode, person = null) {
-  const { backdrop, titleEl, nameInput } = getUiEls();
+async function openPersonModal(mode, person = null) {
+  const { backdrop, titleEl, nameInput, teamSelect } = getUiEls();
   if (!backdrop || !titleEl || !nameInput) return;
 
   modalMode = mode;
   titleEl.textContent = mode === "add" ? "Add Person" : "Edit Person";
-
   nameInput.value = person?.name ?? "";
+
+  // Populate team dropdown
+  if (teamSelect) {
+    teamSelect.innerHTML = '<option value="">— No Team —</option>';
+    const incidentName = getCurrentIncidentName();
+    if (incidentName) {
+      try {
+        const resp = await fetch(`/api/teams?incidentName=${encodeURIComponent(incidentName)}`);
+        if (resp.ok) {
+          const teams = await resp.json().catch(() => []);
+          for (const t of (Array.isArray(teams) ? teams : [])) {
+            const opt = document.createElement("option");
+            opt.value = t.id;
+            opt.textContent = t.name;
+            teamSelect.appendChild(opt);
+          }
+        }
+      } catch (_) { /* non-fatal */ }
+    }
+    // Pre-select current team in edit mode
+    teamSelect.value = person?.teamId ? String(person.teamId) : "";
+    // If team is set by name but not id, try to match
+    if (!teamSelect.value && person?.team) {
+      const opt = Array.from(teamSelect.options).find(o => o.textContent === person.team);
+      if (opt) teamSelect.value = opt.value;
+    }
+  }
 
   backdrop.classList.remove("hidden");
   backdrop.setAttribute("aria-hidden", "false");
@@ -361,12 +388,12 @@ async function apiLinkD4h({ incidentName, personId, d4hRef, name }) {
    Add person (now modal-based)
    =============================== */
 
-function addPerson() {
+async function addPerson() {
   const incidentName = requireIncidentOrError();
   if (!incidentName) return;
 
   activePersonKey = null;
-  openPersonModal("add", null);
+  await openPersonModal("add", null);
 }
 
 /* ===============================
@@ -514,7 +541,7 @@ function wireFilters(table) {
     });
   }
 
-  const teamInput = document.getElementById("filter-team");
+  const teamInput = document.getElementById("personnel-filter-team");
   if (teamInput) {
     teamInput.addEventListener("input", (e) => {
       table.setFilter("team", e.target.value);
@@ -670,7 +697,7 @@ function wireMenuAndModal() {
         personnelMessage.show("Could not find that person record.", "error");
         return;
       }
-      openPersonModal("edit", person);
+      await openPersonModal("edit", person);
       return;
     }
 
@@ -718,6 +745,8 @@ function wireMenuAndModal() {
     if (!incidentName) return;
 
     const name = nameInput.value.trim();
+    const { teamSelect } = getUiEls();
+    const selectedTeamId = teamSelect?.value ? parseInt(teamSelect.value) : null;
 
     if (!name) {
       window.alert("Name is required.");
@@ -730,6 +759,8 @@ function wireMenuAndModal() {
         modalMode === "add" ? "Adding person…" : "Saving changes…",
         "info"
       );
+
+      let savedPersonKey = activePersonKey;
 
       if (modalMode === "add") {
         let dupes;
@@ -748,9 +779,37 @@ function wireMenuAndModal() {
           }
         }
 
-        await apiAddPerson({ incidentName, name });
+        const result = await apiAddPerson({ incidentName, name });
+        savedPersonKey = result.id;
       } else {
         await apiUpdatePerson({ incidentName, personKey: activePersonKey, name });
+      }
+
+      // Apply team assignment change
+      if (savedPersonKey) {
+        const person = modalMode === "add" ? null : findPersonInCache(activePersonKey);
+        const currentTeamName = person?.team || null;
+
+        // Find current team id by matching name in the teamSelect options
+        let currentTeamId = null;
+        if (currentTeamName && teamSelect) {
+          const opt = Array.from(teamSelect.options).find(o => o.textContent === currentTeamName);
+          if (opt?.value) currentTeamId = parseInt(opt.value);
+        }
+
+        if (selectedTeamId && selectedTeamId !== currentTeamId) {
+          await fetch("/api/teams/assign-person", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ incidentName, teamId: selectedTeamId, personId: savedPersonKey }),
+          });
+        } else if (!selectedTeamId && currentTeamId) {
+          await fetch("/api/teams/remove-person", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ incidentName, personId: savedPersonKey }),
+          });
+        }
       }
 
       closePersonModal();
