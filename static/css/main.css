@@ -96,6 +96,20 @@ body {
 }
 
 /* ===============================
+   Sync countdown
+   =============================== */
+
+.sync-countdown {
+  font-size: 0.72rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.sync-countdown.hidden {
+  display: none;
+}
+
+/* ===============================
    Help button
    =============================== */
 

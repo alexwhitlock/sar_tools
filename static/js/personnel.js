@@ -1,5 +1,6 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
+import { syncStart, syncReset, syncStop } from "./sync-indicator.js";
 
 let personnelTable = null;
 let personnelMessage = null;
@@ -608,16 +609,19 @@ let _pollTimer = null;
 
 function startPolling() {
   stopPolling();
+  syncStart(POLL_INTERVAL_MS);
   _pollTimer = setInterval(() => {
     const panel = document.getElementById("personnel");
     if (document.visibilityState === "hidden") return;
     if (!panel?.classList.contains("active")) return;
+    syncReset(POLL_INTERVAL_MS);
     loadPersonnel();
   }, POLL_INTERVAL_MS);
 }
 
 function stopPolling() {
   if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  syncStop();
 }
 
 function watchPersonnelTab() {
