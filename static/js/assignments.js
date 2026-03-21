@@ -67,8 +67,16 @@ function getTimeHHMMSS() {
 function renderAssignmentRow(a) {
   const tr = document.createElement("tr");
 
+  let numberHtml = String(a.number ?? "");
+  if (a.titleConflict) {
+    const tip = (a.status || "").toUpperCase() === "COMPLETED"
+      ? `Assignment ${a.number}: status is COMPLETED but title has no X prefix.`
+      : `Assignment ${a.number}: title has X (completed) but status is ${a.status}.`;
+    numberHtml += ` <span class="conflict-warn" title="${tip}">⚠</span>`;
+  }
+
   tr.innerHTML = `
-    <td>${a.number ?? ""}</td>
+    <td>${numberHtml}</td>
     <td>${a.team ?? ""}</td>
     <td>${a.assignmentType ?? ""}</td>
     <td>${a.resourceType ?? ""}</td>
@@ -133,6 +141,13 @@ async function loadAssignments() {
           .map(([letter, nums]) => `Team ${letter} (assignments ${nums.join(", ")})`)
           .join("; ");
         warnings.push(`Multiple in-progress assignments: ${detail}`);
+      }
+
+      // Title/status mismatch: X prefix vs COMPLETED status disagree
+      const titleConflicts = data.filter(a => a.titleConflict);
+      if (titleConflicts.length > 0) {
+        const nums = titleConflicts.map(a => a.number ?? "?").join(", ");
+        warnings.push(`Title/status mismatch on assignment${titleConflicts.length > 1 ? "s" : ""} ${nums} — check X prefix vs status`);
       }
 
       // Best-effort: check for team letters not in the DB

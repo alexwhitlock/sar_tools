@@ -236,6 +236,26 @@ def validate_shapes(shapes):
     return validated
 
 
+def _parse_assignment_title(title):
+    """
+    Parse CalTopo assignment title format: [X] <number> [team]
+
+    Examples:
+      "1"     -> (False, "1", "")
+      "1 A"   -> (False, "1", "A")
+      "X 1 A" -> (True,  "1", "A")
+      "X 1"   -> (True,  "1", "")
+    """
+    tokens = (title or "").strip().split()
+    if not tokens:
+        return False, None, ""
+    completed_x = tokens[0].upper() == "X"
+    rest = tokens[1:] if completed_x else tokens
+    number = rest[0] if rest else None
+    team = "".join(rest[1:]) if len(rest) > 1 else ""
+    return completed_x, number, team
+
+
 def get_assignments_for_map(map_id):
     endpoint = f"/api/v1/map/{map_id}/since/0"
     data = get_from_caltopo(endpoint)
@@ -269,20 +289,29 @@ def get_assignments_for_map(map_id):
         else:
             assignment_type = "Other"
 
-        letter_raw = (props.get("letter") or "").strip()
-        team = letter_raw.replace("X", "").strip() or ""
+        title_raw = (props.get("title") or "").strip()
+        completed_x, parsed_number, team = _parse_assignment_title(title_raw)
+
+        status = (props.get("status") or "").strip()
+
+        # Flag mismatch: X in title but status isn't COMPLETED, or vice versa
+        title_conflict = (
+            (completed_x and status.upper() != "COMPLETED") or
+            (not completed_x and status.upper() == "COMPLETED")
+        )
 
         op_id = props.get("operationalPeriodId")
         op_info = op_lookup.get(op_id, {})
 
         assignments.append({
             "id": f.get("id"),
-            "number": props.get("number"),
+            "number": parsed_number,
             "team": team,
             "assignmentType": assignment_type,
             "resourceType": props.get("resourceType"),
-            "status": props.get("status"),
+            "status": status,
             "op": op_info.get("title"),
+            "titleConflict": title_conflict,
         })
 
     return assignments
