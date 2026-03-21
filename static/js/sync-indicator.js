@@ -33,9 +33,14 @@ export function syncReset(intervalMs) {
   if (el) el.textContent = `Sync in ${_secondsLeft}s`;
 }
 
-/** Stop countdown and hide the element. Call when polling stops. */
+/** Stop countdown and hide the element. Call when polling stops.
+ *  Hide is deferred one tick so a concurrent syncStart() from another
+ *  tab's observer wins the race and keeps the countdown visible. */
 export function syncStop() {
   if (_ticker) { clearInterval(_ticker); _ticker = null; }
-  const el = _el();
-  if (el) el.classList.add("hidden");
+  setTimeout(() => {
+    if (_ticker) return; // another tab already restarted polling
+    const el = _el();
+    if (el) el.classList.add("hidden");
+  }, 0);
 }
