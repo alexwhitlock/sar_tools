@@ -4,6 +4,7 @@ import sqlite3
 
 from flask import Blueprint, jsonify, request
 
+from db.errors import ConflictError
 from db.personnel_repo import (
     list_personnel_with_team,
     add_person,
@@ -65,6 +66,7 @@ def api_personnel_update():
     incident_name = (data.get("incidentName") or "").strip()
     person_key = data.get("personKey")
     name = (data.get("name") or "").strip()
+    expected_updated_at = (data.get("expectedUpdatedAt") or "").strip() or None
 
     if not incident_name:
         return jsonify({"ok": False, "error": "incidentName is required"}), 400
@@ -74,10 +76,13 @@ def api_personnel_update():
         return jsonify({"ok": False, "error": "name is required"}), 400
 
     try:
-        ok = update_person(incident_name, person_id=int(person_key), name=name)
+        ok = update_person(incident_name, person_id=int(person_key), name=name,
+                           expected_updated_at=expected_updated_at)
         if not ok:
             return jsonify({"ok": False, "error": "person not found"}), 404
         return jsonify({"ok": True})
+    except ConflictError:
+        return jsonify({"ok": False, "error": "conflict"}), 409
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -173,6 +178,7 @@ def api_personnel_status():
     incident_name = (data.get("incidentName") or "").strip()
     person_key = data.get("personKey")
     status = (data.get("status") or "").strip()
+    expected_updated_at = (data.get("expectedUpdatedAt") or "").strip() or None
 
     if not incident_name:
         return jsonify({"ok": False, "error": "incidentName is required"}), 400
@@ -182,10 +188,13 @@ def api_personnel_status():
         return jsonify({"ok": False, "error": f"invalid status: {status}"}), 400
 
     try:
-        ok = update_person_status(incident_name, person_id=int(person_key), status=status)
+        ok = update_person_status(incident_name, person_id=int(person_key), status=status,
+                                  expected_updated_at=expected_updated_at)
         if not ok:
             return jsonify({"ok": False, "error": "person not found"}), 404
         return jsonify({"ok": True})
+    except ConflictError:
+        return jsonify({"ok": False, "error": "conflict"}), 409
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

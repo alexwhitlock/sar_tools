@@ -181,6 +181,10 @@ function findTeamInCache(teamId) {
    API helpers
    =============================== */
 
+class ConflictError extends Error {
+  constructor() { super("Modified by another user"); this.name = "ConflictError"; }
+}
+
 async function apiPost(url, body) {
   const resp = await fetch(url, {
     method: "POST",
@@ -188,6 +192,7 @@ async function apiPost(url, body) {
     body: JSON.stringify(body),
   });
   const data = await resp.json().catch(() => ({}));
+  if (resp.status === 409) throw new ConflictError();
   if (!resp.ok || data.ok === false) {
     throw new Error(data.error || `HTTP ${resp.status}`);
   }
@@ -470,11 +475,16 @@ function wireTouchDnd(card, teamId) {
     if (err) { teamsMessage.show(`⚠ ${err}`, "error", 6000); return; }
 
     try {
-      await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus });
+      await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus, expectedUpdatedAt: team.updatedAt });
       team.status = newStatus;
       renderKanban(teamsCache);
     } catch (err) {
-      teamsMessage.show(`Failed to update status: ${err.message}`, "error");
+      if (err instanceof ConflictError) {
+        teamsMessage.show("⚠ Team was modified by another user — reloading.", "warning", 6000);
+        await loadTeams();
+      } else {
+        teamsMessage.show(`Failed to update status: ${err.message}`, "error");
+      }
     }
   });
 
@@ -589,11 +599,16 @@ function renderKanban(teams) {
       const err = validateTeamStatusChange(team, newStatus);
       if (err) { teamsMessage.show(`⚠ ${err}`, "error"); return; }
       try {
-        await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus });
+        await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus, expectedUpdatedAt: team.updatedAt });
         team.status = newStatus;
         renderKanban(teamsCache);
       } catch (err) {
-        teamsMessage.show(`Failed to update status: ${err.message}`, "error");
+        if (err instanceof ConflictError) {
+          teamsMessage.show("⚠ Team was modified by another user — reloading.", "warning", 6000);
+          await loadTeams();
+        } else {
+          teamsMessage.show(`Failed to update status: ${err.message}`, "error");
+        }
       }
     });
 
@@ -873,12 +888,14 @@ async function saveTeamModal() {
       const result = await apiPost("/api/teams/create", { incidentName, name });
       teamId = result.id;
     } else {
+      const currentTeam = teamsCache.find(t => t.id === activeTeamId);
       await apiPost("/api/teams/update", {
         incidentName,
         teamId,
         name,
         status,
         teamLeaderId: teamLeaderId ? parseInt(teamLeaderId) : null,
+        expectedUpdatedAt: currentTeam?.updatedAt,
       });
     }
 
@@ -913,8 +930,14 @@ async function saveTeamModal() {
     await loadTeams();
     teamsMessage.show(modalMode === "create" ? "Team created." : "Changes saved.", "info");
   } catch (err) {
-    logMessage("ERROR", "Failed to save team", err.message);
-    teamsMessage.show(`Failed to save: ${err.message}`, "error");
+    if (err instanceof ConflictError) {
+      closeTeamModal();
+      teamsMessage.show("⚠ Team was modified by another user while you were editing — reloading.", "warning", 8000);
+      await loadTeams();
+    } else {
+      logMessage("ERROR", "Failed to save team", err.message);
+      teamsMessage.show(`Failed to save: ${err.message}`, "error");
+    }
   }
 }
 
@@ -1034,8 +1057,25 @@ function wireMenuAndKebab() {
 }
 
 /* ===============================
-   Tab activation watcher
+   Tab activation watcher + polling
    =============================== */
+
+const POLL_INTERVAL_MS = 20_000;
+let _pollTimer = null;
+
+function startPolling() {
+  stopPolling();
+  _pollTimer = setInterval(() => {
+    const panel = document.getElementById("teams");
+    if (document.visibilityState === "hidden") return;
+    if (!panel?.classList.contains("active")) return;
+    loadTeams();
+  }, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
 
 function watchTeamsTab() {
   const panel = document.getElementById("teams");
@@ -1049,11 +1089,25 @@ function watchTeamsTab() {
       logMessage("INFO", "Teams tab activated");
       updateAddButtonEnabled();
       loadTeams();
+      startPolling();
+    } else if (!isActive && wasActive) {
+      stopPolling();
     }
     wasActive = isActive;
   });
 
   observer.observe(panel, { attributes: true, attributeFilter: ["class"] });
+
+  // Resume/pause polling when the browser tab is hidden/visible
+  document.addEventListener("visibilitychange", () => {
+    const active = panel.classList.contains("active");
+    if (document.visibilityState === "visible" && active) {
+      loadTeams();
+      startPolling();
+    } else if (document.visibilityState === "hidden") {
+      stopPolling();
+    }
+  });
 }
 
 /* ===============================

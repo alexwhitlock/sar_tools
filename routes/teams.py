@@ -12,6 +12,7 @@ from db.teams_repo import (
     remove_person_from_team,
     TEAM_STATUSES,
 )
+from db.errors import ConflictError
 
 bp = Blueprint("teams", __name__)
 
@@ -76,11 +77,16 @@ def api_teams_update():
             return jsonify({"ok": False, "error": f"invalid status: {status}"}), 400
         kwargs["status"] = status
 
+    expected_updated_at = (data.get("expectedUpdatedAt") or "").strip() or None
+
     try:
-        ok = update_team(incident_name, team_id=int(team_id), **kwargs)
+        ok = update_team(incident_name, team_id=int(team_id),
+                         expected_updated_at=expected_updated_at, **kwargs)
         if not ok:
             return jsonify({"ok": False, "error": "team not found"}), 404
         return jsonify({"ok": True})
+    except ConflictError:
+        return jsonify({"ok": False, "error": "conflict"}), 409
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

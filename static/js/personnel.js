@@ -311,14 +311,15 @@ async function apiAddPerson({ incidentName, name }) {
   return data;
 }
 
-async function apiUpdatePerson({ incidentName, personKey, name }) {
+async function apiUpdatePerson({ incidentName, personKey, name, expectedUpdatedAt }) {
   const resp = await fetch("/api/personnel/update", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentName, personKey, name }),
+    body: JSON.stringify({ incidentName, personKey, name, expectedUpdatedAt }),
   });
 
   const data = await resp.json().catch(() => ({}));
+  if (resp.status === 409) throw new ConflictError();
   if (!resp.ok || data.ok === false) {
     throw new Error(data.error || `Update failed (HTTP ${resp.status})`);
   }
@@ -362,13 +363,18 @@ async function apiCheckNames({ incidentName, members }) {
 }
 
 
-async function apiUpdatePersonStatus({ incidentName, personKey, status }) {
+class ConflictError extends Error {
+  constructor() { super("Modified by another user"); this.name = "ConflictError"; }
+}
+
+async function apiUpdatePersonStatus({ incidentName, personKey, status, expectedUpdatedAt }) {
   const resp = await fetch("/api/personnel/status", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentName, personKey, status }),
+    body: JSON.stringify({ incidentName, personKey, status, expectedUpdatedAt }),
   });
   const data = await resp.json().catch(() => ({}));
+  if (resp.status === 409) throw new ConflictError();
   if (!resp.ok || data.ok === false) throw new Error(data.error || `Status update failed (HTTP ${resp.status})`);
   return data;
 }
@@ -594,8 +600,25 @@ function wireFilters(table) {
 }
 
 /* ===============================
-   Tab activation watcher
+   Tab activation watcher + polling
    =============================== */
+
+const POLL_INTERVAL_MS = 20_000;
+let _pollTimer = null;
+
+function startPolling() {
+  stopPolling();
+  _pollTimer = setInterval(() => {
+    const panel = document.getElementById("personnel");
+    if (document.visibilityState === "hidden") return;
+    if (!panel?.classList.contains("active")) return;
+    loadPersonnel();
+  }, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
 
 function watchPersonnelTab() {
   const panel = document.getElementById("personnel");
@@ -609,6 +632,9 @@ function watchPersonnelTab() {
       logMessage("INFO", "Personnel tab activated");
       updateAddButtonsEnabled();
       loadPersonnel();
+      startPolling();
+    } else if (!isActive && wasActive) {
+      stopPolling();
     }
     wasActive = isActive;
   });
@@ -616,6 +642,16 @@ function watchPersonnelTab() {
   observer.observe(panel, {
     attributes: true,
     attributeFilter: ["class"],
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    const active = panel.classList.contains("active");
+    if (document.visibilityState === "visible" && active) {
+      loadPersonnel();
+      startPolling();
+    } else if (document.visibilityState === "hidden") {
+      stopPolling();
+    }
   });
 }
 
@@ -682,11 +718,17 @@ function wireMenuAndModal() {
                       : "Added";
       try {
         personnelMessage.show(`Updating status…`, "info");
-        await apiUpdatePersonStatus({ incidentName, personKey: activePersonKey, status: newStatus });
+        const person = findPersonInCache(activePersonKey);
+        await apiUpdatePersonStatus({ incidentName, personKey: activePersonKey, status: newStatus, expectedUpdatedAt: person?.updatedAt });
         await loadPersonnel();
         personnelMessage.show(`Status updated to ${newStatus}.`, "info");
       } catch (err) {
-        personnelMessage.show(`Failed to update status: ${err.message}`, "error");
+        if (err instanceof ConflictError) {
+          personnelMessage.show("⚠ Record was modified by another user — reloading.", "warning", 6000);
+          await loadPersonnel();
+        } else {
+          personnelMessage.show(`Failed to update status: ${err.message}`, "error");
+        }
       }
       return;
     }
@@ -782,7 +824,8 @@ function wireMenuAndModal() {
         const result = await apiAddPerson({ incidentName, name });
         savedPersonKey = result.id;
       } else {
-        await apiUpdatePerson({ incidentName, personKey: activePersonKey, name });
+        const person = findPersonInCache(activePersonKey);
+        await apiUpdatePerson({ incidentName, personKey: activePersonKey, name, expectedUpdatedAt: person?.updatedAt });
       }
 
       // Apply team assignment change
@@ -819,8 +862,14 @@ function wireMenuAndModal() {
         "info"
       );
     } catch (err) {
-      logMessage("ERROR", "Failed to save person", err.message);
-      personnelMessage.show(`Failed to save: ${err.message}`, "error");
+      if (err instanceof ConflictError) {
+        closePersonModal();
+        personnelMessage.show("⚠ Record was modified by another user while you were editing — reloading.", "warning", 8000);
+        await loadPersonnel();
+      } else {
+        logMessage("ERROR", "Failed to save person", err.message);
+        personnelMessage.show(`Failed to save: ${err.message}`, "error");
+      }
     }
   });
 }

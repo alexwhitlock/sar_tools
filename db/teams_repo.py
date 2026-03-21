@@ -1,6 +1,7 @@
 # db/teams_repo.py
 from typing import List, Dict, Any
 from .database import get_connection
+from .errors import ConflictError
 
 TEAM_STATUSES = [
     "Out of Service",
@@ -21,6 +22,7 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
                 t.name,
                 t.status,
                 t.team_leader_id,
+                t.updated_at,
                 leader.name AS leader_name,
                 COUNT(tm.personnel_id) AS member_count,
                 GROUP_CONCAT(CAST(member.id AS TEXT) || ':' || member.name, '|') AS member_data
@@ -39,6 +41,7 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
         "teamLeaderName": r["leader_name"],
         "memberCount": r["member_count"],
         "memberData": r["member_data"] or "",
+        "updatedAt": r["updated_at"],
     } for r in rows]
 
 
@@ -61,8 +64,10 @@ def create_team(incident_name: str, *, name: str) -> int:
         return cur.lastrowid
 
 
-def update_team(incident_name: str, *, team_id: int, **kwargs) -> bool:
-    """Update team fields. Accepts: name, team_leader_id, status."""
+def update_team(incident_name: str, *, team_id: int, expected_updated_at: str | None = None, **kwargs) -> bool:
+    """Update team fields. Accepts: name, team_leader_id, status.
+    If expected_updated_at is provided, raises ConflictError if the record
+    has been modified since the client last loaded it."""
     sets = []
     params = []
 
@@ -80,14 +85,28 @@ def update_team(incident_name: str, *, team_id: int, **kwargs) -> bool:
         return False
 
     sets.append("updated_at = datetime('now')")
-    params.append(team_id)
 
     with get_connection(incident_name) as conn:
-        cur = conn.execute(
-            f"UPDATE teams SET {', '.join(sets)} WHERE id = ?",
-            params,
-        )
-        conn.commit()
+        if expected_updated_at:
+            params.extend([team_id, expected_updated_at])
+            cur = conn.execute(
+                f"UPDATE teams SET {', '.join(sets)} WHERE id = ? AND updated_at = ?",
+                params,
+            )
+            conn.commit()
+            if cur.rowcount == 0:
+                exists = conn.execute("SELECT 1 FROM teams WHERE id = ?", (team_id,)).fetchone()
+                if exists:
+                    raise ConflictError()
+                return False
+        else:
+            params.append(team_id)
+            cur = conn.execute(
+                f"UPDATE teams SET {', '.join(sets)} WHERE id = ?",
+                params,
+            )
+            conn.commit()
+
         return cur.rowcount > 0
 
 

@@ -4,6 +4,7 @@ import sqlite3
 from typing import List, Dict, Any, Iterable, Tuple
 from .database import get_connection
 from .migrations import run_migrations
+from .errors import ConflictError
 
 _FUZZY_THRESHOLD = 0.75
 
@@ -105,7 +106,8 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
                 p.source AS source,
                 p.d4h_ref AS d4hRef,
                 p.status AS status,
-                p.previous_status AS previousStatus
+                p.previous_status AS previousStatus,
+                p.updated_at AS updatedAt
             FROM personnel p
             LEFT JOIN team_members tm ON tm.personnel_id = p.id
             LEFT JOIN teams t ON t.id = tm.team_id
@@ -120,19 +122,35 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
         "d4hRef": r["d4hRef"],
         "status": r["status"],
         "previousStatus": r["previousStatus"],
+        "updatedAt": r["updatedAt"],
     } for r in rows]
 
 
-def update_person_status(incident_name: str, *, person_id: int, status: str) -> bool:
-    """Update a person's status, storing the previous status. Returns True if a row was updated."""
+def update_person_status(incident_name: str, *, person_id: int, status: str, expected_updated_at: str | None = None) -> bool:
+    """Update a person's status, storing the previous status. Returns True if a row was updated.
+    If expected_updated_at is provided, raises ConflictError if the record has been modified."""
     with get_connection(incident_name) as conn:
-        cur = conn.execute(
-            """UPDATE personnel
-               SET previous_status = status, status = ?, updated_at = datetime('now')
-               WHERE id = ?""",
-            (status, person_id),
-        )
-        conn.commit()
+        if expected_updated_at:
+            cur = conn.execute(
+                """UPDATE personnel
+                   SET previous_status = status, status = ?, updated_at = datetime('now')
+                   WHERE id = ? AND updated_at = ?""",
+                (status, person_id, expected_updated_at),
+            )
+            conn.commit()
+            if cur.rowcount == 0:
+                exists = conn.execute("SELECT 1 FROM personnel WHERE id = ?", (person_id,)).fetchone()
+                if exists:
+                    raise ConflictError()
+                return False
+        else:
+            cur = conn.execute(
+                """UPDATE personnel
+                   SET previous_status = status, status = ?, updated_at = datetime('now')
+                   WHERE id = ?""",
+                (status, person_id),
+            )
+            conn.commit()
         return cur.rowcount > 0
 
 
@@ -145,16 +163,27 @@ def add_person(incident_name: str, *, name: str) -> int:
         conn.commit()
         return cur.lastrowid
 
-def update_person(incident_name: str, *, person_id: int, name: str) -> bool:
-    """
-    Update a person's name. Returns True if a row was updated.
-    """
+def update_person(incident_name: str, *, person_id: int, name: str, expected_updated_at: str | None = None) -> bool:
+    """Update a person's name. Returns True if a row was updated.
+    If expected_updated_at is provided, raises ConflictError if the record has been modified."""
     with get_connection(incident_name) as conn:
-        cur = conn.execute(
-            "UPDATE personnel SET name = ? WHERE id = ?",
-            (name, person_id),
-        )
-        conn.commit()
+        if expected_updated_at:
+            cur = conn.execute(
+                "UPDATE personnel SET name = ?, updated_at = datetime('now') WHERE id = ? AND updated_at = ?",
+                (name, person_id, expected_updated_at),
+            )
+            conn.commit()
+            if cur.rowcount == 0:
+                exists = conn.execute("SELECT 1 FROM personnel WHERE id = ?", (person_id,)).fetchone()
+                if exists:
+                    raise ConflictError()
+                return False
+        else:
+            cur = conn.execute(
+                "UPDATE personnel SET name = ?, updated_at = datetime('now') WHERE id = ?",
+                (name, person_id),
+            )
+            conn.commit()
         return cur.rowcount > 0
 
 
