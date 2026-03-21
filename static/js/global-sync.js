@@ -1,6 +1,7 @@
 /* global-sync.js
  * Single poller that refreshes all data every 20 seconds,
  * regardless of which tab is active.
+ * Only runs when an incident is selected.
  */
 
 import { loadTeams } from "./teams.js";
@@ -9,26 +10,56 @@ import { syncStart, syncReset, syncStop } from "./sync-indicator.js";
 
 const POLL_INTERVAL_MS = 20_000;
 
+let _timer = null;
+
+function hasIncident() {
+  const sel = document.getElementById("incidentSelect");
+  return sel ? sel.value.trim() !== "" : false;
+}
+
 async function syncAll() {
   await Promise.all([loadTeams(), loadPersonnel()]);
 }
 
-function start() {
+function startPolling() {
+  if (_timer) return;
+  if (!hasIncident()) return;
   syncStart(POLL_INTERVAL_MS);
-  setInterval(() => {
+  _timer = setInterval(() => {
     if (document.visibilityState === "hidden") return;
+    if (!hasIncident()) { stopPolling(); return; }
     syncReset(POLL_INTERVAL_MS);
     syncAll();
   }, POLL_INTERVAL_MS);
 }
 
+function stopPolling() {
+  if (_timer) { clearInterval(_timer); _timer = null; }
+  syncStop();
+}
+
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
+  if (document.visibilityState === "visible" && hasIncident()) {
     syncAll();
-    syncStart(POLL_INTERVAL_MS);
-  } else {
-    syncStop();
+    startPolling();
+  } else if (document.visibilityState === "hidden") {
+    stopPolling();
   }
 });
 
-document.addEventListener("DOMContentLoaded", start);
+document.addEventListener("DOMContentLoaded", () => {
+  const sel = document.getElementById("incidentSelect");
+  if (sel) {
+    sel.addEventListener("change", () => {
+      if (hasIncident()) {
+        syncAll();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    });
+  }
+
+  // Start immediately if an incident is already selected on load
+  if (hasIncident()) startPolling();
+});
