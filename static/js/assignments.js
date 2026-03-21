@@ -150,21 +150,41 @@ async function loadAssignments() {
         warnings.push(`Title/status mismatch on assignment${titleConflicts.length > 1 ? "s" : ""} ${nums} — check X prefix vs status`);
       }
 
-      // Best-effort: check for team letters not in the DB
+      // Best-effort: check for team letters not in the DB + OOS teams on active assignments
       const incidentName = getCurrentIncidentName();
       if (incidentName) {
         try {
           const teamsResp = await fetch(`/api/teams?incidentName=${encodeURIComponent(incidentName)}`);
           if (teamsResp.ok) {
             const teams = await teamsResp.json().catch(() => []);
+            const teamArr = Array.isArray(teams) ? teams : [];
+
             const dbLetters = new Set(
-              (Array.isArray(teams) ? teams : [])
+              teamArr
                 .map(t => String(t.name).trim().toUpperCase())
                 .filter(n => n.length === 1 && /[A-Z]/.test(n))
             );
             const missing = findMissingTeams(data, dbLetters);
             if (missing.length > 0) {
               warnings.push(`Teams in CalTopo not in database: ${missing.join(", ")}`);
+            }
+
+            // Warn if any OOS team has an in-progress assignment
+            const inProgressLetters = new Set();
+            for (const a of data) {
+              if ((a.status || "").toUpperCase() === "INPROGRESS") {
+                for (const letter of parseAssignmentTeamLetters(a.team)) {
+                  inProgressLetters.add(letter);
+                }
+              }
+            }
+            const oosWithAssignment = teamArr.filter(t => {
+              const letter = String(t.name).trim().toUpperCase();
+              return t.status === "Out of Service" && inProgressLetters.has(letter);
+            });
+            if (oosWithAssignment.length > 0) {
+              const names = oosWithAssignment.map(t => `Team ${t.name}`).join(", ");
+              warnings.push(`${names} marked Out of Service but assigned to an in-progress assignment`);
             }
           }
         } catch (_) { /* non-fatal */ }
