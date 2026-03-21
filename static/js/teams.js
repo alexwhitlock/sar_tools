@@ -103,6 +103,22 @@ function memberTooltip(team) {
   return lines.map(l => escapeHtml(l)).join("&#10;");
 }
 
+/** Build members column HTML: TL first with "(TL)", rest alphabetically, one per line. */
+function memberListHtml(team) {
+  const members = parseMemberData(team.memberData);
+  if (!members.length) return "—";
+  const tlId = team.teamLeaderId ? String(team.teamLeaderId) : null;
+  const tl   = tlId ? members.find(m => String(m.id) === tlId) : null;
+  const rest = members
+    .filter(m => !tl || String(m.id) !== tlId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const lines = [
+    ...(tl   ? [`${tl.name} (TL)`] : []),
+    ...rest.map(m => m.name),
+  ];
+  return lines.map(l => escapeHtml(l)).join("<br>");
+}
+
 function escapeHtml(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
@@ -175,6 +191,7 @@ function renderTeamRow(t) {
     <td><span class="ts-badge ${badgeClass}">${escapeHtml(t.status)}</span></td>
     <td>${escapeHtml(t.teamLeaderName || "—")}</td>
     <td title="${memberTooltip(t)}" style="cursor:help">${t.memberCount ?? 0}</td>
+    <td class="col-members">${memberListHtml(t)}</td>
     <td>${assignmentHtml}</td>
     <td class="actions-cell">
       <button
@@ -564,18 +581,20 @@ function switchView(view) {
 
   const tableView        = document.getElementById("teams-table-view");
   const kanbanView       = document.getElementById("teams-kanban-view");
-  const statusFilterGroup = document.getElementById("teams-status-filter-group");
-  const tableBtn         = document.getElementById("view-table-btn");
-  const kanbanBtn        = document.getElementById("view-kanban-btn");
-  const addBtn           = document.getElementById("team-add");
-  const toolbar          = document.querySelector(".teams-toolbar");
-  const filtersRow       = document.querySelector(".teams-filters");
-  const searchGroup      = document.getElementById("teams-search-group");
+  const statusFilterGroup  = document.getElementById("teams-status-filter-group");
+  const colTogglesGroup    = document.getElementById("teams-col-toggles");
+  const tableBtn           = document.getElementById("view-table-btn");
+  const kanbanBtn          = document.getElementById("view-kanban-btn");
+  const addBtn             = document.getElementById("team-add");
+  const toolbar            = document.querySelector(".teams-toolbar");
+  const filtersRow         = document.querySelector(".teams-filters");
+  const searchGroup        = document.getElementById("teams-search-group");
 
   if (view === "table") {
     tableView?.classList.remove("hidden");
     kanbanView?.classList.add("hidden");
     if (statusFilterGroup) statusFilterGroup.style.display = "";
+    if (colTogglesGroup)   colTogglesGroup.style.display   = "";
     if (addBtn) addBtn.style.display = "";
     if (filtersRow) filtersRow.style.display = "";
     tableBtn?.classList.add("active");
@@ -589,6 +608,7 @@ function switchView(view) {
     tableView?.classList.add("hidden");
     kanbanView?.classList.remove("hidden");
     if (statusFilterGroup) statusFilterGroup.style.display = "none";
+    if (colTogglesGroup)   colTogglesGroup.style.display   = "none";
     if (addBtn) addBtn.style.display = "none";
     if (filtersRow) filtersRow.style.display = "none";
     tableBtn?.classList.remove("active");
@@ -625,6 +645,15 @@ function wireFilters() {
           card.classList.toggle("search-hidden", !match);
         });
       }
+    });
+  }
+
+  // Members column toggle
+  const membersToggle = document.getElementById("toggle-members");
+  if (membersToggle) {
+    const tableEl = document.querySelector(".teams-data-table");
+    membersToggle.addEventListener("change", () => {
+      tableEl?.classList.toggle("show-members", membersToggle.checked);
     });
   }
 

@@ -18,6 +18,14 @@
         <input type="text" id="teams-search" placeholder="Search name, TL, assignment…" />
       </div>
 
+      <!-- Column toggles (table only) -->
+      <div class="filter-group filter-group-check" id="teams-col-toggles">
+        <label class="check-label">
+          <input type="checkbox" id="toggle-members" />
+          Members
+        </label>
+      </div>
+
       <!-- Status pills (table only) -->
       <div class="filter-group" id="teams-status-filter-group">
         <label>Status</label>
@@ -42,6 +50,7 @@
             <th data-key="status">Status</th>
             <th data-key="teamLeaderName">Team Leader</th>
             <th data-key="memberCount">Members</th>
+            <th data-key="memberNames" class="col-members">Member Names</th>
             <th data-key="assignment">Assignment</th>
             <th data-key="actions" class="actions-col"></th>
           </tr>
