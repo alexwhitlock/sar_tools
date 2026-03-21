@@ -45,6 +45,8 @@ def run_migrations(conn):
     migrations = [
         (1, migration_001_initial_schema),
         (2, migration_002_settings),
+        (3, migration_003_personnel_status),
+        (4, migration_004_personnel_previous_status),
     ]
 
     for version, migration in migrations:
@@ -114,6 +116,27 @@ def migration_001_initial_schema(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_personnel_name ON personnel(name);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);")
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_personnel_d4h_ref ON personnel(d4h_ref);")
+
+
+def migration_004_personnel_previous_status(conn):
+    """
+    Adds previous_status to personnel to track the state before the last status change.
+    Used to determine whether Undo Check In is applicable.
+    """
+    conn.execute("""
+        ALTER TABLE personnel ADD COLUMN previous_status TEXT;
+    """)
+
+
+def migration_003_personnel_status(conn):
+    """
+    Adds a status field to personnel.
+    Tracks where each person is in the incident lifecycle.
+    Existing rows default to 'Added'.
+    """
+    conn.execute("""
+        ALTER TABLE personnel ADD COLUMN status TEXT NOT NULL DEFAULT 'Added';
+    """)
 
 
 def migration_002_settings(conn):

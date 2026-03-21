@@ -34,6 +34,12 @@
 }
 
 
+/* Status pill colours */
+.pill.status-added:has(input:checked)      { background: #888;    border-color: #888; }
+.pill.status-checkedin:has(input:checked)  { background: #27a85a; border-color: #27a85a; }
+.pill.status-checkedout:has(input:checked) { background: #555;    border-color: #555; }
+
+
 /* ===============================
    Scrollable table container
    =============================== */

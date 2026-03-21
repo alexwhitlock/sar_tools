@@ -34,6 +34,25 @@
         <input type="text" id="filter-team" placeholder="e.g. C" />
       </div>
 
+      <!-- Team assignment pills -->
+      <div class="filter-group">
+        <label>Team Status</label>
+        <div class="pill-group" data-filter-key="teamFilter">
+          <label class="pill"><input type="checkbox" value="Assigned"> Assigned</label>
+          <label class="pill"><input type="checkbox" value="Unassigned"> Unassigned</label>
+        </div>
+      </div>
+
+      <!-- Status pills -->
+      <div class="filter-group">
+        <label>Status</label>
+        <div class="pill-group" data-filter-key="status">
+          <label class="pill status-added"><input type="checkbox" value="Added"> Added</label>
+          <label class="pill status-checkedin"><input type="checkbox" value="Checked In"> Checked In</label>
+          <label class="pill status-checkedout"><input type="checkbox" value="Checked Out"> Checked Out</label>
+        </div>
+      </div>
+
       <!-- Column toggles -->
       <div class="filter-group filter-group-check">
         <label class="check-label">
@@ -51,6 +70,7 @@
           <tr>
             <th data-key="name">Name</th>
             <th data-key="team">Team</th>
+            <th data-key="status">Status</th>
             <th data-key="source">Source</th>
             <th data-key="d4hRef" class="col-d4href">D4H Ref</th>
             <th data-key="actions" class="actions-col"></th>
@@ -78,6 +98,9 @@
 
     <!-- Kebab popup menu (text only) -->
     <div id="personMenu" class="popup-menu hidden" role="menu" aria-label="Person actions">
+      <button type="button" class="menu-item" data-action="check-in" role="menuitem">Check In</button>
+      <button type="button" class="menu-item" data-action="undo-check-in" role="menuitem">Undo Check In</button>
+      <button type="button" class="menu-item" data-action="check-out" role="menuitem">Check Out</button>
       <button type="button" class="menu-item" data-action="edit" role="menuitem">Edit</button>
       <button type="button" class="menu-item danger" data-action="delete" role="menuitem">Delete</button>
     </div>

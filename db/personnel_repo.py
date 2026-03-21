@@ -92,6 +92,9 @@ def link_d4h_to_person(incident_name: str, *, person_id: int, d4h_ref: str, new_
         return cur.rowcount > 0
 
 
+VALID_STATUSES = ["Added", "Checked In", "Checked Out"]
+
+
 def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
     with get_connection(incident_name) as conn:
         rows = conn.execute("""
@@ -100,7 +103,9 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
                 p.name AS name,
                 t.name AS team,
                 p.source AS source,
-                p.d4h_ref AS d4hRef
+                p.d4h_ref AS d4hRef,
+                p.status AS status,
+                p.previous_status AS previousStatus
             FROM personnel p
             LEFT JOIN team_members tm ON tm.personnel_id = p.id
             LEFT JOIN teams t ON t.id = tm.team_id
@@ -113,7 +118,22 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
         "team": r["team"],
         "source": r["source"],
         "d4hRef": r["d4hRef"],
+        "status": r["status"],
+        "previousStatus": r["previousStatus"],
     } for r in rows]
+
+
+def update_person_status(incident_name: str, *, person_id: int, status: str) -> bool:
+    """Update a person's status, storing the previous status. Returns True if a row was updated."""
+    with get_connection(incident_name) as conn:
+        cur = conn.execute(
+            """UPDATE personnel
+               SET previous_status = status, status = ?, updated_at = datetime('now')
+               WHERE id = ?""",
+            (status, person_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
 
 
 def add_person(incident_name: str, *, name: str) -> int:
