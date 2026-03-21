@@ -145,7 +145,7 @@
 /* Member names column (toggled) */
 .col-members { display: none; }
 .show-members .col-members { display: table-cell; }
-.col-members { font-size: 0.75rem; line-height: 1.5; white-space: nowrap; }
+.col-members { line-height: 1.5; white-space: nowrap; }
 
 .actions-col {
   width: 44px;
