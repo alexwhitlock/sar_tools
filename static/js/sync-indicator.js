@@ -4,15 +4,30 @@
  */
 
 const _el = () => document.getElementById("sync-countdown");
+const _btn = () => document.getElementById("sync-now-btn");
 
 let _ticker = null;
 let _secondsLeft = 0;
 let _epoch = 0;   // incremented by syncStart; lets deferred syncStop hides detect staleness
 
+function _pad(s) {
+  return s < 10 ? `0${s}` : `${s}`;
+}
+
+function _setText(s) {
+  const el = _el();
+  if (el) el.textContent = `Sync in ${_pad(s)}s`;
+}
+
 function _tick() {
   _secondsLeft = Math.max(0, _secondsLeft - 1);
-  const el = _el();
-  if (el) el.textContent = `Sync in ${_secondsLeft}s`;
+  _setText(_secondsLeft);
+}
+
+/** Register a callback to be called when the sync-now button is clicked. */
+export function onSyncNow(fn) {
+  const btn = _btn();
+  if (btn) btn.addEventListener("click", fn);
 }
 
 /** Start the visible countdown. Call when polling begins. */
@@ -21,18 +36,16 @@ export function syncStart(intervalMs) {
   if (_ticker) { clearInterval(_ticker); _ticker = null; }
   _secondsLeft = Math.round(intervalMs / 1000);
   const el = _el();
-  if (el) {
-    el.textContent = `Sync in ${_secondsLeft}s`;
-    el.classList.remove("hidden");
-  }
+  const btn = _btn();
+  if (el) { _setText(_secondsLeft); el.classList.remove("hidden"); }
+  if (btn) btn.classList.remove("hidden");
   _ticker = setInterval(_tick, 1000);
 }
 
 /** Reset to full interval. Call immediately after each poll fires. */
 export function syncReset(intervalMs) {
   _secondsLeft = Math.round(intervalMs / 1000);
-  const el = _el();
-  if (el) el.textContent = `Sync in ${_secondsLeft}s`;
+  _setText(_secondsLeft);
 }
 
 /** Stop countdown and hide the element. Call when polling stops.
@@ -44,6 +57,8 @@ export function syncStop() {
   setTimeout(() => {
     if (_epoch !== myEpoch) return; // syncStart() was called after us
     const el = _el();
+    const btn = _btn();
     if (el) el.classList.add("hidden");
+    if (btn) btn.classList.add("hidden");
   }, 0);
 }

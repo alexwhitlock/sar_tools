@@ -6,7 +6,7 @@
 
 import { loadTeams } from "./teams.js";
 import { loadPersonnel } from "./personnel.js";
-import { syncStart, syncReset, syncStop } from "./sync-indicator.js";
+import { syncStart, syncReset, syncStop, onSyncNow } from "./sync-indicator.js";
 
 const POLL_INTERVAL_MS = 20_000;
 
@@ -59,6 +59,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // Manual sync button
+  onSyncNow(() => {
+    if (!hasIncident()) return;
+    stopPolling();
+    syncAll();
+    startPolling();
+  });
 
   // Start immediately if an incident is already selected on load
   if (hasIncident()) startPolling();
