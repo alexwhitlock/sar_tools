@@ -143,7 +143,17 @@ export async function loadPersonnel() {
       return;
     }
 
-    personnelMessage.show(`Loaded ${arr.length} people.`, "info");
+    const checkedIn  = arr.filter(p => p.status === "Checked In").length;
+    const checkedOut = arr.filter(p => p.status === "Checked Out").length;
+    const statsEl = document.getElementById("personnel-stats");
+    if (statsEl) {
+      document.getElementById("stat-total").textContent      = `Total: ${arr.length}`;
+      document.getElementById("stat-checkedin").textContent  = `Checked In: ${checkedIn}`;
+      document.getElementById("stat-checkedout").textContent = `Checked Out: ${checkedOut}`;
+      statsEl.classList.remove("hidden");
+    }
+
+    personnelMessage.show(`Last updated ${new Date().toLocaleTimeString("en-GB", {hour:"2-digit",minute:"2-digit",second:"2-digit"})}`, "info");
     personnelTable.setData(arr);
   } catch (err) {
     logMessage("ERROR", "Failed to load personnel", err.message);
