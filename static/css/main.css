@@ -113,42 +113,6 @@ body {
   display: none;
 }
 
-/* ===============================
-   Help button
-   =============================== */
-
-.help-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-
-  background-color: #cc5e31;
-  color: #ffffff;
-  text-decoration: none;
-
-  border-radius: 4px;
-  padding: 0.3rem 0.6rem;
-
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-
-  cursor: pointer;
-
-  transition:
-    background-color 0.15s ease,
-    transform 0.05s ease;
-}
-
-.help-link:hover {
-  background-color: #b6522b;
-}
-
-.help-link:active {
-  background-color: #a64826;
-  transform: translateY(1px);
-}
 
 /* ===============================
    Tab buttons (binder style)
