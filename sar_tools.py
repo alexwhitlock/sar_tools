@@ -1,10 +1,22 @@
 import json
 import os
+import subprocess
 import threading
 import webbrowser
 import logging
 logging.basicConfig(level=logging.INFO)
 from flask import Flask, jsonify, render_template, send_from_directory
+
+def _git_hash():
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        return "dev"
+
+ASSET_VERSION = _git_hash()
 
 # ================= Flask App =================
 app = Flask(
@@ -58,7 +70,7 @@ app.config["D4H_BASE_URL"] = D4H_BASE_URL
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", v=ASSET_VERSION)
 
 
 @app.route("/health")
