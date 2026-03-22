@@ -93,7 +93,7 @@ function renderAssignmentRow(a) {
    Data loading
    =============================== */
 
-async function loadAssignments() {
+export async function loadAssignments() {
   // 🚫 HARD STOP if offline
   if (!navigator.onLine) {
     assignmentsMessage.show("Offline.", "error");
