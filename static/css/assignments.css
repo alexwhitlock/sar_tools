@@ -21,23 +21,13 @@
 
 
 /* ===============================
-   Toolbar (message + reload)
+   Toolbar (message bar)
    =============================== */
 
 .assignments-toolbar {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-
   height: 2.4rem;
   padding: 0 0.25rem;
   margin-bottom: 0.4rem;
-}
-
-/* Reload button */
-.assignments-reload-btn {
-  width: auto;              /* override global 100% */
-  flex: 0 0 auto;
 }
 
 

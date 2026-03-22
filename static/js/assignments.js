@@ -191,7 +191,7 @@ export async function loadAssignments() {
       }
 
       if (warnings.length > 0) {
-        assignmentsMessage.show(`⚠ ${warnings.join(" — ")}`, "warning");
+        assignmentsMessage.show(`⚠ ${warnings.join(" — ")} — Last updated ${getTimeHHMMSS()}`, "warning");
       } else {
         assignmentsMessage.show(`Last updated ${getTimeHHMMSS()}`, "info");
       }
@@ -357,11 +357,6 @@ document.addEventListener("DOMContentLoaded", () => {
      4. Wire UI events
      =============================== */
 
-  // Reload button
-  const reloadBtn = document.getElementById("assignments-reload");
-  if (reloadBtn) {
-    reloadBtn.addEventListener("click", loadAssignments);
-  }
 
   // Filters (safe to wire here — DOM now exists)
   wireFilters(assignmentsTable);
