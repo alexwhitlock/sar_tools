@@ -13,33 +13,28 @@
 <script src="https://cdn.jsdelivr.net/npm/mgrs@1.0.0/dist/mgrs.min.js"></script>
 
 <!-- App CSS -->
-<link rel="stylesheet" href="/static/css/main.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/table.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/message-bar.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/rectangle.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/console.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/assignments.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/personnel.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/teams.css?v={{ v }}">
-<link rel="stylesheet" href="/static/css/home.css?v={{ v }}">
-
-
+<link rel="stylesheet" href="/static/css/main.css">
+<link rel="stylesheet" href="/static/css/table.css">
+<link rel="stylesheet" href="/static/css/message-bar.css">
+<link rel="stylesheet" href="/static/css/rectangle.css">
+<link rel="stylesheet" href="/static/css/console.css">
+<link rel="stylesheet" href="/static/css/assignments.css">
+<link rel="stylesheet" href="/static/css/personnel.css">
+<link rel="stylesheet" href="/static/css/teams.css">
+<link rel="stylesheet" href="/static/css/home.css">
 
 <!-- Core JS -->
-<script src="/static/js/tabs.js?v={{ v }}" defer></script>
-<script src="/static/js/logger.js?v={{ v }}" defer></script>
-<script src="/static/js/console-toggle.js?v={{ v }}" defer></script>
-<script src="/static/js/map-utils.js?v={{ v }}" defer></script>
-<script src="/static/js/geometry-utils.js?v={{ v }}"></script>
-<script type="module" src="/static/js/rectangle.js?v={{ v }}"></script>
-<script type="module" src="/static/js/assignments.js?v={{ v }}"></script>
-<script type="module" src="/static/js/personnel.js?v={{ v }}"></script>
-<script type="module" src="/static/js/teams.js?v={{ v }}"></script>
-<script type="module" src="/static/js/home.js?v={{ v }}"></script>
-<script type="module" src="/static/js/global-sync.js?v={{ v }}"></script>
-
-
-
+<script src="/static/js/tabs.js" defer></script>
+<script src="/static/js/logger.js" defer></script>
+<script src="/static/js/console-toggle.js" defer></script>
+<script src="/static/js/map-utils.js" defer></script>
+<script src="/static/js/geometry-utils.js"></script>
+<script type="module" src="/static/js/rectangle.js"></script>
+<script type="module" src="/static/js/assignments.js"></script>
+<script type="module" src="/static/js/personnel.js"></script>
+<script type="module" src="/static/js/teams.js"></script>
+<script type="module" src="/static/js/home.js"></script>
+<script type="module" src="/static/js/global-sync.js"></script>
 
 </head>
 
@@ -48,7 +43,7 @@
 <div class="top-bar">
 
   <div class="tabs">
-<button class="tab-button"
+    <button class="tab-button"
             onclick="openTab('home', this)">
       Home
     </button>
@@ -93,9 +88,6 @@
   </div>
 
 </div>
-
-
-
 
 <div id="page">
   {% include "tabs/home.html" %}

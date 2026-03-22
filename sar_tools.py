@@ -1,22 +1,10 @@
 import json
 import os
-import subprocess
 import threading
 import webbrowser
 import logging
 logging.basicConfig(level=logging.INFO)
 from flask import Flask, jsonify, render_template, send_from_directory
-
-def _git_hash():
-    try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
-            stderr=subprocess.DEVNULL
-        ).decode().strip()
-    except Exception:
-        return "dev"
-
-ASSET_VERSION = _git_hash()
 
 # ================= Flask App =================
 app = Flask(
@@ -24,6 +12,9 @@ app = Flask(
     template_folder="templates",
     static_folder="static"
 )
+
+# Never cache static files — browser revalidates on every load (304 if unchanged)
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 # ============== Register the blueprints (routes in other files)
 from routes.caltopo import bp as caltopo_bp
@@ -70,7 +61,7 @@ app.config["D4H_BASE_URL"] = D4H_BASE_URL
 
 @app.route("/")
 def index():
-    return render_template("index.html", v=ASSET_VERSION)
+    return render_template("index.html")
 
 
 @app.route("/health")
