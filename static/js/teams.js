@@ -808,6 +808,9 @@ async function openTeamModal(mode, team = null) {
   modalMode = mode;
   activeTeamId = team?.id ?? null;
 
+  const errEl = document.getElementById("teamModalError");
+  if (errEl) errEl.classList.add("hidden");
+
   titleEl.textContent = mode === "create" ? "Create Team" : "Edit Team";
   nameInput.value = team?.name ?? "";
   statusSelect.value = team?.status ?? "Out of Service";
@@ -930,13 +933,13 @@ async function saveTeamModal() {
     await loadTeams();
     teamsMessage.show(modalMode === "create" ? "Team created." : "Changes saved.", "info");
   } catch (err) {
+    const errEl = document.getElementById("teamModalError");
     if (err instanceof ConflictError) {
-      closeTeamModal();
-      teamsMessage.show("⚠ Team was modified by another user while you were editing — reloading.", "warning", 8000);
+      if (errEl) { errEl.textContent = "⚠ This team was modified by another user. Close and re-open to see the latest version."; errEl.classList.remove("hidden"); }
       await loadTeams();
     } else {
       logMessage("ERROR", "Failed to save team", err.message);
-      teamsMessage.show(`Failed to save: ${err.message}`, "error");
+      if (errEl) { errEl.textContent = `Failed to save: ${err.message}`; errEl.classList.remove("hidden"); }
     }
   }
 }

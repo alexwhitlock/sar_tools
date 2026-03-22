@@ -251,6 +251,20 @@
   width: auto !important;
   padding: 4px 10px;
 }
+
+.modal-error {
+  margin: 4px 8px 0;
+  padding: 6px 10px;
+  background: #fdecea;
+  border: 1px solid #f5c2be;
+  border-radius: 4px;
+  color: #b71c1c;
+  font-size: 0.8rem;
+}
+
+.modal-error.hidden {
+  display: none;
+}
 /* ===============================
    Kebab (row actions) button
    =============================== */

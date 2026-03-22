@@ -244,6 +244,8 @@ async function openPersonModal(mode, person = null) {
   if (!backdrop || !titleEl || !nameInput) return;
 
   modalMode = mode;
+  const errEl = document.getElementById("personModalError");
+  if (errEl) errEl.classList.add("hidden");
   titleEl.textContent = mode === "add" ? "Add Person" : "Edit Person";
   nameInput.value = person?.name ?? "";
 
@@ -832,13 +834,13 @@ function wireMenuAndModal() {
         "info"
       );
     } catch (err) {
+      const errEl = document.getElementById("personModalError");
       if (err instanceof ConflictError) {
-        closePersonModal();
-        personnelMessage.show("⚠ Record was modified by another user while you were editing — reloading.", "warning", 8000);
+        if (errEl) { errEl.textContent = "⚠ This record was modified by another user. Close and re-open to see the latest version."; errEl.classList.remove("hidden"); }
         await loadPersonnel();
       } else {
         logMessage("ERROR", "Failed to save person", err.message);
-        personnelMessage.show(`Failed to save: ${err.message}`, "error");
+        if (errEl) { errEl.textContent = `Failed to save: ${err.message}`; errEl.classList.remove("hidden"); }
       }
     }
   });
