@@ -13,8 +13,10 @@ app = Flask(
     static_folder="static"
 )
 
-# Never cache static files — browser revalidates on every load (304 if unchanged)
-app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+@app.after_request
+def no_cache(response):
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 # ============== Register the blueprints (routes in other files)
 from routes.caltopo import bp as caltopo_bp
