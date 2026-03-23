@@ -1,0 +1,339 @@
+/* ===============================
+   Logging tab — outer layout
+   =============================== */
+
+#logging {
+  height: 100%;
+  position: relative;
+  min-height: 0;
+}
+
+.logging-tab-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ===============================
+   Sub-tab bar
+   =============================== */
+
+.logging-subtab-bar {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid #ccc;
+  padding: 0 0 0 0;
+  flex: 0 0 auto;
+  margin-bottom: 0.4rem;
+}
+
+.logging-subtab-btn {
+  width: auto !important;
+  padding: 4px 14px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: #f5f5f5;
+  color: #444;
+  font-size: 0.82rem;
+  cursor: pointer;
+  position: relative;
+  bottom: -1px;
+}
+
+.logging-subtab-btn.active {
+  background: #fff;
+  border-color: #ccc;
+  color: #000;
+  font-weight: 600;
+}
+
+.logging-subtab-btn:not(.active):hover {
+  background: #ececec;
+}
+
+/* ===============================
+   Sub-tab panels
+   =============================== */
+
+.logging-subtab-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.logging-subtab-panel.hidden {
+  display: none;
+}
+
+/* ===============================
+   Comms Log — split layout
+   =============================== */
+
+.comms-layout {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0.5rem;
+}
+
+/* Left: scrollable log display */
+.comms-log-display {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.comms-log-entries {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  gap: 3px;
+}
+
+/* ===============================
+   Log entries
+   =============================== */
+
+.log-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.log-entry-important {
+  background: #fff8e1;
+  border-left: 3px solid #f9a825;
+  padding-left: 6px;
+}
+
+.log-time {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: #777;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.log-role {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  background: #e0e0e0;
+  color: #333;
+}
+
+/* Role colour coding */
+.log-role-system  { background: #e8eaf6; color: #3949ab; }
+.log-role-comms   { background: #e8f5e9; color: #2e7d32; }
+.log-role-ic      { background: #fce4ec; color: #ad1457; }
+.log-role-ops     { background: #fff3e0; color: #e65100; }
+.log-role-plans   { background: #e3f2fd; color: #1565c0; }
+.log-role-other   { background: #f5f5f5; color: #555; }
+
+.log-message {
+  flex: 1 1 auto;
+  word-break: break-word;
+}
+
+.log-empty {
+  color: #aaa;
+  font-size: 0.82rem;
+  padding: 12px 8px;
+}
+
+/* ===============================
+   Comms builder (right panel)
+   =============================== */
+
+.comms-builder {
+  flex: 0 0 260px;
+  min-width: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fafafa;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.builder-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.builder-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.builder-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.builder-buttons-col {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+/* Builder buttons — compact ghost style */
+.builder-btn {
+  width: auto !important;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #333;
+}
+
+.builder-btn:hover {
+  background: #f0f0f0;
+  border-color: #888;
+}
+
+.builder-btn:active {
+  background: #e0e0e0;
+}
+
+.builder-btn-wide {
+  width: 100% !important;
+  text-align: left;
+}
+
+/* Team dropdown inside builder */
+.builder-team-select {
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* ===============================
+   Comms input bar (bottom)
+   =============================== */
+
+.comms-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0 0;
+  flex: 0 0 auto;
+}
+
+.comms-role-select {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.comms-message-input {
+  flex: 1 1 auto;
+  font-size: 0.85rem;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.comms-message-input:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: -1px;
+}
+
+/* Log button — use global style, just fix width */
+#comms-log-btn {
+  flex: 0 0 auto;
+  width: auto !important;
+  font-weight: 600;
+}
+
+/* ===============================
+   View Log toolbar
+   =============================== */
+
+.viewlog-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-bottom: 0.4rem;
+}
+
+.viewlog-toolbar input[type="text"] {
+  max-width: 20rem;
+}
+
+#viewlog-export-btn {
+  width: auto !important;
+  margin-left: auto;
+}
+
+/* ===============================
+   View Log table container
+   =============================== */
+
+.viewlog-table-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.viewlog-table td {
+  font-size: 0.82rem;
+  vertical-align: top;
+}
+
+.log-col-time {
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.log-col-type {
+  white-space: nowrap;
+  color: #777;
+}
+
+.log-empty-cell {
+  text-align: center;
+  color: #aaa;
+  padding: 16px 0;
+}
+
+.log-row-important td {
+  background: #fff8e1;
+}

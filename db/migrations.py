@@ -48,6 +48,7 @@ def run_migrations(conn):
         (3, migration_003_personnel_status),
         (4, migration_004_personnel_previous_status),
         (5, migration_005_teams_leader_and_status),
+        (6, migration_006_incident_log),
     ]
 
     for version, migration in migrations:
@@ -162,3 +163,20 @@ def migration_002_settings(conn):
     """)
 
 
+def migration_006_incident_log(conn):
+    """
+    Adds the incident_log table for capturing all incident timeline events.
+    Stores system-generated events, comms log entries, notes, and tasks.
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS incident_log (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp   TEXT NOT NULL DEFAULT (datetime('now')),
+            role        TEXT NOT NULL DEFAULT 'SYSTEM',
+            type        TEXT NOT NULL DEFAULT 'note',
+            flags       TEXT,
+            message     TEXT NOT NULL
+        );
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_log_timestamp ON incident_log(timestamp);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_log_type     ON incident_log(type);")

@@ -1,0 +1,128 @@
+<div id="logging" class="tab-panel">
+  <div class="tab-content logging-tab-content">
+
+    <!-- Sub-tab buttons -->
+    <div class="logging-subtab-bar">
+      <button class="logging-subtab-btn active" data-subtab="comms-log">Comms Log</button>
+      <button class="logging-subtab-btn" data-subtab="view-log">View Log</button>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- COMMS LOG sub-tab                                            -->
+    <!-- ============================================================ -->
+    <div id="subtab-comms-log" class="logging-subtab-panel">
+
+      <!-- Main split area (log display + builder) -->
+      <div class="comms-layout">
+
+        <!-- Left: live log display -->
+        <div class="comms-log-display">
+          <div id="comms-log-entries" class="comms-log-entries">
+            <div class="log-empty">No incident selected.</div>
+          </div>
+        </div>
+
+        <!-- Right: button builder -->
+        <div class="comms-builder">
+
+          <div class="builder-section">
+            <div class="builder-label">Connectors</div>
+            <div class="builder-buttons">
+              <button type="button" class="builder-btn" data-insert="FROM ">FROM</button>
+              <button type="button" class="builder-btn" data-insert="TO ">TO</button>
+              <button type="button" class="builder-btn" data-insert="VIA ">VIA</button>
+              <button type="button" class="builder-btn" data-insert="AT ">AT</button>
+              <button type="button" class="builder-btn" data-insert=": ">:</button>
+            </div>
+          </div>
+
+          <div class="builder-section">
+            <div class="builder-label">Entities</div>
+            <div class="builder-buttons">
+              <select id="comms-team-select" class="builder-team-select">
+                <option value="">Team...</option>
+              </select>
+              <button type="button" class="builder-btn" data-insert="COMMAND ">COMMAND</button>
+              <button type="button" class="builder-btn" data-insert="BASE ">BASE</button>
+              <button type="button" class="builder-btn" data-insert="COMMS ">COMMS</button>
+              <button type="button" class="builder-btn" data-insert="OPS ">OPS</button>
+              <button type="button" class="builder-btn" data-insert="MEDIC ">MEDIC</button>
+            </div>
+          </div>
+
+          <div class="builder-section">
+            <div class="builder-label">Quick Messages</div>
+            <div class="builder-buttons builder-buttons-col">
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="LEAVING FOR ASSIGNMENT">LEAVING FOR ASSIGNMENT</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="ARRIVED AT ASSIGNMENT">ARRIVED AT ASSIGNMENT</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="RETURNING TO BASE">RETURNING TO BASE</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="ARRIVED AT BASE">ARRIVED AT BASE</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="IN CONTACT WITH SUBJECT">IN CONTACT WITH SUBJECT</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="SUBJECT FOUND">SUBJECT FOUND</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="ALL CLEAR">ALL CLEAR</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="REQUESTING MEDICAL">REQUESTING MEDICAL</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="RADIO CHECK OK">RADIO CHECK OK</button>
+              <button type="button" class="builder-btn builder-btn-wide" data-insert="NO CONTACT">NO CONTACT</button>
+            </div>
+          </div>
+
+        </div><!-- /comms-builder -->
+      </div><!-- /comms-layout -->
+
+      <!-- Bottom input bar -->
+      <div class="comms-input-bar">
+        <select id="comms-role" class="comms-role-select" title="Role">
+          <option value="COMMS">COMMS</option>
+          <option value="IC">IC</option>
+          <option value="OPS">OPS</option>
+          <option value="PLANS">PLANS</option>
+          <option value="OTHER">OTHER</option>
+        </select>
+        <input
+          type="text"
+          id="comms-message-input"
+          class="comms-message-input"
+          placeholder="Enter message or build with buttons above..."
+          autocomplete="off"
+        />
+        <button type="button" id="comms-log-btn">Log</button>
+      </div>
+
+    </div><!-- /subtab-comms-log -->
+
+    <!-- ============================================================ -->
+    <!-- VIEW LOG sub-tab                                             -->
+    <!-- ============================================================ -->
+    <div id="subtab-view-log" class="logging-subtab-panel hidden">
+
+      <div class="viewlog-toolbar">
+        <input type="text" id="viewlog-search" placeholder="Search log..." />
+        <select id="viewlog-type-filter" title="Filter by type">
+          <option value="">All types</option>
+          <option value="comms">Comms</option>
+          <option value="system">System</option>
+          <option value="note">Note</option>
+          <option value="task">Task</option>
+        </select>
+        <button type="button" id="viewlog-export-btn">Export CSV</button>
+      </div>
+
+      <div class="viewlog-table-container">
+        <table class="data-table viewlog-table">
+          <thead>
+            <tr>
+              <th style="width:7rem">Time</th>
+              <th style="width:5rem">Role</th>
+              <th style="width:5rem">Type</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody id="viewlog-body">
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /subtab-view-log -->
+
+  </div><!-- /tab-content -->
+</div><!-- /logging tab-panel -->

@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="/static/css/personnel.css">
 <link rel="stylesheet" href="/static/css/teams.css">
 <link rel="stylesheet" href="/static/css/home.css">
+<link rel="stylesheet" href="/static/css/logging.css">
 
 <!-- Core JS -->
 <script src="/static/js/tabs.js" defer></script>
@@ -35,6 +36,7 @@
 <script type="module" src="/static/js/teams.js"></script>
 <script type="module" src="/static/js/home.js"></script>
 <script type="module" src="/static/js/global-sync.js"></script>
+<script type="module" src="/static/js/logging.js"></script>
 
 </head>
 
@@ -69,6 +71,11 @@
     </button>
 
     <button class="tab-button"
+            onclick="openTab('logging', this)">
+      Logging
+    </button>
+
+    <button class="tab-button"
             id="consoleTabBtn"
             style="display:none"
             onclick="openTab('console', this)">
@@ -95,6 +102,7 @@
   {% include "tabs/assignments.html" %}
   {% include "tabs/personnel.html" %}
   {% include "tabs/teams.html" %}
+  {% include "tabs/logging.html" %}
   {% include "tabs/console.html" %}
 </div>
 

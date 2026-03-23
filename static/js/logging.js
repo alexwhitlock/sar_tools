@@ -1,0 +1,287 @@
+/**
+ * logging.js — Incident Log tab
+ *
+ * Exports:
+ *   watchLoggingTab()      — call once on DOMContentLoaded
+ *   logSystemEvent(name, msg) — fire-and-forget system log from other modules
+ */
+
+// ─── state ────────────────────────────────────────────────────────────────────
+
+let _incident = null;
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function _getIncident() {
+  return document.getElementById("incidentSelect")?.value?.trim() || null;
+}
+
+/** SQLite timestamp "YYYY-MM-DD HH:MM:SS" (UTC) → local HH:MM:SS */
+function _fmtTime(ts) {
+  try {
+    const d = new Date(ts.replace(" ", "T") + "Z");
+    return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch {
+    return ts || "";
+  }
+}
+
+function _esc(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// ─── sub-tab switching ────────────────────────────────────────────────────────
+
+function _initSubtabs() {
+  document.querySelectorAll(".logging-subtab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".logging-subtab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".logging-subtab-panel").forEach(p => p.classList.add("hidden"));
+      btn.classList.add("active");
+      const panel = document.getElementById(`subtab-${btn.dataset.subtab}`);
+      if (panel) panel.classList.remove("hidden");
+      if (btn.dataset.subtab === "view-log") _loadViewLog();
+    });
+  });
+}
+
+// ─── comms log ────────────────────────────────────────────────────────────────
+
+async function _loadCommsLog() {
+  const incident = _getIncident();
+  const container = document.getElementById("comms-log-entries");
+  if (!container) return;
+
+  if (!incident) {
+    container.innerHTML = '<div class="log-empty">No incident selected.</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log?type=comms`);
+    const data = await res.json();
+    if (!data.success) return;
+    _renderCommsEntries(container, data.log);
+  } catch (err) {
+    console.error("Failed to load comms log", err);
+  }
+}
+
+function _renderCommsEntries(container, entries) {
+  if (!entries.length) {
+    container.innerHTML = '<div class="log-empty">No comms entries yet. Start logging below.</div>';
+    return;
+  }
+  container.innerHTML = entries.map(e => {
+    const important = e.flags && e.flags.includes("important");
+    return `<div class="log-entry${important ? " log-entry-important" : ""}">
+      <span class="log-time">${_fmtTime(e.timestamp)}</span>
+      <span class="log-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</span>
+      <span class="log-message">${_esc(e.message)}</span>
+    </div>`;
+  }).join("");
+  // always scroll to bottom so newest entry is visible
+  container.scrollTop = container.scrollHeight;
+}
+
+async function _submitCommsLog() {
+  const incident = _getIncident();
+  if (!incident) return;
+
+  const input = document.getElementById("comms-message-input");
+  const roleEl = document.getElementById("comms-role");
+  if (!input) return;
+
+  const message = input.value.trim();
+  if (!message) return;
+
+  const role = roleEl?.value || "COMMS";
+
+  try {
+    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role, type: "comms", message }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      input.value = "";
+      await _loadCommsLog();
+    }
+  } catch (err) {
+    console.error("Failed to submit log entry", err);
+  }
+}
+
+// ─── comms builder ────────────────────────────────────────────────────────────
+
+function _initBuilder() {
+  // Insert-text buttons
+  document.querySelectorAll(".builder-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById("comms-message-input");
+      if (!input) return;
+      input.value += btn.dataset.insert;
+      input.focus();
+    });
+  });
+
+  // Team dropdown — insert selected team name then reset
+  const teamSel = document.getElementById("comms-team-select");
+  if (teamSel) {
+    teamSel.addEventListener("change", () => {
+      if (!teamSel.value) return;
+      const input = document.getElementById("comms-message-input");
+      if (input) {
+        input.value += teamSel.value + " ";
+        input.focus();
+      }
+      teamSel.value = "";
+    });
+  }
+}
+
+async function _populateTeamSelector() {
+  const incident = _getIncident();
+  const sel = document.getElementById("comms-team-select");
+  if (!sel || !incident) return;
+
+  try {
+    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/teams`);
+    const data = await res.json();
+    if (!data.success) return;
+    // rebuild options (keep placeholder)
+    while (sel.options.length > 1) sel.remove(1);
+    (data.teams || []).forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.name;
+      opt.textContent = `Team ${t.name}`;
+      sel.appendChild(opt);
+    });
+  } catch (err) {
+    console.error("Failed to load teams for builder", err);
+  }
+}
+
+// ─── view log ─────────────────────────────────────────────────────────────────
+
+async function _loadViewLog() {
+  const incident = _getIncident();
+  const tbody = document.getElementById("viewlog-body");
+  if (!tbody) return;
+
+  if (!incident) {
+    tbody.innerHTML = '<tr><td colspan="4" class="log-empty-cell">No incident selected.</td></tr>';
+    return;
+  }
+
+  const search = document.getElementById("viewlog-search")?.value || "";
+  const typeFilter = document.getElementById("viewlog-type-filter")?.value || "";
+
+  let url = `/incidents/${encodeURIComponent(incident)}/log`;
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  if (typeFilter) params.set("type", typeFilter);
+  if (params.toString()) url += `?${params}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.success) return;
+    _renderViewLog(tbody, data.log);
+  } catch (err) {
+    console.error("Failed to load view log", err);
+  }
+}
+
+function _renderViewLog(tbody, entries) {
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="log-empty-cell">No log entries.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(e => {
+    const important = e.flags && e.flags.includes("important");
+    return `<tr class="${important ? "log-row-important" : ""}">
+      <td class="log-col-time">${_fmtTime(e.timestamp)}</td>
+      <td><span class="log-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</span></td>
+      <td class="log-col-type">${_esc(e.type)}</td>
+      <td>${_esc(e.message)}</td>
+    </tr>`;
+  }).join("");
+}
+
+function _exportCSV() {
+  const incident = _getIncident();
+  if (!incident) return;
+  window.open(`/incidents/${encodeURIComponent(incident)}/log/export`, "_blank");
+}
+
+// ─── public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Fire-and-forget: write a SYSTEM-role log entry from any other JS module.
+ * Usage: import { logSystemEvent } from "./logging.js";
+ *        logSystemEvent(incidentName, "Team Alpha status → On Assignment");
+ */
+export async function logSystemEvent(incidentName, message) {
+  if (!incidentName) return;
+  try {
+    await fetch(`/incidents/${encodeURIComponent(incidentName)}/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "SYSTEM", type: "system", message }),
+    });
+  } catch {
+    // best-effort; never throw
+  }
+}
+
+// ─── bootstrap ────────────────────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", () => {
+  watchLoggingTab();
+});
+
+export function watchLoggingTab() {
+  _initSubtabs();
+  _initBuilder();
+
+  // Log button + Enter key
+  document.getElementById("comms-log-btn")?.addEventListener("click", _submitCommsLog);
+  document.getElementById("comms-message-input")?.addEventListener("keydown", e => {
+    if (e.key === "Enter") _submitCommsLog();
+  });
+
+  // View log: live search & type filter
+  document.getElementById("viewlog-search")?.addEventListener("input", _loadViewLog);
+  document.getElementById("viewlog-type-filter")?.addEventListener("change", _loadViewLog);
+
+  // Export
+  document.getElementById("viewlog-export-btn")?.addEventListener("click", _exportCSV);
+
+  // React to incident selection
+  document.getElementById("incidentSelect")?.addEventListener("change", () => {
+    _incident = _getIncident();
+    _loadCommsLog();
+    _populateTeamSelector();
+  });
+
+  // Activate when tab becomes visible
+  const panel = document.getElementById("logging");
+  if (panel) {
+    new MutationObserver(() => {
+      if (panel.classList.contains("active")) {
+        _incident = _getIncident();
+        _loadCommsLog();
+        _populateTeamSelector();
+        // refresh view-log too if it's the visible sub-tab
+        const viewPanel = document.getElementById("subtab-view-log");
+        if (viewPanel && !viewPanel.classList.contains("hidden")) _loadViewLog();
+      }
+    }).observe(panel, { attributes: true, attributeFilter: ["class"] });
+  }
+}
