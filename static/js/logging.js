@@ -141,7 +141,6 @@ function _initBuilder() {
       const input = document.getElementById("comms-message-input");
       if (!input || !btn.dataset.insert) return;
       input.value += btn.dataset.insert;
-      input.focus();
     });
   });
 }
@@ -169,7 +168,7 @@ async function _populateTeamButtons() {
       btn.textContent = `Team ${t.name}`;
       btn.addEventListener("click", () => {
         const input = document.getElementById("comms-message-input");
-        if (input) { input.value += btn.dataset.insert; input.focus(); }
+        if (input) input.value += btn.dataset.insert;
       });
       container.prepend(btn);
     });
