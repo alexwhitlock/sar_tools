@@ -307,7 +307,7 @@
 .log-time {
   font-family: monospace;
   font-size: 0.75rem;
-  color: #777;
+  color: #111;
   white-space: nowrap;
   flex: 0 0 auto;
 }

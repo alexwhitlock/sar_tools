@@ -16,11 +16,14 @@ function _getIncident() {
   return document.getElementById("incidentSelect")?.value?.trim() || null;
 }
 
-/** SQLite timestamp "YYYY-MM-DD HH:MM:SS" (UTC) → local HH:MM:SS */
-function _fmtTime(ts) {
+/** SQLite timestamp "YYYY-MM-DD HH:MM:SS" (UTC) → local time string */
+function _fmtTime(ts, showSeconds = true) {
   try {
     const d = new Date(ts.replace(" ", "T") + "Z");
-    return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const opts = showSeconds
+      ? { hour: "2-digit", minute: "2-digit", second: "2-digit" }
+      : { hour: "2-digit", minute: "2-digit" };
+    return d.toLocaleTimeString("en-GB", opts);
   } catch {
     return ts || "";
   }
@@ -94,7 +97,7 @@ function _renderCommsEntries(container, entries) {
   container.innerHTML = entries.map(e => {
     const important = e.flags && e.flags.includes("important");
     return `<div class="log-entry${important ? " log-entry-important" : ""}">
-      <span class="log-time">${_fmtTime(e.timestamp)}</span>
+      <span class="log-time">${_fmtTime(e.timestamp, false)}</span>
       <span class="log-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</span>
       <span class="log-message">${_esc(e.message)}</span>
     </div>`;
