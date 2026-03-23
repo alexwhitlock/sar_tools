@@ -324,14 +324,14 @@
   color: #333;
 }
 
-/* Role colour coding */
-.log-role-system  { background: #e8eaf6; color: #3949ab; }
-.log-role-ic      { background: #e8f5e9; color: #2e7d32; }
-.log-role-plans   { background: #e3f2fd; color: #1565c0; }
-.log-role-ops     { background: #fff3e0; color: #e64a00; }
-.log-role-logs    { background: #fff9c4; color: #7a6000; }
-.log-role-safety  { background: #ffebee; color: #c62828; }
-.log-role-comms   { background: #f5f5f5; color: #616161; }
+/* Role colour coding — tinted background, black text */
+.log-role-system  { background: #e8eaf6; color: #111; }
+.log-role-ic      { background: #c8e6c9; color: #111; }
+.log-role-plans   { background: #bbdefb; color: #111; }
+.log-role-ops     { background: #ffe0b2; color: #111; }
+.log-role-logs    { background: #fff9c4; color: #111; }
+.log-role-safety  { background: #ffcdd2; color: #111; }
+.log-role-comms   { background: #e0e0e0; color: #111; }
 
 .log-message {
   flex: 1 1 auto;
