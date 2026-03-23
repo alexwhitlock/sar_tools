@@ -11,20 +11,46 @@
     <!-- COMMS LOG sub-tab                                            -->
     <!-- ============================================================ -->
     <div id="subtab-comms-log" class="logging-subtab-panel">
-
-      <!-- Main split area (log display + builder) -->
       <div class="comms-layout">
 
-        <!-- Left: live log display -->
-        <div class="comms-log-display">
-          <div id="comms-log-entries" class="comms-log-entries">
-            <div class="log-empty">No incident selected.</div>
-          </div>
-        </div>
+        <!-- LEFT 1/3: log history + compose -->
+        <div class="comms-left">
 
-        <!-- Right: button builder -->
+          <div class="comms-log-display">
+            <div id="comms-log-entries" class="comms-log-entries">
+              <div class="log-empty">No incident selected.</div>
+            </div>
+          </div>
+
+          <div class="comms-compose">
+            <textarea
+              id="comms-message-input"
+              class="comms-message-input"
+              rows="3"
+              placeholder="Enter message or build with buttons..."
+              autocomplete="off"
+            ></textarea>
+            <button type="button" id="comms-log-btn">LOG</button>
+          </div>
+
+        </div><!-- /comms-left -->
+
+        <!-- RIGHT 2/3: role + button builder -->
         <div class="comms-builder">
 
+          <!-- Role selector — touch-friendly toggle buttons -->
+          <div class="builder-section">
+            <div class="builder-label">Role</div>
+            <div class="builder-buttons role-buttons">
+              <button type="button" class="builder-btn role-btn active" data-role="COMMS">COMMS</button>
+              <button type="button" class="builder-btn role-btn" data-role="IC">IC</button>
+              <button type="button" class="builder-btn role-btn" data-role="OPS">OPS</button>
+              <button type="button" class="builder-btn role-btn" data-role="PLANS">PLANS</button>
+              <button type="button" class="builder-btn role-btn" data-role="OTHER">OTHER</button>
+            </div>
+          </div>
+
+          <!-- Connectors -->
           <div class="builder-section">
             <div class="builder-label">Connectors</div>
             <div class="builder-buttons">
@@ -36,12 +62,11 @@
             </div>
           </div>
 
+          <!-- Entities -->
           <div class="builder-section">
             <div class="builder-label">Entities</div>
-            <div class="builder-buttons">
-              <select id="comms-team-select" class="builder-team-select">
-                <option value="">Team...</option>
-              </select>
+            <div class="builder-buttons" id="comms-entity-buttons">
+              <!-- Team buttons injected here by JS -->
               <button type="button" class="builder-btn" data-insert="COMMAND ">COMMAND</button>
               <button type="button" class="builder-btn" data-insert="BASE ">BASE</button>
               <button type="button" class="builder-btn" data-insert="COMMS ">COMMS</button>
@@ -50,44 +75,25 @@
             </div>
           </div>
 
+          <!-- Quick Messages -->
           <div class="builder-section">
             <div class="builder-label">Quick Messages</div>
-            <div class="builder-buttons builder-buttons-col">
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="LEAVING FOR ASSIGNMENT">LEAVING FOR ASSIGNMENT</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="ARRIVED AT ASSIGNMENT">ARRIVED AT ASSIGNMENT</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="RETURNING TO BASE">RETURNING TO BASE</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="ARRIVED AT BASE">ARRIVED AT BASE</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="IN CONTACT WITH SUBJECT">IN CONTACT WITH SUBJECT</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="SUBJECT FOUND">SUBJECT FOUND</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="ALL CLEAR">ALL CLEAR</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="REQUESTING MEDICAL">REQUESTING MEDICAL</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="RADIO CHECK OK">RADIO CHECK OK</button>
-              <button type="button" class="builder-btn builder-btn-wide" data-insert="NO CONTACT">NO CONTACT</button>
+            <div class="builder-buttons builder-buttons-grid">
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="LEAVING FOR ASSIGNMENT">LEAVING FOR ASSIGNMENT</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT ASSIGNMENT">ARRIVED AT ASSIGNMENT</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="RETURNING TO BASE">RETURNING TO BASE</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT BASE">ARRIVED AT BASE</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="IN CONTACT WITH SUBJECT">IN CONTACT WITH SUBJECT</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="SUBJECT FOUND">SUBJECT FOUND</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="ALL CLEAR">ALL CLEAR</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="REQUESTING MEDICAL">REQUESTING MEDICAL</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="RADIO CHECK OK">RADIO CHECK OK</button>
+              <button type="button" class="builder-btn builder-btn-msg" data-insert="NO CONTACT">NO CONTACT</button>
             </div>
           </div>
 
         </div><!-- /comms-builder -->
       </div><!-- /comms-layout -->
-
-      <!-- Bottom input bar -->
-      <div class="comms-input-bar">
-        <select id="comms-role" class="comms-role-select" title="Role">
-          <option value="COMMS">COMMS</option>
-          <option value="IC">IC</option>
-          <option value="OPS">OPS</option>
-          <option value="PLANS">PLANS</option>
-          <option value="OTHER">OTHER</option>
-        </select>
-        <input
-          type="text"
-          id="comms-message-input"
-          class="comms-message-input"
-          placeholder="Enter message or build with buttons above..."
-          autocomplete="off"
-        />
-        <button type="button" id="comms-log-btn">Log</button>
-      </div>
-
     </div><!-- /subtab-comms-log -->
 
     <!-- ============================================================ -->

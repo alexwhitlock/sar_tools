@@ -2,7 +2,7 @@
  * logging.js — Incident Log tab
  *
  * Exports:
- *   watchLoggingTab()      — call once on DOMContentLoaded
+ *   watchLoggingTab()         — call once on DOMContentLoaded
  *   logSystemEvent(name, msg) — fire-and-forget system log from other modules
  */
 
@@ -49,6 +49,21 @@ function _initSubtabs() {
   });
 }
 
+// ─── role toggle buttons ──────────────────────────────────────────────────────
+
+function _initRoleButtons() {
+  document.querySelectorAll(".role-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+}
+
+function _getSelectedRole() {
+  return document.querySelector(".role-btn.active")?.dataset.role || "COMMS";
+}
+
 // ─── comms log ────────────────────────────────────────────────────────────────
 
 async function _loadCommsLog() {
@@ -84,7 +99,7 @@ function _renderCommsEntries(container, entries) {
       <span class="log-message">${_esc(e.message)}</span>
     </div>`;
   }).join("");
-  // always scroll to bottom so newest entry is visible
+  // scroll to bottom — newest entry visible
   container.scrollTop = container.scrollHeight;
 }
 
@@ -93,13 +108,12 @@ async function _submitCommsLog() {
   if (!incident) return;
 
   const input = document.getElementById("comms-message-input");
-  const roleEl = document.getElementById("comms-role");
   if (!input) return;
 
   const message = input.value.trim();
   if (!message) return;
 
-  const role = roleEl?.value || "COMMS";
+  const role = _getSelectedRole();
 
   try {
     const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log`, {
@@ -110,6 +124,7 @@ async function _submitCommsLog() {
     const data = await res.json();
     if (data.success) {
       input.value = "";
+      input.style.height = "";   // reset any manual resize
       await _loadCommsLog();
     }
   } catch (err) {
@@ -120,47 +135,43 @@ async function _submitCommsLog() {
 // ─── comms builder ────────────────────────────────────────────────────────────
 
 function _initBuilder() {
-  // Insert-text buttons
-  document.querySelectorAll(".builder-btn").forEach(btn => {
+  // Insert-text buttons (excludes role-btn — handled separately)
+  document.querySelectorAll(".builder-btn:not(.role-btn)").forEach(btn => {
     btn.addEventListener("click", () => {
       const input = document.getElementById("comms-message-input");
-      if (!input) return;
+      if (!input || !btn.dataset.insert) return;
       input.value += btn.dataset.insert;
       input.focus();
     });
   });
-
-  // Team dropdown — insert selected team name then reset
-  const teamSel = document.getElementById("comms-team-select");
-  if (teamSel) {
-    teamSel.addEventListener("change", () => {
-      if (!teamSel.value) return;
-      const input = document.getElementById("comms-message-input");
-      if (input) {
-        input.value += teamSel.value + " ";
-        input.focus();
-      }
-      teamSel.value = "";
-    });
-  }
 }
 
-async function _populateTeamSelector() {
+async function _populateTeamButtons() {
   const incident = _getIncident();
-  const sel = document.getElementById("comms-team-select");
-  if (!sel || !incident) return;
+  const container = document.getElementById("comms-entity-buttons");
+  if (!container || !incident) return;
 
   try {
     const res = await fetch(`/incidents/${encodeURIComponent(incident)}/teams`);
     const data = await res.json();
     if (!data.success) return;
-    // rebuild options (keep placeholder)
-    while (sel.options.length > 1) sel.remove(1);
-    (data.teams || []).forEach(t => {
-      const opt = document.createElement("option");
-      opt.value = t.name;
-      opt.textContent = `Team ${t.name}`;
-      sel.appendChild(opt);
+
+    // Remove any previously injected team buttons
+    container.querySelectorAll(".team-btn").forEach(b => b.remove());
+
+    // Inject a button for each team at the front of the container
+    const teams = (data.teams || []).slice().reverse(); // reverse so prepending keeps order
+    teams.forEach(t => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "builder-btn team-btn";
+      btn.dataset.insert = `TEAM ${t.name} `;
+      btn.textContent = `Team ${t.name}`;
+      btn.addEventListener("click", () => {
+        const input = document.getElementById("comms-message-input");
+        if (input) { input.value += btn.dataset.insert; input.focus(); }
+      });
+      container.prepend(btn);
     });
   } catch (err) {
     console.error("Failed to load teams for builder", err);
@@ -248,12 +259,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 export function watchLoggingTab() {
   _initSubtabs();
+  _initRoleButtons();
   _initBuilder();
 
-  // Log button + Enter key
+  // Log button — Ctrl+Enter in textarea also submits
   document.getElementById("comms-log-btn")?.addEventListener("click", _submitCommsLog);
   document.getElementById("comms-message-input")?.addEventListener("keydown", e => {
-    if (e.key === "Enter") _submitCommsLog();
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) _submitCommsLog();
   });
 
   // View log: live search & type filter
@@ -267,7 +279,7 @@ export function watchLoggingTab() {
   document.getElementById("incidentSelect")?.addEventListener("change", () => {
     _incident = _getIncident();
     _loadCommsLog();
-    _populateTeamSelector();
+    _populateTeamButtons();
   });
 
   // Activate when tab becomes visible
@@ -277,8 +289,7 @@ export function watchLoggingTab() {
       if (panel.classList.contains("active")) {
         _incident = _getIncident();
         _loadCommsLog();
-        _populateTeamSelector();
-        // refresh view-log too if it's the visible sub-tab
+        _populateTeamButtons();
         const viewPanel = document.getElementById("subtab-view-log");
         if (viewPanel && !viewPanel.classList.contains("hidden")) _loadViewLog();
       }

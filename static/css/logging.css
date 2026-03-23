@@ -9,9 +9,6 @@
 }
 
 .logging-tab-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
   min-height: 0;
 }
 
@@ -23,7 +20,6 @@
   display: flex;
   gap: 2px;
   border-bottom: 1px solid #ccc;
-  padding: 0 0 0 0;
   flex: 0 0 auto;
   margin-bottom: 0.4rem;
 }
@@ -69,7 +65,7 @@
 }
 
 /* ===============================
-   Comms Log — split layout
+   Comms Log — 1/3 + 2/3 split
    =============================== */
 
 .comms-layout {
@@ -77,19 +73,27 @@
   flex-direction: row;
   flex: 1 1 auto;
   min-height: 0;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
-/* Left: scrollable log display */
-.comms-log-display {
-  flex: 1 1 auto;
+/* ── Left column (1/3) ─────────────────────────── */
+
+.comms-left {
+  flex: 0 0 33%;
   min-width: 0;
   min-height: 0;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Scrollable log area fills available height */
+.comms-log-display {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   background: #fff;
 }
 
@@ -98,6 +102,150 @@
   flex-direction: column;
   padding: 6px 8px;
   gap: 3px;
+}
+
+/* Compose area — sits at the bottom of the left column */
+.comms-compose {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.comms-message-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 5rem;   /* ~3 lines */
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.comms-message-input:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: -1px;
+}
+
+#comms-log-btn {
+  width: 100% !important;
+  padding: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* ── Right column (2/3) ────────────────────────── */
+
+.comms-builder {
+  flex: 1 1 0;          /* takes remaining ~67% */
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f8f8f8;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===============================
+   Builder sections
+   =============================== */
+
+.builder-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.builder-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.builder-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Quick messages: 2-column grid */
+.builder-buttons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+/* ── Touch-friendly builder buttons ─────────────── */
+
+.builder-btn {
+  width: auto !important;
+  min-height: 44px;          /* touch target */
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #fff;
+  border: 1.5px solid #bbb;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.builder-btn:hover {
+  background: #f0f0f0;
+  border-color: #888;
+}
+
+.builder-btn:active {
+  background: #e0e0e0;
+  transform: scale(0.97);
+}
+
+/* Quick-message buttons fill their grid cell */
+.builder-btn-msg {
+  width: 100% !important;
+  white-space: normal;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+/* ── Role toggle buttons ─────────────────────────── */
+
+.role-buttons {
+  gap: 6px;
+}
+
+.role-btn {
+  flex: 1 1 auto;
+  min-width: 64px;
+  border-color: #aaa;
+  color: #333;
+}
+
+.role-btn.active {
+  background: #1565c0;
+  border-color: #1565c0;
+  color: #fff;
+}
+
+.role-btn.active:hover {
+  background: #1255a8;
 }
 
 /* ===============================
@@ -110,7 +258,7 @@
   gap: 0.4rem;
   font-size: 0.82rem;
   line-height: 1.4;
-  padding: 2px 4px;
+  padding: 3px 4px;
   border-radius: 2px;
 }
 
@@ -122,14 +270,14 @@
 
 .log-time {
   font-family: monospace;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #777;
   white-space: nowrap;
   flex: 0 0 auto;
 }
 
 .log-role {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 3px;
@@ -156,127 +304,6 @@
   color: #aaa;
   font-size: 0.82rem;
   padding: 12px 8px;
-}
-
-/* ===============================
-   Comms builder (right panel)
-   =============================== */
-
-.comms-builder {
-  flex: 0 0 260px;
-  min-width: 200px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  background: #fafafa;
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.builder-section {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.builder-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.builder-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.builder-buttons-col {
-  flex-direction: column;
-  flex-wrap: nowrap;
-}
-
-/* Builder buttons — compact ghost style */
-.builder-btn {
-  width: auto !important;
-  padding: 3px 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: #fff;
-  border: 1px solid #bbb;
-  border-radius: 3px;
-  cursor: pointer;
-  white-space: nowrap;
-  color: #333;
-}
-
-.builder-btn:hover {
-  background: #f0f0f0;
-  border-color: #888;
-}
-
-.builder-btn:active {
-  background: #e0e0e0;
-}
-
-.builder-btn-wide {
-  width: 100% !important;
-  text-align: left;
-}
-
-/* Team dropdown inside builder */
-.builder-team-select {
-  font-size: 0.75rem;
-  padding: 2px 4px;
-  border: 1px solid #bbb;
-  border-radius: 3px;
-  background: #fff;
-  cursor: pointer;
-}
-
-/* ===============================
-   Comms input bar (bottom)
-   =============================== */
-
-.comms-input-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0 0;
-  flex: 0 0 auto;
-}
-
-.comms-role-select {
-  flex: 0 0 auto;
-  font-size: 0.8rem;
-  padding: 4px 6px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  background: #fff;
-}
-
-.comms-message-input {
-  flex: 1 1 auto;
-  font-size: 0.85rem;
-  padding: 5px 8px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-}
-
-.comms-message-input:focus {
-  outline: 2px solid #1976d2;
-  outline-offset: -1px;
-}
-
-/* Log button — use global style, just fix width */
-#comms-log-btn {
-  flex: 0 0 auto;
-  width: auto !important;
-  font-weight: 600;
 }
 
 /* ===============================
