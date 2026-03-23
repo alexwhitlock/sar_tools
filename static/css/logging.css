@@ -280,7 +280,7 @@
 .role-btn.active[data-role="IC"]        { background: #2e7d32; border-color: #2e7d32; }
 .role-btn.active[data-role="PLANS"]     { background: #1565c0; border-color: #1565c0; }
 .role-btn.active[data-role="OPS"]       { background: #e64a00; border-color: #e64a00; }
-.role-btn.active[data-role="LOGS"]      { background: #c9a800; border-color: #b89600; color: #fff; }
+.role-btn.active[data-role="LOGS"]      { background: #f5c800; border-color: #d4ab00; color: #3d2e00; }
 .role-btn.active[data-role="SAFETY"]    { background: #c62828; border-color: #c62828; }
 .role-btn.active[data-role="COMMS"]     { background: #616161; border-color: #616161; }
 
@@ -329,7 +329,7 @@
 .log-role-ic      { background: #e8f5e9; color: #2e7d32; }
 .log-role-plans   { background: #e3f2fd; color: #1565c0; }
 .log-role-ops     { background: #fff3e0; color: #e64a00; }
-.log-role-logs    { background: #fffde7; color: #c9a800; }
+.log-role-logs    { background: #fff9c4; color: #7a6000; }
 .log-role-safety  { background: #ffebee; color: #c62828; }
 .log-role-comms   { background: #f5f5f5; color: #616161; }
 
