@@ -290,7 +290,7 @@
 
 .log-entry {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.4rem;
   font-size: 0.82rem;
   line-height: 1.4;
