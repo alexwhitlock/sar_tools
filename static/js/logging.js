@@ -153,13 +153,13 @@ async function _populateTeamButtons() {
   if (!list || !incident) return;
 
   try {
-    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/teams`);
-    const data = await res.json();
-    if (!data.success) return;
+    const res = await fetch(`/api/teams?incidentName=${encodeURIComponent(incident)}`);
+    const teams = await res.json();
+    if (!Array.isArray(teams)) return;
 
     list.innerHTML = "";
 
-    const active = (data.teams || []).filter(t => !INACTIVE_STATUSES.has(t.status));
+    const active = teams.filter(t => !INACTIVE_STATUSES.has(t.status));
 
     if (!active.length) {
       list.innerHTML = '<div class="log-empty" style="font-size:0.72rem">No active teams</div>';

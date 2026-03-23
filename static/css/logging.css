@@ -118,12 +118,12 @@
 .comms-message-input {
   width: 100%;
   box-sizing: border-box;
-  font-size: 0.9rem;
-  padding: 8px 10px;
+  font-size: 0.85rem;
+  padding: 6px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   resize: vertical;
-  min-height: 5rem;   /* ~3 lines */
+  min-height: 4.2rem;   /* ~3 lines */
   font-family: inherit;
   line-height: 1.4;
 }
@@ -135,8 +135,8 @@
 
 #comms-log-btn {
   width: 100% !important;
-  padding: 10px;
-  font-size: 1rem;
+  padding: 7px;
+  font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.05em;
 }
@@ -157,19 +157,19 @@
 
 /* Teams column — scrollable, fixed width */
 .comms-teams-col {
-  flex: 0 0 110px;
+  flex: 0 0 100px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   overflow-y: auto;
-  padding: 8px 8px;
+  padding: 6px 6px;
   border-right: 1px solid #ddd;
 }
 
 .comms-teams-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 /* team buttons fill the column width */
@@ -185,10 +185,10 @@
   flex: 1 1 auto;
   min-width: 0;
   overflow-y: auto;
-  padding: 8px 10px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 /* ===============================
@@ -198,7 +198,7 @@
 .builder-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .builder-label {
@@ -212,23 +212,23 @@
 .builder-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 /* Quick messages: 2-column grid */
 .builder-buttons-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
 }
 
 /* ── Touch-friendly builder buttons ─────────────── */
 
 .builder-btn {
   width: auto !important;
-  min-height: 44px;          /* touch target */
-  padding: 8px 14px;
-  font-size: 0.85rem;
+  min-height: 40px;          /* touch target */
+  padding: 5px 10px;
+  font-size: 0.8rem;
   font-weight: 600;
   background: #fff;
   border: 1.5px solid #bbb;
@@ -314,12 +314,12 @@
 }
 
 .log-role {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
   padding: 1px 0;
   border-radius: 3px;
   white-space: nowrap;
-  flex: 0 0 4.5rem;    /* fixed width — longest role is "SYSTEM" / "PLANS" */
+  flex: 0 0 3.2rem;    /* wide enough for COMMS (longest) */
   text-align: center;
   background: #e0e0e0;
   color: #333;
