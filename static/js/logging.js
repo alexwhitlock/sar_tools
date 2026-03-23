@@ -145,32 +145,38 @@ function _initBuilder() {
   });
 }
 
+const INACTIVE_STATUSES = new Set(["Out of Service", "Retired"]);
+
 async function _populateTeamButtons() {
   const incident = _getIncident();
-  const container = document.getElementById("comms-entity-buttons");
-  if (!container || !incident) return;
+  const list = document.getElementById("comms-teams-list");
+  if (!list || !incident) return;
 
   try {
     const res = await fetch(`/incidents/${encodeURIComponent(incident)}/teams`);
     const data = await res.json();
     if (!data.success) return;
 
-    // Remove any previously injected team buttons
-    container.querySelectorAll(".team-btn").forEach(b => b.remove());
+    list.innerHTML = "";
 
-    // Inject a button for each team at the front of the container
-    const teams = (data.teams || []).slice().reverse(); // reverse so prepending keeps order
-    teams.forEach(t => {
+    const active = (data.teams || []).filter(t => !INACTIVE_STATUSES.has(t.status));
+
+    if (!active.length) {
+      list.innerHTML = '<div class="log-empty" style="font-size:0.72rem">No active teams</div>';
+      return;
+    }
+
+    active.forEach(t => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "builder-btn team-btn";
+      btn.className = "builder-btn team-col-btn";
       btn.dataset.insert = `TEAM ${t.name} `;
       btn.textContent = `Team ${t.name}`;
       btn.addEventListener("click", () => {
         const input = document.getElementById("comms-message-input");
         if (input) input.value += btn.dataset.insert;
       });
-      container.prepend(btn);
+      list.appendChild(btn);
     });
   } catch (err) {
     console.error("Failed to load teams for builder", err);

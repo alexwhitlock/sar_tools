@@ -35,63 +35,74 @@
 
         </div><!-- /comms-left -->
 
-        <!-- RIGHT 2/3: role + button builder -->
+        <!-- RIGHT 2/3: teams column + builder -->
         <div class="comms-builder">
 
-          <!-- Role selector — touch-friendly toggle buttons -->
-          <div class="builder-section">
-            <div class="builder-label">Role</div>
-            <div class="builder-buttons role-buttons">
-              <button type="button" class="builder-btn role-btn active" data-role="COMMS">COMMS</button>
-              <button type="button" class="builder-btn role-btn" data-role="IC">IC</button>
-              <button type="button" class="builder-btn role-btn" data-role="OPS">OPS</button>
-              <button type="button" class="builder-btn role-btn" data-role="PLANS">PLANS</button>
-              <button type="button" class="builder-btn role-btn" data-role="OTHER">OTHER</button>
+          <!-- Teams column (scrollable) -->
+          <div class="comms-teams-col">
+            <div class="builder-label">Teams</div>
+            <div id="comms-teams-list" class="comms-teams-list">
+              <!-- populated by JS -->
             </div>
           </div>
 
-          <!-- Connectors -->
-          <div class="builder-section">
-            <div class="builder-label">Connectors</div>
-            <div class="builder-buttons">
-              <button type="button" class="builder-btn" data-insert="FROM ">FROM</button>
-              <button type="button" class="builder-btn" data-insert="TO ">TO</button>
-              <button type="button" class="builder-btn" data-insert="VIA ">VIA</button>
-              <button type="button" class="builder-btn" data-insert="AT ">AT</button>
-              <button type="button" class="builder-btn" data-insert=": ">:</button>
-            </div>
-          </div>
+          <!-- Main builder sections -->
+          <div class="comms-builder-main">
 
-          <!-- Entities -->
-          <div class="builder-section">
-            <div class="builder-label">Entities</div>
-            <div class="builder-buttons" id="comms-entity-buttons">
-              <!-- Team buttons injected here by JS -->
-              <button type="button" class="builder-btn" data-insert="COMMAND ">COMMAND</button>
-              <button type="button" class="builder-btn" data-insert="BASE ">BASE</button>
-              <button type="button" class="builder-btn" data-insert="COMMS ">COMMS</button>
-              <button type="button" class="builder-btn" data-insert="OPS ">OPS</button>
-              <button type="button" class="builder-btn" data-insert="MEDIC ">MEDIC</button>
+            <!-- Role selector — touch-friendly toggle buttons -->
+            <div class="builder-section">
+              <div class="builder-label">Role</div>
+              <div class="builder-buttons role-buttons">
+                <button type="button" class="builder-btn role-btn active" data-role="COMMS">COMMS</button>
+                <button type="button" class="builder-btn role-btn" data-role="IC">IC</button>
+                <button type="button" class="builder-btn role-btn" data-role="OPS">OPS</button>
+                <button type="button" class="builder-btn role-btn" data-role="PLANS">PLANS</button>
+                <button type="button" class="builder-btn role-btn" data-role="OTHER">OTHER</button>
+              </div>
             </div>
-          </div>
 
-          <!-- Quick Messages -->
-          <div class="builder-section">
-            <div class="builder-label">Quick Messages</div>
-            <div class="builder-buttons builder-buttons-grid">
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="LEAVING FOR ASSIGNMENT">LEAVING FOR ASSIGNMENT</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT ASSIGNMENT">ARRIVED AT ASSIGNMENT</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="RETURNING TO BASE">RETURNING TO BASE</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT BASE">ARRIVED AT BASE</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="IN CONTACT WITH SUBJECT">IN CONTACT WITH SUBJECT</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="SUBJECT FOUND">SUBJECT FOUND</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="ALL CLEAR">ALL CLEAR</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="REQUESTING MEDICAL">REQUESTING MEDICAL</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="RADIO CHECK OK">RADIO CHECK OK</button>
-              <button type="button" class="builder-btn builder-btn-msg" data-insert="NO CONTACT">NO CONTACT</button>
+            <!-- Connectors -->
+            <div class="builder-section">
+              <div class="builder-label">Connectors</div>
+              <div class="builder-buttons">
+                <button type="button" class="builder-btn" data-insert="FROM ">FROM</button>
+                <button type="button" class="builder-btn" data-insert="TO ">TO</button>
+                <button type="button" class="builder-btn" data-insert="VIA ">VIA</button>
+                <button type="button" class="builder-btn" data-insert="AT ">AT</button>
+                <button type="button" class="builder-btn" data-insert=": ">:</button>
+              </div>
             </div>
-          </div>
 
+            <!-- Entities -->
+            <div class="builder-section">
+              <div class="builder-label">Entities</div>
+              <div class="builder-buttons">
+                <button type="button" class="builder-btn" data-insert="COMMAND ">COMMAND</button>
+                <button type="button" class="builder-btn" data-insert="BASE ">BASE</button>
+                <button type="button" class="builder-btn" data-insert="COMMS ">COMMS</button>
+                <button type="button" class="builder-btn" data-insert="OPS ">OPS</button>
+                <button type="button" class="builder-btn" data-insert="MEDIC ">MEDIC</button>
+              </div>
+            </div>
+
+            <!-- Quick Messages -->
+            <div class="builder-section">
+              <div class="builder-label">Quick Messages</div>
+              <div class="builder-buttons builder-buttons-grid">
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="LEAVING FOR ASSIGNMENT">LEAVING FOR ASSIGNMENT</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT ASSIGNMENT">ARRIVED AT ASSIGNMENT</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="RETURNING TO BASE">RETURNING TO BASE</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT BASE">ARRIVED AT BASE</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="IN CONTACT WITH SUBJECT">IN CONTACT WITH SUBJECT</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="SUBJECT FOUND">SUBJECT FOUND</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="ALL CLEAR">ALL CLEAR</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="REQUESTING MEDICAL">REQUESTING MEDICAL</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="RADIO CHECK OK">RADIO CHECK OK</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="NO CONTACT">NO CONTACT</button>
+              </div>
+            </div>
+
+          </div><!-- /comms-builder-main -->
         </div><!-- /comms-builder -->
       </div><!-- /comms-layout -->
     </div><!-- /subtab-comms-log -->
