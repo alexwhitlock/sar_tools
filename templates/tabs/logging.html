@@ -145,6 +145,7 @@
           <option value="comms">Comms</option>
           <option value="system">System</option>
           <option value="note">Note</option>
+          <option value="user_event">User Event</option>
         </select>
         <select id="viewlog-role-filter" title="Filter by role">
           <option value="">All roles</option>
@@ -157,6 +158,10 @@
           <option value="OTHER">OTHER</option>
           <option value="SYSTEM">SYSTEM</option>
         </select>
+        <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.8rem;white-space:nowrap;cursor:pointer;">
+          <input type="checkbox" id="viewlog-show-user-events" />
+          Show user events
+        </label>
         <button type="button" id="viewlog-export-btn">Export CSV</button>
       </div>
 

@@ -11,8 +11,9 @@ def list_log(incident_name):
     type_filter = request.args.get("type") or None
     role_filter = request.args.get("role") or None
     search = request.args.get("search") or None
+    exclude_type = request.args.get("exclude_type") or None
     order = request.args.get("order") or "asc"
-    rows = get_logs(incident_name, type_filter=type_filter, role_filter=role_filter, search=search, order=order)
+    rows = get_logs(incident_name, type_filter=type_filter, role_filter=role_filter, search=search, exclude_type=exclude_type, order=order)
     return jsonify(success=True, log=rows)
 
 

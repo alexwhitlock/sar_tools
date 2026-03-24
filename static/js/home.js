@@ -1,4 +1,5 @@
 import { initMessageBar } from "./message-bar.js";
+import { logUserEvent } from "./logging.js";
 
 console.log("[home.js] LOADED");
 
@@ -356,26 +357,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   // CalTopo link checkbox
   $("caltopoLinkCheck")?.addEventListener("change", async (e) => {
     const mapId = ($("mapId")?.value || "").trim();
+    const incident = getCurrentIncident();
     if (e.target.checked) {
       if (!mapId) { e.target.checked = false; return; }
       await saveSetting("linked_caltopo_map_id", mapId);
       setCaltopoLinked(true);
+      logUserEvent(incident, `CalTopo map linked (${mapId})`);
     } else {
       await saveSetting("linked_caltopo_map_id", null);
       setCaltopoLinked(false);
+      logUserEvent(incident, "CalTopo map link removed");
     }
   });
 
   // D4H link checkbox
   $("d4hLinkCheck")?.addEventListener("change", async (e) => {
     const actId = ($("d4h_activity")?.value || "").trim();
+    const incident = getCurrentIncident();
     if (e.target.checked) {
       if (!actId) { e.target.checked = false; return; }
       await saveSetting("linked_d4h_activity_id", actId);
       setD4hLinked(true);
+      logUserEvent(incident, `D4H activity linked (${actId})`);
     } else {
       await saveSetting("linked_d4h_activity_id", null);
       setD4hLinked(false);
+      logUserEvent(incident, "D4H activity link removed");
     }
   });
 

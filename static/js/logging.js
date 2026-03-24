@@ -129,7 +129,7 @@ async function _loadCommsLog() {
   }
 
   try {
-    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log`);
+    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log?exclude_type=user_event`);
     const data = await res.json();
     if (!data.success) return;
     _renderCommsEntries(container, data.log);
@@ -305,12 +305,14 @@ async function _loadViewLog() {
   const search = document.getElementById("viewlog-search")?.value || "";
   const typeFilter = document.getElementById("viewlog-type-filter")?.value || "";
   const roleFilter = document.getElementById("viewlog-role-filter")?.value || "";
+  const showUserEvents = document.getElementById("viewlog-show-user-events")?.checked || false;
 
   let url = `/incidents/${encodeURIComponent(incident)}/log`;
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (typeFilter) params.set("type", typeFilter);
   if (roleFilter) params.set("role", roleFilter);
+  if (!showUserEvents && !typeFilter) params.set("exclude_type", "user_event");
   params.set("order", "desc");
   if (params.toString()) url += `?${params}`;
 
@@ -389,6 +391,19 @@ export async function logSystemEvent(incidentName, message) {
   }
 }
 
+export async function logUserEvent(incidentName, message) {
+  if (!incidentName) return;
+  try {
+    await fetch(`/incidents/${encodeURIComponent(incidentName)}/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "SYSTEM", type: "user_event", message }),
+    });
+  } catch {
+    // best-effort; never throw
+  }
+}
+
 // ─── bootstrap ────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -426,10 +441,11 @@ export function watchLoggingTab() {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) _submitCommsLog();
   });
 
-  // View log: live search & type filter
+  // View log: live search, type filter, role filter, user events toggle
   document.getElementById("viewlog-search")?.addEventListener("input", _loadViewLog);
   document.getElementById("viewlog-type-filter")?.addEventListener("change", _loadViewLog);
   document.getElementById("viewlog-role-filter")?.addEventListener("change", _loadViewLog);
+  document.getElementById("viewlog-show-user-events")?.addEventListener("change", _loadViewLog);
 
   // Export
   document.getElementById("viewlog-export-btn")?.addEventListener("click", _exportCSV);

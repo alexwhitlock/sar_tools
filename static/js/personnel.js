@@ -1,5 +1,6 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
+import { logUserEvent } from "./logging.js";
 
 let personnelTable = null;
 let personnelMessage = null;
@@ -703,6 +704,7 @@ function wireMenuAndModal() {
         const person = findPersonInCache(activePersonKey);
         await apiUpdatePersonStatus({ incidentName, personKey: activePersonKey, status: newStatus, expectedUpdatedAt: person?.updatedAt });
         await loadPersonnel();
+        logUserEvent(incidentName, `Personnel ${person?.name || activePersonKey} status changed to ${newStatus}`);
         personnelMessage.show(`Status updated to ${newStatus}.`, "info");
       } catch (err) {
         if (err instanceof ConflictError) {
@@ -734,6 +736,7 @@ function wireMenuAndModal() {
         personnelMessage.show("Deleting person…", "info");
         await apiDeletePerson({ incidentName, personKey: activePersonKey });
         personnelMessage.show("Person deleted.", "info");
+        logUserEvent(incidentName, `Personnel ${person?.name || activePersonKey} deleted`);
         await loadPersonnel();
       } catch (err) {
         logMessage("ERROR", "Failed to delete person", err.message);
@@ -839,6 +842,7 @@ function wireMenuAndModal() {
 
       closePersonModal();
       await loadPersonnel();
+      logUserEvent(incidentName, modalMode === "add" ? `Personnel ${name} added` : `Personnel ${name} updated`);
       personnelMessage.show(
         modalMode === "add" ? "Person added." : "Changes saved.",
         "info"

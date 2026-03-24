@@ -1,5 +1,6 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
+import { logUserEvent } from "./logging.js";
 
 const TEAM_STATUSES = [
   "Out of Service",
@@ -931,6 +932,7 @@ async function saveTeamModal() {
 
     closeTeamModal();
     await loadTeams();
+    logUserEvent(incidentName, modalMode === "create" ? `Team ${name} created` : `Team ${name} updated`);
     teamsMessage.show(modalMode === "create" ? "Team created." : "Changes saved.", "info");
   } catch (err) {
     const errEl = document.getElementById("teamModalError");
@@ -1051,6 +1053,7 @@ function wireMenuAndKebab() {
         teamsMessage.show("Deleting team…", "info");
         await apiPost("/api/teams/delete", { incidentName, teamId: parseInt(teamId) });
         teamsMessage.show("Team deleted.", "info");
+        logUserEvent(incidentName, `Team ${team?.name || teamId} deleted`);
         await loadTeams();
       } catch (err) {
         teamsMessage.show(`Failed to delete: ${err.message}`, "error");

@@ -31,7 +31,7 @@ def toggle_important(incident_name: str, log_id: int):
 
 
 def get_logs(incident_name: str, type_filter: str = None, role_filter: str = None,
-             search: str = None, limit: int = 1000, order: str = "asc"):
+             search: str = None, exclude_type: str = None, limit: int = 1000, order: str = "asc"):
     with get_connection(incident_name) as conn:
         clauses = []
         params = []
@@ -50,6 +50,12 @@ def get_logs(incident_name: str, type_filter: str = None, role_filter: str = Non
         if search:
             clauses.append("(message LIKE ? OR role LIKE ?)")
             params.extend([f"%{search}%", f"%{search}%"])
+        if exclude_type:
+            types = [t.strip() for t in exclude_type.split(",") if t.strip()]
+            if types:
+                placeholders = ",".join("?" * len(types))
+                clauses.append(f"type NOT IN ({placeholders})")
+                params.extend(types)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         direction = "DESC" if order == "desc" else "ASC"
         rows = conn.execute(
