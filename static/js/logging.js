@@ -89,6 +89,7 @@ function _initRoleButtons() {
       document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       _setDefaultType(btn.dataset.role);
+      btn.blur();
     });
   });
 }
@@ -102,6 +103,7 @@ function _initTypeButtons() {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".type-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
+      btn.blur();
     });
   });
 }
@@ -253,6 +255,7 @@ function _initBuilder() {
       if (!input || !btn.dataset.insert) return;
       input.value += btn.dataset.insert;
       input.dispatchEvent(new Event("input"));
+      btn.blur();
     });
   });
 }
@@ -288,6 +291,7 @@ async function _populateTeamButtons() {
         const input = document.getElementById("comms-message-input");
         if (input) { input.value += btn.dataset.insert; input.dispatchEvent(new Event("input")); }
         _lastSelectedTeam = { id: t.id, name: t.name };
+        btn.blur();
       });
       list.appendChild(btn);
     });

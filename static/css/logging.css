@@ -354,6 +354,21 @@
   transform: scale(0.97);
 }
 
+/* Touch devices: remove persistent focus highlight after tap */
+@media (pointer: coarse) {
+  .builder-btn:focus,
+  .logging-subtab-btn:focus,
+  #comms-log-btn:focus,
+  #comms-clear-btn:focus,
+  .compose-star-btn:focus,
+  .row-star-btn:focus,
+  #viewlog-export-btn:focus,
+  .export-menu-item:focus {
+    outline: none;
+    box-shadow: none;
+  }
+}
+
 /* Quick-message buttons fill their grid cell */
 .builder-btn-msg {
   width: 100% !important;
@@ -586,9 +601,6 @@
   gap: 0.4rem;
   font-size: 0.75rem;
   color: #555;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 .auto-transition-label input[type="checkbox"] {
