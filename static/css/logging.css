@@ -342,11 +342,14 @@
   text-align: center;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.builder-btn:hover {
-  background: #f0f0f0;
-  border-color: #888;
+@media (hover: hover) {
+  .builder-btn:hover {
+    background: #f0f0f0;
+    border-color: #888;
+  }
 }
 
 .builder-btn:active {
@@ -601,6 +604,9 @@
   gap: 0.4rem;
   font-size: 0.75rem;
   color: #555;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .auto-transition-label input[type="checkbox"] {
