@@ -60,6 +60,17 @@ def export_log(incident_name):
     )
 
 
+def _pdf_str(s):
+    """Transliterate common unicode chars then strip anything outside latin-1."""
+    if not s:
+        return ""
+    replacements = {"—": "-", "–": "-", "\u2019": "'", "\u2018": "'",
+                    "\u201c": '"', "\u201d": '"', "\u2026": "..."}
+    for src, dst in replacements.items():
+        s = s.replace(src, dst)
+    return s.encode("latin-1", errors="replace").decode("latin-1")
+
+
 @bp.route("/incidents/<incident_name>/log/export/pdf")
 def export_log_pdf(incident_name):
     type_filter  = request.args.get("type") or None
@@ -75,9 +86,9 @@ def export_log_pdf(incident_name):
 
     # Title
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 7, f"Incident Log — {incident_name}", ln=True)
+    pdf.cell(0, 7, _pdf_str(f"Incident Log - {incident_name}"), ln=True)
     pdf.set_font("Helvetica", "", 8)
-    pdf.cell(0, 5, f"Exported {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC", ln=True)
+    pdf.cell(0, 5, _pdf_str(f"Exported {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC"), ln=True)
     pdf.ln(2)
 
     # Column widths (landscape A4 = 277mm usable)
@@ -108,18 +119,16 @@ def export_log_pdf(incident_name):
         y_start = pdf.get_y()
 
         # Measure message height
-        msg = r["message"] or ""
+        msg = _pdf_str(r["message"] or "")
         lines = pdf.multi_cell(COL_MSG, 5, msg, border=0, split_only=True)
         row_h = max(5, len(lines) * 5)
 
         pdf.set_xy(x_start, y_start)
-        pdf.cell(COL_TIME, row_h, r["timestamp"] or "", border=1, fill=important)
-        pdf.cell(COL_ROLE, row_h, r["role"] or "",      border=1, fill=important)
-        pdf.cell(COL_TYPE, row_h, r["type"] or "",      border=1, fill=important)
+        pdf.cell(COL_TIME, row_h, _pdf_str(r["timestamp"] or ""), border=1, fill=important)
+        pdf.cell(COL_ROLE, row_h, _pdf_str(r["role"] or ""),      border=1, fill=important)
+        pdf.cell(COL_TYPE, row_h, _pdf_str(r["type"] or ""),      border=1, fill=important)
 
         # Multi-cell for message (resets x)
-        x_msg = pdf.get_x()
-        y_msg = pdf.get_y()
         pdf.multi_cell(COL_MSG, 5, msg, border=1, fill=important)
         pdf.set_xy(x_start, y_start + row_h)
 
