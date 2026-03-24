@@ -30,7 +30,8 @@ def toggle_important(incident_name: str, log_id: int):
         return True
 
 
-def get_logs(incident_name: str, type_filter: str = None, search: str = None, limit: int = 1000):
+def get_logs(incident_name: str, type_filter: str = None, search: str = None,
+             limit: int = 1000, order: str = "asc"):
     with get_connection(incident_name) as conn:
         clauses = []
         params = []
@@ -47,9 +48,10 @@ def get_logs(incident_name: str, type_filter: str = None, search: str = None, li
             clauses.append("(message LIKE ? OR role LIKE ?)")
             params.extend([f"%{search}%", f"%{search}%"])
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        direction = "DESC" if order == "desc" else "ASC"
         rows = conn.execute(
             f"SELECT id, timestamp, role, type, flags, message "
-            f"FROM incident_log {where} ORDER BY timestamp ASC, id ASC LIMIT ?",
+            f"FROM incident_log {where} ORDER BY timestamp {direction}, id {direction} LIMIT ?",
             params + [limit],
         ).fetchall()
         return [dict(r) for r in rows]

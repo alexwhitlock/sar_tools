@@ -272,6 +272,7 @@ async function _loadViewLog() {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (typeFilter) params.set("type", typeFilter);
+  params.set("order", "desc");
   if (params.toString()) url += `?${params}`;
 
   try {

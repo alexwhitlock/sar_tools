@@ -10,7 +10,8 @@ bp = Blueprint("log", __name__)
 def list_log(incident_name):
     type_filter = request.args.get("type") or None
     search = request.args.get("search") or None
-    rows = get_logs(incident_name, type_filter=type_filter, search=search)
+    order = request.args.get("order") or "asc"
+    rows = get_logs(incident_name, type_filter=type_filter, search=search, order=order)
     return jsonify(success=True, log=rows)
 
 
