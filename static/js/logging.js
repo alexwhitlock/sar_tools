@@ -245,6 +245,7 @@ function _initBuilder() {
       const input = document.getElementById("comms-message-input");
       if (!input || !btn.dataset.insert) return;
       input.value += btn.dataset.insert;
+      input.dispatchEvent(new Event("input"));
     });
   });
 }
@@ -278,7 +279,7 @@ async function _populateTeamButtons() {
       btn.textContent = `Team ${t.name}`;
       btn.addEventListener("click", () => {
         const input = document.getElementById("comms-message-input");
-        if (input) input.value += btn.dataset.insert;
+        if (input) { input.value += btn.dataset.insert; input.dispatchEvent(new Event("input")); }
         _lastSelectedTeam = { id: t.id, name: t.name };
       });
       list.appendChild(btn);
