@@ -3,7 +3,7 @@
 
     <!-- Sub-tab buttons -->
     <div class="logging-subtab-bar">
-      <button class="logging-subtab-btn active" data-subtab="comms-log">Comms Log</button>
+      <button class="logging-subtab-btn active" data-subtab="comms-log">Quick Log</button>
       <button class="logging-subtab-btn" data-subtab="view-log">View Log</button>
     </div>
 
@@ -41,9 +41,12 @@
         <!-- RIGHT 2/3: teams column + builder -->
         <div class="comms-builder">
 
-          <!-- Teams column (scrollable) -->
+          <!-- Stations column (scrollable) -->
           <div class="comms-teams-col">
-            <div class="builder-label">Teams</div>
+            <div class="builder-label">Stations</div>
+            <div class="comms-teams-list">
+              <button type="button" class="builder-btn team-col-btn" data-insert="CMD ">CMD</button>
+            </div>
             <div id="comms-teams-list" class="comms-teams-list">
               <!-- populated by JS -->
             </div>
@@ -62,6 +65,7 @@
                 <button type="button" class="builder-btn role-btn" data-role="LOGS">LOGS</button>
                 <button type="button" class="builder-btn role-btn" data-role="SAFETY">SAFETY</button>
                 <button type="button" class="builder-btn role-btn active" data-role="COMMS">COMMS</button>
+                <button type="button" class="builder-btn role-btn" data-role="OTHER">OTHER</button>
               </div>
             </div>
 
@@ -77,15 +81,15 @@
               </div>
             </div>
 
-            <!-- Entities -->
+            <!-- Method -->
             <div class="builder-section">
-              <div class="builder-label">Entities</div>
+              <div class="builder-label">Method</div>
               <div class="builder-buttons">
-                <button type="button" class="builder-btn" data-insert="CMD ">CMD</button>
-                <button type="button" class="builder-btn" data-insert="BASE ">BASE</button>
-                <button type="button" class="builder-btn" data-insert="COMMS ">COMMS</button>
-                <button type="button" class="builder-btn" data-insert="OPS ">OPS</button>
-                <button type="button" class="builder-btn" data-insert="MEDIC ">MEDIC</button>
+                <button type="button" class="builder-btn" data-insert="RADIO ">RADIO</button>
+                <button type="button" class="builder-btn" data-insert="PHONE ">PHONE</button>
+                <button type="button" class="builder-btn" data-insert="TEXT ">TEXT</button>
+                <button type="button" class="builder-btn" data-insert="EMAIL ">EMAIL</button>
+                <button type="button" class="builder-btn" data-insert="GARMIN ">GARMIN</button>
               </div>
             </div>
 

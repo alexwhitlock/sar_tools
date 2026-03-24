@@ -293,7 +293,8 @@
 
 .builder-btn {
   width: auto !important;
-  min-height: 40px;          /* touch target */
+  min-height: 48px;          /* touch target */
+  min-width: 58px;           /* ~1.2× min-height */
   padding: 5px 10px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -350,6 +351,7 @@
 .role-btn.active[data-role="LOGS"]      { background: #f5c800; border-color: #d4ab00; color: #3d2e00; }
 .role-btn.active[data-role="SAFETY"]    { background: #c62828; border-color: #c62828; }
 .role-btn.active[data-role="COMMS"]     { background: #616161; border-color: #616161; }
+.role-btn.active[data-role="OTHER"]     { background: #9e9e9e; border-color: #9e9e9e; }
 
 /* ===============================
    Log entries
@@ -401,6 +403,7 @@
 .log-role-logs    { background: #fff9c4; color: #111; }
 .log-role-safety  { background: #ffcdd2; color: #111; }
 .log-role-comms   { background: #e0e0e0; color: #111; }
+.log-role-other   { background: #eeeeee; color: #111; }
 
 .log-message {
   flex: 1 1 auto;
