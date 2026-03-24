@@ -357,7 +357,7 @@
   transform: scale(0.97);
 }
 
-/* Touch devices: remove persistent focus highlight after tap */
+/* Touch devices: remove persistent focus/hover highlight after tap */
 @media (pointer: coarse) {
   .builder-btn:focus,
   .logging-subtab-btn:focus,
@@ -369,6 +369,13 @@
   .export-menu-item:focus {
     outline: none;
     box-shadow: none;
+  }
+
+  /* Cancel global button:hover orange on touch */
+  .builder-btn:hover {
+    background: #fff;
+    background-color: #fff;
+    border-color: #bbb;
   }
 }
 
