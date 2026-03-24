@@ -356,7 +356,7 @@
 
 .log-entry {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.4rem;
   font-size: 0.82rem;
   line-height: 1.4;
@@ -375,7 +375,6 @@
   color: #111;
   white-space: nowrap;
   flex: 0 0 auto;
-  margin-top: 1px;
 }
 
 .log-role {
