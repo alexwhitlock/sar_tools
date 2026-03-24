@@ -52,7 +52,7 @@ def export_log(incident_name):
     for r in rows:
         writer.writerow([r["id"], r["timestamp"], r["role"], r["type"], r.get("flags", ""), r["message"]])
     csv_bytes = buf.getvalue().encode("utf-8")
-    filename = f"{incident_name}_log.csv"
+    filename = f"{incident_name}_log_{datetime.utcnow().strftime('%H%M%S')}.csv"
     return Response(
         csv_bytes,
         mimetype="text/csv",
@@ -133,7 +133,7 @@ def export_log_pdf(incident_name):
         pdf.set_xy(x_start, y_start + row_h)
 
     pdf_bytes = pdf.output()
-    filename = f"{incident_name}_log.pdf"
+    filename = f"{incident_name}_log_{datetime.utcnow().strftime('%H%M%S')}.pdf"
     return Response(
         bytes(pdf_bytes),
         mimetype="application/pdf",
