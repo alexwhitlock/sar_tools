@@ -102,8 +102,6 @@ function _renderCommsEntries(container, entries) {
       <span class="log-message">${_esc(e.message)}</span>
     </div>`;
   }).join("");
-  // scroll to bottom — newest entry visible
-  container.scrollTop = container.scrollHeight;
 }
 
 async function _submitCommsLog() {

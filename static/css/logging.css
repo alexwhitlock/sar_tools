@@ -87,11 +87,11 @@
   gap: 0.4rem;
 }
 
-/* Scrollable log area fills available height */
+/* Log display — old entries fall off the top, no scroll */
 .comms-log-display {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   border: 1px solid #ccc;
   border-radius: 4px;
   background: #fff;
