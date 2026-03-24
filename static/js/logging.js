@@ -88,12 +88,32 @@ function _initRoleButtons() {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
+      _setDefaultType(btn.dataset.role);
     });
   });
 }
 
 function _getSelectedRole() {
   return document.querySelector(".role-btn.active")?.dataset.role || "COMMS";
+}
+
+function _initTypeButtons() {
+  document.querySelectorAll(".type-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".type-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+}
+
+function _getSelectedType() {
+  return document.querySelector(".type-btn.active")?.dataset.type || "comms";
+}
+
+function _setDefaultType(role) {
+  const defaultType = role === "COMMS" ? "comms" : "note";
+  document.querySelectorAll(".type-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector(`.type-btn[data-type="${defaultType}"]`)?.classList.add("active");
 }
 
 // ─── comms log ────────────────────────────────────────────────────────────────
@@ -184,7 +204,7 @@ async function _submitCommsLog() {
     const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, type: "comms", message, flags: important ? "important" : null }),
+      body: JSON.stringify({ role, type: _getSelectedType(), message, flags: important ? "important" : null }),
     });
     const data = await res.json();
     if (data.success) {
@@ -365,6 +385,7 @@ document.addEventListener("DOMContentLoaded", () => {
 export function watchLoggingTab() {
   _initSubtabs();
   _initRoleButtons();
+  _initTypeButtons();
   _initBuilder();
 
   // Important star toggle
