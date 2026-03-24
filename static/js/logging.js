@@ -213,6 +213,9 @@ async function _submitCommsLog() {
       const star = document.getElementById("comms-important-star");
       if (star) { star.classList.remove("active"); star.textContent = "☆"; }
 
+      // Show the new entry immediately, before auto-transition fires
+      await _loadCommsLog();
+
       // Auto-transition team status if enabled
       const autoChk = document.getElementById("auto-transition-chk");
       if (autoChk?.checked && _lastSelectedTeam) {
@@ -220,12 +223,11 @@ async function _submitCommsLog() {
         for (const [trigger, newStatus] of Object.entries(TRIGGER_STATUS_MAP)) {
           if (upperMsg.includes(trigger)) {
             await _autoTransitionTeam(incident, _lastSelectedTeam, newStatus);
+            await _loadCommsLog();   // pick up the system message once it's written
             break;
           }
         }
       }
-
-      await _loadCommsLog();
     }
   } catch (err) {
     console.error("Failed to submit log entry", err);
