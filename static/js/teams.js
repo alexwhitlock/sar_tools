@@ -476,7 +476,9 @@ function wireTouchDnd(card, teamId) {
     if (err) { teamsMessage.show(`⚠ ${err}`, "error", 6000); return; }
 
     try {
+      const oldStatus = team.status;
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus, expectedUpdatedAt: team.updatedAt });
+      logUserEvent(incidentName, `Team ${team.name} status: "${oldStatus}" → "${newStatus}" (kanban)`);
       team.status = newStatus;
       renderKanban(teamsCache);
     } catch (err) {
@@ -885,6 +887,8 @@ async function saveTeamModal() {
 
   teamsMessage.show(modalMode === "create" ? "Creating team…" : "Saving changes…", "info");
 
+  const currentTeam = modalMode === "edit" ? teamsCache.find(t => t.id === activeTeamId) : null;
+
   try {
     let teamId = activeTeamId;
 
@@ -892,7 +896,6 @@ async function saveTeamModal() {
       const result = await apiPost("/api/teams/create", { incidentName, name });
       teamId = result.id;
     } else {
-      const currentTeam = teamsCache.find(t => t.id === activeTeamId);
       await apiPost("/api/teams/update", {
         incidentName,
         teamId,
@@ -932,7 +935,25 @@ async function saveTeamModal() {
 
     closeTeamModal();
     await loadTeams();
-    logUserEvent(incidentName, modalMode === "create" ? `Team ${name} created` : `Team ${name} updated`);
+    if (modalMode === "create") {
+      logUserEvent(incidentName, `Team ${name} created (status: ${status})`);
+    } else if (currentTeam) {
+      const currentMemberIds = new Set(modalMembers.map(m => String(m.id)));
+      const changes = [];
+      if (currentTeam.name !== name) changes.push(`name: "${currentTeam.name}" → "${name}"`);
+      if (currentTeam.status !== status) changes.push(`status: "${currentTeam.status}" → "${status}"`);
+      const oldLeaderId = currentTeam.teamLeaderId ? String(currentTeam.teamLeaderId) : null;
+      if (oldLeaderId !== (teamLeaderId || null)) {
+        const oldLdr = allPersonnel.find(p => String(p.id) === oldLeaderId)?.name || "none";
+        const newLdr = allPersonnel.find(p => String(p.id) === teamLeaderId)?.name || "none";
+        changes.push(`leader: "${oldLdr}" → "${newLdr}"`);
+      }
+      for (const id of [...new Set(modalMembers.map(m => String(m.id)))].filter(id => !originalMemberIds.has(id)))
+        changes.push(`added member ${modalMembers.find(m => String(m.id) === id)?.name || id}`);
+      for (const id of [...originalMemberIds].filter(id => !currentMemberIds.has(id)))
+        changes.push(`removed member ${allPersonnel.find(p => String(p.id) === id)?.name || id}`);
+      if (changes.length) logUserEvent(incidentName, `Team ${name} updated: ${changes.join("; ")}`);
+    }
     teamsMessage.show(modalMode === "create" ? "Team created." : "Changes saved.", "info");
   } catch (err) {
     const errEl = document.getElementById("teamModalError");
