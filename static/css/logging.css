@@ -140,7 +140,9 @@
 }
 
 #comms-log-btn {
+  width: auto !important;
   flex: 1 1 auto;
+  min-width: 0;
   padding: 7px;
   font-size: 0.9rem;
   font-weight: 700;
@@ -150,7 +152,8 @@
 .compose-star-btn,
 .compose-star-btn:hover,
 .compose-star-btn:active {
-  flex: 0 0 auto;
+  width: 2rem !important;
+  flex: 0 0 2rem;
   background: none !important;
   border: none;
   box-shadow: none !important;
@@ -159,14 +162,9 @@
   line-height: 1;
   color: #ccc;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0;
   user-select: none;
   -webkit-user-select: none;
-  transition: color 0.1s ease;
-}
-
-.compose-star-btn:hover {
-  color: #f9a825 !important;
 }
 
 .compose-star-btn.active,
@@ -187,11 +185,6 @@
   color: #ccc;
   cursor: pointer;
   padding: 0;
-  transition: color 0.1s ease;
-}
-
-.row-star-btn:hover {
-  color: #f9a825 !important;
 }
 
 .row-star-btn.active,
