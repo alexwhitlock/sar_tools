@@ -173,6 +173,12 @@ async function _autoTransitionTeam(incident, team, newStatus) {
     );
     if (!hasInProgress) return;
 
+    // Fetch current team status before updating
+    const teamsRes = await fetch(`/api/teams?incidentName=${encodeURIComponent(incident)}`);
+    const teams = await teamsRes.json();
+    const currentTeam = Array.isArray(teams) ? teams.find(t => t.id === team.id) : null;
+    const oldStatus = currentTeam?.status || "unknown";
+
     // Update team status
     await fetch("/api/teams/update", {
       method: "POST",
@@ -181,7 +187,7 @@ async function _autoTransitionTeam(incident, team, newStatus) {
     });
 
     // Log system message
-    await logSystemEvent(incident, `Team ${team.name} status changed to ${newStatus}`);
+    await logSystemEvent(incident, `Team ${team.name} status changed from ${oldStatus} to ${newStatus}`);
   } catch (err) {
     console.error("Auto-transition failed", err);
   }

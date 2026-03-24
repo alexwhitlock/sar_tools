@@ -476,8 +476,9 @@ function wireTouchDnd(card, teamId) {
     if (err) { teamsMessage.show(`⚠ ${err}`, "error", 6000); return; }
 
     try {
+      const oldStatus = team.status;
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus, expectedUpdatedAt: team.updatedAt });
-      logUserEvent(incidentName, `Team ${team.name} status changed to "${newStatus}"`);
+      logUserEvent(incidentName, `Team ${team.name} status changed from "${oldStatus}" to "${newStatus}"`);
       team.status = newStatus;
       renderKanban(teamsCache);
     } catch (err) {

@@ -704,7 +704,7 @@ function wireMenuAndModal() {
         const person = findPersonInCache(activePersonKey);
         await apiUpdatePersonStatus({ incidentName, personKey: activePersonKey, status: newStatus, expectedUpdatedAt: person?.updatedAt });
         await loadPersonnel();
-        logUserEvent(incidentName, `Personnel ${person?.name || activePersonKey} status changed to ${newStatus}`);
+        logUserEvent(incidentName, `Personnel ${person?.name || activePersonKey} status changed from "${person?.status || "unknown"}" to "${newStatus}"`);
         personnelMessage.show(`Status updated to ${newStatus}.`, "info");
       } catch (err) {
         if (err instanceof ConflictError) {
@@ -781,6 +781,8 @@ function wireMenuAndModal() {
       return;
     }
 
+    const personBefore = modalMode === "edit" ? findPersonInCache(activePersonKey) : null;
+
     try {
       personnelMessage.show(
         modalMode === "add" ? "Adding person…" : "Saving changes…",
@@ -842,7 +844,19 @@ function wireMenuAndModal() {
 
       closePersonModal();
       await loadPersonnel();
-      logUserEvent(incidentName, modalMode === "add" ? `Personnel ${name} added` : `Personnel ${name} updated`);
+      if (modalMode === "add") {
+        logUserEvent(incidentName, `Personnel ${name} added`);
+      } else if (personBefore) {
+        const changes = [];
+        if (personBefore.name !== name) changes.push(`name changed from "${personBefore.name}" to "${name}"`);
+        const newTeamName = selectedTeamId
+          ? (teamSelect ? Array.from(teamSelect.options).find(o => o.value === String(selectedTeamId))?.textContent : null) || String(selectedTeamId)
+          : null;
+        if ((personBefore.team || null) !== (newTeamName || null)) {
+          changes.push(`team changed from "${personBefore.team || "none"}" to "${newTeamName || "none"}"`);
+        }
+        if (changes.length) logUserEvent(incidentName, `Personnel ${name} updated: ${changes.join("; ")}`);
+      }
       personnelMessage.show(
         modalMode === "add" ? "Person added." : "Changes saved.",
         "info"
