@@ -343,6 +343,7 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;  /* skip double-tap delay so :active fires instantly */
 }
 
 @media (hover: hover) {
