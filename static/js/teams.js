@@ -476,9 +476,8 @@ function wireTouchDnd(card, teamId) {
     if (err) { teamsMessage.show(`⚠ ${err}`, "error", 6000); return; }
 
     try {
-      const oldStatus = team.status;
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus, expectedUpdatedAt: team.updatedAt });
-      logUserEvent(incidentName, `Team ${team.name} status: "${oldStatus}" → "${newStatus}" (kanban)`);
+      logUserEvent(incidentName, `Team ${team.name} status changed to "${newStatus}"`);
       team.status = newStatus;
       renderKanban(teamsCache);
     } catch (err) {
@@ -940,13 +939,13 @@ async function saveTeamModal() {
     } else if (currentTeam) {
       const currentMemberIds = new Set(modalMembers.map(m => String(m.id)));
       const changes = [];
-      if (currentTeam.name !== name) changes.push(`name: "${currentTeam.name}" → "${name}"`);
-      if (currentTeam.status !== status) changes.push(`status: "${currentTeam.status}" → "${status}"`);
+      if (currentTeam.name !== name) changes.push(`name changed from "${currentTeam.name}" to "${name}"`);
+      if (currentTeam.status !== status) changes.push(`status changed from "${currentTeam.status}" to "${status}"`);
       const oldLeaderId = currentTeam.teamLeaderId ? String(currentTeam.teamLeaderId) : null;
       if (oldLeaderId !== (teamLeaderId || null)) {
         const oldLdr = allPersonnel.find(p => String(p.id) === oldLeaderId)?.name || "none";
         const newLdr = allPersonnel.find(p => String(p.id) === teamLeaderId)?.name || "none";
-        changes.push(`leader: "${oldLdr}" → "${newLdr}"`);
+        changes.push(`leader changed from "${oldLdr}" to "${newLdr}"`);
       }
       for (const id of [...new Set(modalMembers.map(m => String(m.id)))].filter(id => !originalMemberIds.has(id)))
         changes.push(`added member ${modalMembers.find(m => String(m.id) === id)?.name || id}`);
