@@ -210,6 +210,8 @@ async function _submitCommsLog() {
     if (data.success) {
       input.value = "";
       input.style.height = "";   // reset any manual resize
+      const clearBtn = document.getElementById("comms-clear-btn");
+      if (clearBtn) clearBtn.disabled = true;
       const star = document.getElementById("comms-important-star");
       if (star) { star.classList.remove("active"); star.textContent = "☆"; }
 
@@ -402,6 +404,18 @@ export function watchLoggingTab() {
     const star = document.getElementById("comms-important-star");
     const on = star.classList.toggle("active");
     star.textContent = on ? "★" : "☆";
+  });
+
+  // Clear button — enabled/red when input has text
+  const _clearBtn = document.getElementById("comms-clear-btn");
+  const _msgInput = document.getElementById("comms-message-input");
+  function _updateClearBtn() {
+    if (_clearBtn) _clearBtn.disabled = !_msgInput?.value.length;
+  }
+  _msgInput?.addEventListener("input", _updateClearBtn);
+  _clearBtn?.addEventListener("click", () => {
+    if (_msgInput) { _msgInput.value = ""; _msgInput.style.height = ""; }
+    _updateClearBtn();
   });
 
   // Log button — Ctrl+Enter in textarea also submits

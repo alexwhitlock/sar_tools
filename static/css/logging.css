@@ -157,13 +157,39 @@
   letter-spacing: 0.05em;
 }
 
+#comms-clear-btn {
+  width: auto !important;
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+#comms-clear-btn:not(:disabled) {
+  background: #c62828 !important;
+  border-color: #c62828 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+#comms-clear-btn:not(:disabled):hover {
+  background: #b71c1c !important;
+  border-color: #b71c1c !important;
+}
+
+#comms-clear-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .compose-star-btn,
 .compose-star-btn:hover,
 .compose-star-btn:active {
   width: 2rem !important;
   flex: 0 0 2rem;
   background: none !important;
-  border: none;
+  border: 1px solid #ccc !important;
+  border-radius: 4px;
   box-shadow: none !important;
   transform: none !important;
   font-size: 1.3rem;
