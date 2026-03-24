@@ -358,8 +358,8 @@
 .role-btn.active[data-role="OTHER"]     { background: #9e9e9e; border-color: #9e9e9e; }
 
 /* Type toggle buttons */
-.type-btn { flex: 1 1 auto; border-color: #aaa; color: #333; }
-.type-btn.active { background: #455a64; border-color: #455a64; color: #fff; }
+.type-btn { border-color: #aaa; color: #333; }
+.type-btn.active { background: #616161; border-color: #616161; color: #fff; }
 
 /* ===============================
    Log entries
