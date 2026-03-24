@@ -363,6 +363,13 @@ export function refreshCommsTeams() {
   _populateTeamButtons();
 }
 
+/** Called by global-sync to refresh log panels */
+export function refreshLogPanels() {
+  _loadCommsLog();
+  const viewPanel = document.getElementById("subtab-view-log");
+  if (viewPanel && !viewPanel.classList.contains("hidden")) _loadViewLog();
+}
+
 export async function logSystemEvent(incidentName, message) {
   if (!incidentName) return;
   try {
