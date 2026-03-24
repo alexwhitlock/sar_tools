@@ -5,7 +5,7 @@ def insert_log(incident_name: str, role: str, type_: str, message: str, flags: s
     """
     Insert a log entry.  Callable from route handlers and other repo modules alike.
     role  — who/what generated this: SYSTEM, IC, PLANS, OPS, COMMS, OTHER
-    type_ — nature of entry: system, comms, note, task
+    type_ — nature of entry: system, comms, note
     flags — comma-separated tags e.g. 'important'
     """
     with get_connection(incident_name) as conn:
