@@ -327,7 +327,7 @@
 }
 
 /* Role colour coding — tinted background, black text */
-.log-role-system  { background: #efebe9; color: #111; }
+.log-role-system  { background: #bcaaa4; color: #111; }
 .log-role-ic      { background: #c8e6c9; color: #111; }
 .log-role-plans   { background: #bbdefb; color: #111; }
 .log-role-ops     { background: #ffe0b2; color: #111; }
