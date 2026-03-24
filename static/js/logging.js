@@ -97,7 +97,7 @@ async function _loadCommsLog() {
   }
 
   try {
-    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log?type=comms`);
+    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log?type=comms,system`);
     const data = await res.json();
     if (!data.success) return;
     _renderCommsEntries(container, data.log);
@@ -149,7 +149,7 @@ async function _autoTransitionTeam(incident, team, newStatus) {
     });
 
     // Log system message
-    await logSystemEvent(incident, `Team ${team.name} status → ${newStatus}`);
+    await logSystemEvent(incident, `Team ${team.name} status changed to ${newStatus}`);
   } catch (err) {
     console.error("Auto-transition failed", err);
   }

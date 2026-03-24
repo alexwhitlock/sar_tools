@@ -20,8 +20,14 @@ def get_logs(incident_name: str, type_filter: str = None, search: str = None, li
         clauses = []
         params = []
         if type_filter:
-            clauses.append("type = ?")
-            params.append(type_filter)
+            types = [t.strip() for t in type_filter.split(",") if t.strip()]
+            if len(types) == 1:
+                clauses.append("type = ?")
+                params.append(types[0])
+            elif len(types) > 1:
+                placeholders = ",".join("?" * len(types))
+                clauses.append(f"type IN ({placeholders})")
+                params.extend(types)
         if search:
             clauses.append("(message LIKE ? OR role LIKE ?)")
             params.extend([f"%{search}%", f"%{search}%"])
