@@ -371,8 +371,8 @@
     box-shadow: none;
   }
 
-  /* Cancel global button:hover orange on touch */
-  .builder-btn:hover {
+  /* Cancel global button:hover orange on touch, but allow :active press feedback */
+  .builder-btn:hover:not(:active) {
     background: #fff;
     background-color: #fff;
     border-color: #bbb;
