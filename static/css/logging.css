@@ -371,11 +371,16 @@
     box-shadow: none;
   }
 
-  /* Cancel global button:hover orange on touch, but allow :active press feedback */
-  .builder-btn:hover:not(:active) {
-    background: #fff;
+  /* Cancel global button:hover orange on touch (hover persists after tap) */
+  .builder-btn:hover {
     background-color: #fff;
     border-color: #bbb;
+  }
+
+  /* Re-declare :active AFTER the hover reset so it wins when both fire */
+  .builder-btn:active {
+    background-color: #e0e0e0;
+    border-color: #888;
   }
 }
 
