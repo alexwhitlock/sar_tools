@@ -9,6 +9,23 @@
 // ─── state ────────────────────────────────────────────────────────────────────
 
 let _incident = null;
+let _lastSelectedTeam = null;   // { id, name } of last-clicked team button
+
+// ─── auto-transition config ───────────────────────────────────────────────────
+
+const TRIGGER_STATUS_MAP = {
+  "LEAVING FOR ASSIGNMENT":    "Travelling to Assignment",
+  "ARRIVED AT ASSIGNMENT":     "On Assignment",
+  "RETURNING FROM ASSIGNMENT": "Returning from Assignment",
+  "ARRIVED AT ICP":            "Awaiting Debrief",
+};
+
+function _parseTeamLetters(teamField) {
+  if (!teamField) return [];
+  return [...String(teamField).replace(/[\s,\-]+/g, "")]
+    .map(c => c.toUpperCase())
+    .filter(c => /[A-Z]/.test(c));
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,6 +121,40 @@ function _renderCommsEntries(container, entries) {
   }).join("");
 }
 
+async function _autoTransitionTeam(incident, team, newStatus) {
+  try {
+    // Get caltopoMapId for this incident
+    const settRes = await fetch(`/api/incident/settings?incidentName=${encodeURIComponent(incident)}`);
+    const settData = await settRes.json();
+    const mapId = settData.caltopoMapId;
+    if (!mapId) return;
+
+    // Fetch assignments and check for INPROGRESS assignment for this team
+    const aRes = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}`);
+    const assignments = await aRes.json();
+    if (!Array.isArray(assignments)) return;
+
+    const teamLetter = String(team.name).toUpperCase();
+    const hasInProgress = assignments.some(a =>
+      (a.status || "").toUpperCase() === "INPROGRESS" &&
+      _parseTeamLetters(a.team).includes(teamLetter)
+    );
+    if (!hasInProgress) return;
+
+    // Update team status
+    await fetch("/api/teams/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ incidentName: incident, teamId: team.id, status: newStatus }),
+    });
+
+    // Log system message
+    await logSystemEvent(incident, `Team ${team.name} status → ${newStatus}`);
+  } catch (err) {
+    console.error("Auto-transition failed", err);
+  }
+}
+
 async function _submitCommsLog() {
   const incident = _getIncident();
   if (!incident) return;
@@ -126,6 +177,19 @@ async function _submitCommsLog() {
     if (data.success) {
       input.value = "";
       input.style.height = "";   // reset any manual resize
+
+      // Auto-transition team status if enabled
+      const autoChk = document.getElementById("auto-transition-chk");
+      if (autoChk?.checked && _lastSelectedTeam) {
+        const upperMsg = message.toUpperCase();
+        for (const [trigger, newStatus] of Object.entries(TRIGGER_STATUS_MAP)) {
+          if (upperMsg.includes(trigger)) {
+            await _autoTransitionTeam(incident, _lastSelectedTeam, newStatus);
+            break;
+          }
+        }
+      }
+
       await _loadCommsLog();
     }
   } catch (err) {
@@ -176,6 +240,7 @@ async function _populateTeamButtons() {
       btn.addEventListener("click", () => {
         const input = document.getElementById("comms-message-input");
         if (input) input.value += btn.dataset.insert;
+        _lastSelectedTeam = { id: t.id, name: t.name };
       });
       list.appendChild(btn);
     });

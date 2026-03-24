@@ -404,3 +404,25 @@
 .log-row-important td {
   background: #fff8e1;
 }
+
+/* ===============================
+   Auto-transition checkbox
+   =============================== */
+
+.auto-transition-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.auto-transition-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  cursor: pointer;
+}

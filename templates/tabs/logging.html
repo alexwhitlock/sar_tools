@@ -92,15 +92,18 @@
               <div class="builder-buttons builder-buttons-grid">
                 <button type="button" class="builder-btn builder-btn-msg" data-insert="LEAVING FOR ASSIGNMENT">LEAVING FOR ASSIGNMENT</button>
                 <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT ASSIGNMENT">ARRIVED AT ASSIGNMENT</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="RETURNING TO BASE">RETURNING TO BASE</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT BASE">ARRIVED AT BASE</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="IN CONTACT WITH SUBJECT">IN CONTACT WITH SUBJECT</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="SUBJECT FOUND">SUBJECT FOUND</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="ALL CLEAR">ALL CLEAR</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="REQUESTING MEDICAL">REQUESTING MEDICAL</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="RADIO CHECK OK">RADIO CHECK OK</button>
-                <button type="button" class="builder-btn builder-btn-msg" data-insert="NO CONTACT">NO CONTACT</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="RETURNING FROM ASSIGNMENT">RETURNING FROM ASSIGNMENT</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="ARRIVED AT ICP">ARRIVED AT ICP</button>
+                <button type="button" class="builder-btn builder-btn-msg" data-insert="RADIO CHECK">RADIO CHECK</button>
               </div>
+            </div>
+
+            <!-- Auto status transition -->
+            <div class="builder-section">
+              <label class="auto-transition-label">
+                <input type="checkbox" id="auto-transition-chk" checked />
+                Auto-update team status on trigger messages
+              </label>
             </div>
 
           </div><!-- /comms-builder-main -->
