@@ -495,6 +495,16 @@
    Message template hint
    =============================== */
 
+.comms-template-name {
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
 .comms-template-hint {
   font-size: 0.72rem;
   font-family: monospace;
