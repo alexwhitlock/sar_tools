@@ -327,7 +327,7 @@
 }
 
 /* Role colour coding — tinted background, black text */
-.log-role-system  { background: #e8eaf6; color: #111; }
+.log-role-system  { background: #efebe9; color: #111; }
 .log-role-ic      { background: #c8e6c9; color: #111; }
 .log-role-plans   { background: #bbdefb; color: #111; }
 .log-role-ops     { background: #ffe0b2; color: #111; }
@@ -386,13 +386,17 @@
 }
 
 .log-col-time {
-  font-family: monospace;
   white-space: nowrap;
 }
 
 .log-col-type {
   white-space: nowrap;
-  color: #777;
+}
+
+.log-col-role {
+  white-space: nowrap;
+  text-align: center;
+  font-size: 0.82rem;
 }
 
 .log-empty-cell {

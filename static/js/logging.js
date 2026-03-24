@@ -289,7 +289,7 @@ function _renderViewLog(tbody, entries) {
     const important = e.flags && e.flags.includes("important");
     return `<tr class="${important ? "log-row-important" : ""}">
       <td class="log-col-time">${_fmtTime(e.timestamp)}</td>
-      <td><span class="log-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</span></td>
+      <td class="log-col-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</td>
       <td class="log-col-type">${_esc(e.type)}</td>
       <td>${_esc(e.message)}</td>
     </tr>`;
