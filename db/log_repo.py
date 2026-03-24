@@ -15,6 +15,21 @@ def insert_log(incident_name: str, role: str, type_: str, message: str, flags: s
         )
 
 
+def toggle_important(incident_name: str, log_id: int):
+    with get_connection(incident_name) as conn:
+        row = conn.execute("SELECT flags FROM incident_log WHERE id = ?", (log_id,)).fetchone()
+        if row is None:
+            return False
+        flags = set(f.strip() for f in (row["flags"] or "").split(",") if f.strip())
+        if "important" in flags:
+            flags.discard("important")
+        else:
+            flags.add("important")
+        conn.execute("UPDATE incident_log SET flags = ? WHERE id = ?",
+                     (",".join(sorted(flags)) or None, log_id))
+        return True
+
+
 def get_logs(incident_name: str, type_filter: str = None, search: str = None, limit: int = 1000):
     with get_connection(incident_name) as conn:
         clauses = []

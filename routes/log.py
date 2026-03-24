@@ -1,7 +1,7 @@
 import csv
 import io
 from flask import Blueprint, jsonify, request, Response
-from db.log_repo import insert_log, get_logs
+from db.log_repo import insert_log, get_logs, toggle_important
 
 bp = Blueprint("log", __name__)
 
@@ -25,6 +25,12 @@ def add_log(incident_name):
         return jsonify(success=False, error="Message is required"), 400
     insert_log(incident_name, role, type_, message, flags)
     return jsonify(success=True)
+
+
+@bp.route("/incidents/<incident_name>/log/<int:log_id>/important", methods=["POST"])
+def toggle_important_flag(incident_name, log_id):
+    found = toggle_important(incident_name, log_id)
+    return jsonify(success=found)
 
 
 @bp.route("/incidents/<incident_name>/log/export")

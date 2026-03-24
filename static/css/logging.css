@@ -340,6 +340,31 @@
   word-break: break-word;
 }
 
+.log-star-btn {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #ccc;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.log-star-btn:hover {
+  color: #f9a825;
+}
+
+.log-star-btn.log-star-on {
+  color: #f9a825;
+}
+
+.log-col-star {
+  width: 2rem;
+  text-align: center;
+  padding: 0 !important;
+}
+
 .log-empty {
   color: #aaa;
   font-size: 0.82rem;
