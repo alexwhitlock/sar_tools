@@ -65,6 +65,7 @@ function _initSubtabs() {
       const panel = document.getElementById(`subtab-${btn.dataset.subtab}`);
       if (panel) panel.classList.remove("hidden");
       if (btn.dataset.subtab === "view-log") _loadViewLog();
+      if (btn.dataset.subtab === "comms-log") _loadCommsLog();
     });
   });
 }
@@ -305,6 +306,7 @@ function _renderViewLog(tbody, entries) {
       if (!incident) return;
       await fetch(`/incidents/${encodeURIComponent(incident)}/log/${btn.dataset.logId}/important`, { method: "POST" });
       _loadViewLog();
+      _loadCommsLog();
     });
   });
 }
