@@ -33,6 +33,17 @@ function _getIncident() {
   return document.getElementById("incidentSelect")?.value?.trim() || null;
 }
 
+/** SQLite timestamp "YYYY-MM-DD HH:MM:SS" (UTC) → local yyyy-mm-dd hh:mm:ss */
+function _fmtDateTime(ts) {
+  try {
+    const d = new Date(ts.replace(" ", "T") + "Z");
+    const p = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  } catch {
+    return ts || "";
+  }
+}
+
 /** SQLite timestamp "YYYY-MM-DD HH:MM:SS" (UTC) → local time string */
 function _fmtTime(ts, showSeconds = true) {
   try {
@@ -296,7 +307,7 @@ function _renderViewLog(tbody, entries) {
     const important = e.flags && e.flags.includes("important");
     return `<tr class="${important ? "log-row-important" : ""}">
       <td class="log-col-star"><button class="row-star-btn${important ? " active" : ""}" data-log-id="${e.id}">${important ? "★" : "☆"}</button></td>
-      <td class="log-col-time">${_fmtTime(e.timestamp)}</td>
+      <td class="log-col-time">${_fmtDateTime(e.timestamp)}</td>
       <td class="log-col-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</td>
       <td class="log-col-type">${_esc(e.type)}</td>
       <td>${_esc(e.message)}</td>
