@@ -113,13 +113,12 @@ function _renderCommsEntries(container, entries) {
   }
   container.innerHTML = entries.map(e => {
     const important = e.flags && e.flags.includes("important");
-    return `<div class="log-entry${important ? " log-entry-important" : ""}" data-log-id="${e.id}">
+    return `<div class="log-entry${important ? " log-entry-important" : ""}">
       <span class="log-time">${_fmtTime(e.timestamp, false)}</span>
       <span class="log-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</span>
       <span class="log-message">${_esc(e.message)}</span>
     </div>`;
   }).join("");
-
 }
 
 async function _autoTransitionTeam(incident, team, newStatus) {
@@ -169,7 +168,7 @@ async function _submitCommsLog() {
   const role = _getSelectedRole();
 
   try {
-    const important = document.getElementById("comms-important-chk")?.checked;
+    const important = document.getElementById("comms-important-star")?.classList.contains("active");
     const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -179,8 +178,8 @@ async function _submitCommsLog() {
     if (data.success) {
       input.value = "";
       input.style.height = "";   // reset any manual resize
-      const importantChk = document.getElementById("comms-important-chk");
-      if (importantChk) importantChk.checked = false;
+      const star = document.getElementById("comms-important-star");
+      if (star) { star.classList.remove("active"); star.textContent = "☆"; }
 
       // Auto-transition team status if enabled
       const autoChk = document.getElementById("auto-transition-chk");
@@ -286,12 +285,13 @@ async function _loadViewLog() {
 
 function _renderViewLog(tbody, entries) {
   if (!entries.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="log-empty-cell">No log entries.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="log-empty-cell">No log entries.</td></tr>';
     return;
   }
   tbody.innerHTML = entries.map(e => {
     const important = e.flags && e.flags.includes("important");
-    return `<tr class="${important ? "log-row-important" : ""}" data-log-id="${e.id}">
+    return `<tr class="${important ? "log-row-important" : ""}">
+      <td class="log-col-star"><button class="row-star-btn${important ? " active" : ""}" data-log-id="${e.id}">${important ? "★" : "☆"}</button></td>
       <td class="log-col-time">${_fmtTime(e.timestamp)}</td>
       <td class="log-col-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</td>
       <td class="log-col-type">${_esc(e.type)}</td>
@@ -299,6 +299,14 @@ function _renderViewLog(tbody, entries) {
     </tr>`;
   }).join("");
 
+  tbody.querySelectorAll(".row-star-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const incident = _getIncident();
+      if (!incident) return;
+      await fetch(`/incidents/${encodeURIComponent(incident)}/log/${btn.dataset.logId}/important`, { method: "POST" });
+      _loadViewLog();
+    });
+  });
 }
 
 function _exportCSV() {
@@ -342,6 +350,13 @@ export function watchLoggingTab() {
   _initSubtabs();
   _initRoleButtons();
   _initBuilder();
+
+  // Important star toggle
+  document.getElementById("comms-important-star")?.addEventListener("click", () => {
+    const star = document.getElementById("comms-important-star");
+    const on = star.classList.toggle("active");
+    star.textContent = on ? "★" : "☆";
+  });
 
   // Log button — Ctrl+Enter in textarea also submits
   document.getElementById("comms-log-btn")?.addEventListener("click", _submitCommsLog);

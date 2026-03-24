@@ -147,22 +147,41 @@
   letter-spacing: 0.05em;
 }
 
-.comms-important-label {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  color: #555;
-  white-space: nowrap;
+.compose-star-btn {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #ccc;
   cursor: pointer;
+  padding: 0 4px;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.comms-important-label input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
+.compose-star-btn.active {
+  color: #f9a825;
+}
+
+.row-star-btn {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #ccc;
   cursor: pointer;
+  padding: 0;
+}
+
+.row-star-btn.active {
+  color: #f9a825;
+}
+
+.log-col-star {
+  width: 2rem;
+  text-align: center;
+  padding: 2px 0 !important;
 }
 
 /* ── Right column (2/3) ────────────────────────── */

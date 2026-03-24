@@ -32,10 +32,7 @@
             ></textarea>
             <div class="comms-log-row">
               <button type="button" id="comms-log-btn">LOG</button>
-              <label class="comms-important-label">
-                <input type="checkbox" id="comms-important-chk" />
-                Important
-              </label>
+              <button type="button" id="comms-important-star" class="compose-star-btn" title="Mark as important">☆</button>
             </div>
           </div>
 
@@ -138,6 +135,7 @@
         <table class="data-table viewlog-table">
           <thead>
             <tr>
+              <th style="width:2rem"></th>
               <th style="width:7rem">Time</th>
               <th style="width:5rem">Role</th>
               <th style="width:5rem">Type</th>
