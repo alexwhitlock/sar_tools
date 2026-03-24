@@ -135,8 +135,8 @@
 
 .comms-log-row {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  align-items: stretch;
+  gap: 0.3rem;
 }
 
 #comms-log-btn {
@@ -147,35 +147,57 @@
   letter-spacing: 0.05em;
 }
 
-.compose-star-btn {
+.compose-star-btn,
+.compose-star-btn:hover,
+.compose-star-btn:active {
   flex: 0 0 auto;
-  background: none;
+  background: none !important;
   border: none;
-  font-size: 1.4rem;
+  box-shadow: none !important;
+  transform: none !important;
+  font-size: 1.3rem;
   line-height: 1;
   color: #ccc;
   cursor: pointer;
   padding: 0 4px;
   user-select: none;
   -webkit-user-select: none;
+  transition: color 0.1s ease;
 }
 
-.compose-star-btn.active {
-  color: #f9a825;
+.compose-star-btn:hover {
+  color: #f9a825 !important;
 }
 
-.row-star-btn {
-  background: none;
+.compose-star-btn.active,
+.compose-star-btn.active:hover,
+.compose-star-btn.active:active {
+  color: #f9a825 !important;
+}
+
+.row-star-btn,
+.row-star-btn:hover,
+.row-star-btn:active {
+  background: none !important;
   border: none;
+  box-shadow: none !important;
+  transform: none !important;
   font-size: 0.9rem;
   line-height: 1;
   color: #ccc;
   cursor: pointer;
   padding: 0;
+  transition: color 0.1s ease;
 }
 
-.row-star-btn.active {
-  color: #f9a825;
+.row-star-btn:hover {
+  color: #f9a825 !important;
+}
+
+.row-star-btn.active,
+.row-star-btn.active:hover,
+.row-star-btn.active:active {
+  color: #f9a825 !important;
 }
 
 .log-col-star {
