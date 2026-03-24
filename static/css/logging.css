@@ -488,6 +488,21 @@
 
 
 /* ===============================
+   Message template hint
+   =============================== */
+
+.comms-template-hint {
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: #999;
+  background: #f4f4f4;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  padding: 6px 8px;
+  letter-spacing: 0.03em;
+}
+
+/* ===============================
    Auto-transition checkbox
    =============================== */
 
