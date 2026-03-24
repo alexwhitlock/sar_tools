@@ -299,9 +299,17 @@
 }
 
 .log-entry-important {
-  background: #fff8e1;
+  background: #ffeb3b;
   border-left: 3px solid #f9a825;
   padding-left: 6px;
+}
+
+.log-entry {
+  cursor: pointer;
+}
+
+.log-entry:hover {
+  filter: brightness(0.96);
 }
 
 .log-time {
@@ -340,30 +348,6 @@
   word-break: break-word;
 }
 
-.log-star-btn {
-  background: none;
-  border: none;
-  padding: 0 2px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: #ccc;
-  line-height: 1;
-  flex: 0 0 auto;
-}
-
-.log-star-btn:hover {
-  color: #f9a825;
-}
-
-.log-star-btn.log-star-on {
-  color: #f9a825;
-}
-
-.log-col-star {
-  width: 2rem;
-  text-align: center;
-  padding: 0 !important;
-}
 
 .log-empty {
   color: #aaa;
@@ -431,7 +415,15 @@
 }
 
 .log-row-important td {
-  background: #fff8e1;
+  background: #ffeb3b;
+}
+
+.viewlog-table tbody tr {
+  cursor: pointer;
+}
+
+.viewlog-table tbody tr:hover td {
+  filter: brightness(0.96);
 }
 
 /* ===============================

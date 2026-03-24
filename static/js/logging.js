@@ -114,19 +114,17 @@ function _renderCommsEntries(container, entries) {
   container.innerHTML = entries.map(e => {
     const important = e.flags && e.flags.includes("important");
     return `<div class="log-entry${important ? " log-entry-important" : ""}" data-log-id="${e.id}">
-      <button class="log-star-btn${important ? " log-star-on" : ""}" data-log-id="${e.id}" title="Mark important">★</button>
       <span class="log-time">${_fmtTime(e.timestamp, false)}</span>
       <span class="log-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</span>
       <span class="log-message">${_esc(e.message)}</span>
     </div>`;
   }).join("");
 
-  container.querySelectorAll(".log-star-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.logId;
+  container.querySelectorAll(".log-entry[data-log-id]").forEach(row => {
+    row.addEventListener("click", async () => {
       const incident = _getIncident();
-      if (!incident || !id) return;
-      await fetch(`/incidents/${encodeURIComponent(incident)}/log/${id}/important`, { method: "POST" });
+      if (!incident) return;
+      await fetch(`/incidents/${encodeURIComponent(incident)}/log/${row.dataset.logId}/important`, { method: "POST" });
       _loadCommsLog();
     });
   });
@@ -293,13 +291,12 @@ async function _loadViewLog() {
 
 function _renderViewLog(tbody, entries) {
   if (!entries.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="log-empty-cell">No log entries.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="log-empty-cell">No log entries.</td></tr>';
     return;
   }
   tbody.innerHTML = entries.map(e => {
     const important = e.flags && e.flags.includes("important");
-    return `<tr class="${important ? "log-row-important" : ""}">
-      <td class="log-col-star"><button class="log-star-btn${important ? " log-star-on" : ""}" data-log-id="${e.id}" title="Mark important">★</button></td>
+    return `<tr class="${important ? "log-row-important" : ""}" data-log-id="${e.id}">
       <td class="log-col-time">${_fmtTime(e.timestamp)}</td>
       <td class="log-col-role log-role-${_esc(e.role.toLowerCase())}">${_esc(e.role)}</td>
       <td class="log-col-type">${_esc(e.type)}</td>
@@ -307,12 +304,11 @@ function _renderViewLog(tbody, entries) {
     </tr>`;
   }).join("");
 
-  tbody.querySelectorAll(".log-star-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.logId;
+  tbody.querySelectorAll("tr[data-log-id]").forEach(row => {
+    row.addEventListener("click", async () => {
       const incident = _getIncident();
-      if (!incident || !id) return;
-      await fetch(`/incidents/${encodeURIComponent(incident)}/log/${id}/important`, { method: "POST" });
+      if (!incident) return;
+      await fetch(`/incidents/${encodeURIComponent(incident)}/log/${row.dataset.logId}/important`, { method: "POST" });
       _loadViewLog();
     });
   });
