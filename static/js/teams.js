@@ -933,28 +933,34 @@ async function saveTeamModal() {
       });
     }
 
+    // Snapshot before closeTeamModal() clears modalMembers, originalMemberIds, allPersonnel
+    const _mode = modalMode;
+    const _currentMemberIds = new Set(modalMembers.map(m => String(m.id)));
+    const _originalMemberIds = new Set(originalMemberIds);
+    const _modalMembers = [...modalMembers];
+    const _allPersonnel = [...allPersonnel];
+
     closeTeamModal();
     await loadTeams();
-    if (modalMode === "create") {
+    if (_mode === "create") {
       logUserEvent(incidentName, `Team ${name} created (status: ${status})`);
     } else if (currentTeam) {
-      const currentMemberIds = new Set(modalMembers.map(m => String(m.id)));
       const changes = [];
       if (currentTeam.name !== name) changes.push(`name changed from "${currentTeam.name}" to "${name}"`);
       if (currentTeam.status !== status) changes.push(`status changed from "${currentTeam.status}" to "${status}"`);
       const oldLeaderId = currentTeam.teamLeaderId ? String(currentTeam.teamLeaderId) : null;
       if (oldLeaderId !== (teamLeaderId || null)) {
-        const oldLdr = allPersonnel.find(p => String(p.id) === oldLeaderId)?.name || "none";
-        const newLdr = allPersonnel.find(p => String(p.id) === teamLeaderId)?.name || "none";
+        const oldLdr = _allPersonnel.find(p => String(p.id) === oldLeaderId)?.name || "none";
+        const newLdr = _allPersonnel.find(p => String(p.id) === teamLeaderId)?.name || "none";
         changes.push(`leader changed from "${oldLdr}" to "${newLdr}"`);
       }
-      for (const id of [...new Set(modalMembers.map(m => String(m.id)))].filter(id => !originalMemberIds.has(id)))
-        changes.push(`added member ${modalMembers.find(m => String(m.id) === id)?.name || id}`);
-      for (const id of [...originalMemberIds].filter(id => !currentMemberIds.has(id)))
-        changes.push(`removed member ${allPersonnel.find(p => String(p.id) === id)?.name || id}`);
+      for (const id of [..._currentMemberIds].filter(id => !_originalMemberIds.has(id)))
+        changes.push(`added member ${_modalMembers.find(m => String(m.id) === id)?.name || id}`);
+      for (const id of [..._originalMemberIds].filter(id => !_currentMemberIds.has(id)))
+        changes.push(`removed member ${_allPersonnel.find(p => String(p.id) === id)?.name || id}`);
       if (changes.length) logUserEvent(incidentName, `Team ${name} updated: ${changes.join("; ")}`);
     }
-    teamsMessage.show(modalMode === "create" ? "Team created." : "Changes saved.", "info");
+    teamsMessage.show(_mode === "create" ? "Team created." : "Changes saved.", "info");
   } catch (err) {
     const errEl = document.getElementById("teamModalError");
     if (err instanceof ConflictError) {
