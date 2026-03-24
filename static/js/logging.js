@@ -129,7 +129,7 @@ async function _loadCommsLog() {
   }
 
   try {
-    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log?type=comms,system`);
+    const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log`);
     const data = await res.json();
     if (!data.success) return;
     _renderCommsEntries(container, data.log);
@@ -222,8 +222,9 @@ async function _submitCommsLog() {
       const autoChk = document.getElementById("auto-transition-chk");
       if (autoChk?.checked && _lastSelectedTeam) {
         const upperMsg = message.toUpperCase();
+        const teamRef = `TEAM ${_lastSelectedTeam.name.toUpperCase()}`;
         for (const [trigger, newStatus] of Object.entries(TRIGGER_STATUS_MAP)) {
-          if (upperMsg.includes(trigger)) {
+          if (upperMsg.includes(trigger) && upperMsg.includes(teamRef)) {
             await _autoTransitionTeam(incident, _lastSelectedTeam, newStatus);
             await _loadCommsLog();   // pick up the system message once it's written
             break;
