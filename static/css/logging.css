@@ -193,7 +193,7 @@
   color: #ccc;
   cursor: pointer;
   padding: 0;
-  margin-top: calc((0.82rem * 1.4 - 0.9rem) / 2);
+  margin-top: 2px;
 }
 
 .row-star-btn.active,
@@ -205,8 +205,7 @@
 .log-col-star {
   width: 2rem;
   text-align: center;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  padding: 2px 0 !important;
 }
 
 /* ── Right column (2/3) ────────────────────────── */
