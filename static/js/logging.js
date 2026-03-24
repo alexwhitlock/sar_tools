@@ -361,6 +361,7 @@ function _renderViewLog(tbody, entries) {
 
 function _buildExportParams(scope) {
   const params = new URLSearchParams();
+  params.set("tz", Intl.DateTimeFormat().resolvedOptions().timeZone);
   if (scope === "view") {
     const search = document.getElementById("viewlog-search")?.value || "";
     const typeFilter = document.getElementById("viewlog-type-filter")?.value || "";

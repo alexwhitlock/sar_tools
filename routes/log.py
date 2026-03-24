@@ -1,6 +1,7 @@
 import csv
 import io
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, jsonify, request, Response
 from fpdf import FPDF
 from db.log_repo import insert_log, get_logs, toggle_important
@@ -8,13 +9,22 @@ from db.log_repo import insert_log, get_logs, toggle_important
 bp = Blueprint("log", __name__)
 
 
-def _utc_to_local(ts_str):
-    """Convert 'YYYY-MM-DD HH:MM:SS' UTC string to local server time string."""
+def _get_tz():
+    """Return a ZoneInfo for the request's tz param, falling back to UTC."""
+    tz_name = request.args.get("tz") or ""
+    try:
+        return ZoneInfo(tz_name) if tz_name else timezone.utc
+    except ZoneInfoNotFoundError:
+        return timezone.utc
+
+
+def _utc_to_local(ts_str, tz):
+    """Convert 'YYYY-MM-DD HH:MM:SS' UTC string to tz-aware local time string."""
     if not ts_str:
         return ""
     try:
         dt = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-        return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+        return dt.astimezone(tz).strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         return ts_str
 
@@ -60,10 +70,11 @@ def export_log(incident_name):
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(["id", "timestamp", "role", "type", "flags", "message"])
+    tz = _get_tz()
     for r in rows:
-        writer.writerow([r["id"], _utc_to_local(r["timestamp"]), r["role"], r["type"], r.get("flags", ""), r["message"]])
+        writer.writerow([r["id"], _utc_to_local(r["timestamp"], tz), r["role"], r["type"], r.get("flags", ""), r["message"]])
     csv_bytes = buf.getvalue().encode("utf-8")
-    filename = f"{incident_name}_log_{datetime.now().strftime('%H%M%S')}.csv"
+    filename = f"{incident_name}_log_{datetime.now(tz).strftime('%H%M%S')}.csv"
     return Response(
         csv_bytes,
         mimetype="text/csv",
@@ -91,6 +102,10 @@ def export_log_pdf(incident_name):
     rows = get_logs(incident_name, type_filter=type_filter, role_filter=role_filter,
                     search=search, exclude_type=exclude_type, order="asc")
 
+    tz = _get_tz()
+    now_local = datetime.now(tz)
+    tz_label = now_local.strftime("%Z")
+
     BOTTOM_MARGIN = 10
     COL_TIME  = 38
     COL_ROLE  = 18
@@ -104,7 +119,7 @@ def export_log_pdf(incident_name):
         pdf.set_font("Helvetica", "B", 12)
         pdf.cell(0, 7, _pdf_str(f"Incident Log - {incident_name}"), ln=True)
         pdf.set_font("Helvetica", "", 8)
-        pdf.cell(0, 5, _pdf_str(f"Exported {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"), ln=True)
+        pdf.cell(0, 5, _pdf_str(f"Exported {now_local.strftime('%Y-%m-%d %H:%M:%S')} {tz_label}"), ln=True)
         pdf.ln(2)
         pdf.set_font("Helvetica", "B", 8)
         pdf.set_fill_color(220, 220, 220)
@@ -134,14 +149,14 @@ def export_log_pdf(incident_name):
             pdf.set_fill_color(255, 255, 0)
         else:
             pdf.set_fill_color(255, 255, 255)
-        pdf.cell(COL_TIME, row_h, _pdf_str(_utc_to_local(r["timestamp"])), border=1, fill=important)
+        pdf.cell(COL_TIME, row_h, _pdf_str(_utc_to_local(r["timestamp"], tz)), border=1, fill=important)
         pdf.cell(COL_ROLE, row_h, _pdf_str(r["role"] or ""),               border=1, fill=important)
         pdf.cell(COL_TYPE, row_h, _pdf_str(r["type"] or ""),               border=1, fill=important)
         pdf.multi_cell(COL_MSG, ROW_H, msg, border=1, fill=important)
         pdf.set_xy(x, y + row_h)
 
     pdf_bytes = pdf.output()
-    filename = f"{incident_name}_log_{datetime.now().strftime('%H%M%S')}.pdf"
+    filename = f"{incident_name}_log_{now_local.strftime('%H%M%S')}.pdf"
     return Response(
         bytes(pdf_bytes),
         mimetype="application/pdf",
