@@ -146,7 +146,7 @@ function _initBuilder() {
   });
 }
 
-const INACTIVE_STATUSES = new Set(["Out of Service", "Retired"]);
+const INACTIVE_STATUSES = new Set(["Retired"]);
 
 async function _populateTeamButtons() {
   const incident = _getIncident();
@@ -244,6 +244,11 @@ function _exportCSV() {
  * Usage: import { logSystemEvent } from "./logging.js";
  *        logSystemEvent(incidentName, "Team Alpha status → On Assignment");
  */
+/** Called by global-sync after each team refresh */
+export function refreshCommsTeams() {
+  _populateTeamButtons();
+}
+
 export async function logSystemEvent(incidentName, message) {
   if (!incidentName) return;
   try {

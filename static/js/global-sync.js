@@ -8,6 +8,7 @@ import { loadTeams } from "./teams.js";
 import { loadPersonnel } from "./personnel.js";
 import { loadAssignments } from "./assignments.js";
 import { syncStart, syncReset, syncStop, onSyncNow } from "./sync-indicator.js";
+import { refreshCommsTeams } from "./logging.js";
 
 const POLL_INTERVAL_MS = 20_000;
 
@@ -20,6 +21,7 @@ function hasIncident() {
 
 async function syncAll() {
   await Promise.allSettled([loadTeams(), loadPersonnel(), loadAssignments()]);
+  refreshCommsTeams();
 }
 
 function startPolling() {
