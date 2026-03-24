@@ -356,7 +356,7 @@
 
 .log-entry {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
   font-size: 0.82rem;
   line-height: 1.4;
@@ -375,12 +375,14 @@
   color: #111;
   white-space: nowrap;
   flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .log-role {
   font-size: 0.62rem;
   font-weight: 700;
   padding: 2px 0;
+  margin-top: 2px;
   border-radius: 3px;
   white-space: nowrap;
   flex: 0 0 3.2rem;    /* wide enough for COMMS (longest) */
