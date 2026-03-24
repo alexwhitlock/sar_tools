@@ -120,14 +120,6 @@ function _renderCommsEntries(container, entries) {
     </div>`;
   }).join("");
 
-  container.querySelectorAll(".log-entry[data-log-id]").forEach(row => {
-    row.addEventListener("click", async () => {
-      const incident = _getIncident();
-      if (!incident) return;
-      await fetch(`/incidents/${encodeURIComponent(incident)}/log/${row.dataset.logId}/important`, { method: "POST" });
-      _loadCommsLog();
-    });
-  });
 }
 
 async function _autoTransitionTeam(incident, team, newStatus) {
@@ -177,15 +169,18 @@ async function _submitCommsLog() {
   const role = _getSelectedRole();
 
   try {
+    const important = document.getElementById("comms-important-chk")?.checked;
     const res = await fetch(`/incidents/${encodeURIComponent(incident)}/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role, type: "comms", message }),
+      body: JSON.stringify({ role, type: "comms", message, flags: important ? "important" : null }),
     });
     const data = await res.json();
     if (data.success) {
       input.value = "";
       input.style.height = "";   // reset any manual resize
+      const importantChk = document.getElementById("comms-important-chk");
+      if (importantChk) importantChk.checked = false;
 
       // Auto-transition team status if enabled
       const autoChk = document.getElementById("auto-transition-chk");
@@ -304,14 +299,6 @@ function _renderViewLog(tbody, entries) {
     </tr>`;
   }).join("");
 
-  tbody.querySelectorAll("tr[data-log-id]").forEach(row => {
-    row.addEventListener("click", async () => {
-      const incident = _getIncident();
-      if (!incident) return;
-      await fetch(`/incidents/${encodeURIComponent(incident)}/log/${row.dataset.logId}/important`, { method: "POST" });
-      _loadViewLog();
-    });
-  });
 }
 
 function _exportCSV() {

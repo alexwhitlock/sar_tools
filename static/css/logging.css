@@ -133,12 +133,36 @@
   outline-offset: -1px;
 }
 
+.comms-log-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 #comms-log-btn {
-  width: 100% !important;
+  flex: 1 1 auto;
   padding: 7px;
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.05em;
+}
+
+.comms-important-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: #555;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.comms-important-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
 }
 
 /* ── Right column (2/3) ────────────────────────── */
@@ -304,13 +328,6 @@
   padding-left: 6px;
 }
 
-.log-entry {
-  cursor: pointer;
-}
-
-.log-entry:hover {
-  filter: brightness(0.96);
-}
 
 .log-time {
   font-family: monospace;
@@ -418,13 +435,6 @@
   background: #ffeb3b;
 }
 
-.viewlog-table tbody tr {
-  cursor: pointer;
-}
-
-.viewlog-table tbody tr:hover td {
-  filter: brightness(0.96);
-}
 
 /* ===============================
    Auto-transition checkbox
