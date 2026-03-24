@@ -162,7 +162,15 @@
           <input type="checkbox" id="viewlog-show-user-events" />
           Show user events
         </label>
-        <button type="button" id="viewlog-export-btn">Export CSV</button>
+        <div class="export-dropdown-wrap">
+          <button type="button" id="viewlog-export-btn">Export ▾</button>
+          <div id="viewlog-export-menu" class="export-menu hidden">
+            <button class="export-menu-item" data-scope="all"  data-format="csv">All entries — CSV</button>
+            <button class="export-menu-item" data-scope="view" data-format="csv">Current view — CSV</button>
+            <button class="export-menu-item" data-scope="all"  data-format="pdf">All entries — PDF</button>
+            <button class="export-menu-item" data-scope="view" data-format="pdf">Current view — PDF</button>
+          </div>
+        </div>
       </div>
 
       <div class="viewlog-table-container">

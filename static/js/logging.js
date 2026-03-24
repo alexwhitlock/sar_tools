@@ -359,10 +359,35 @@ function _renderViewLog(tbody, entries) {
   });
 }
 
-function _exportCSV() {
+function _buildExportParams(scope) {
+  const params = new URLSearchParams();
+  if (scope === "view") {
+    const search = document.getElementById("viewlog-search")?.value || "";
+    const typeFilter = document.getElementById("viewlog-type-filter")?.value || "";
+    const roleFilter = document.getElementById("viewlog-role-filter")?.value || "";
+    const showUserEvents = document.getElementById("viewlog-show-user-events")?.checked || false;
+    if (search) params.set("search", search);
+    if (typeFilter) params.set("type", typeFilter);
+    if (roleFilter) params.set("role", roleFilter);
+    if (!showUserEvents && !typeFilter) params.set("exclude_type", "user_event");
+  }
+  return params;
+}
+
+function _exportCSV(scope) {
   const incident = _getIncident();
   if (!incident) return;
-  window.open(`/incidents/${encodeURIComponent(incident)}/log/export`, "_blank");
+  const params = _buildExportParams(scope);
+  const qs = params.toString() ? `?${params}` : "";
+  window.open(`/incidents/${encodeURIComponent(incident)}/log/export${qs}`, "_blank");
+}
+
+function _exportPDF(scope) {
+  const incident = _getIncident();
+  if (!incident) return;
+  const params = _buildExportParams(scope);
+  const qs = params.toString() ? `?${params}` : "";
+  window.open(`/incidents/${encodeURIComponent(incident)}/log/export/pdf${qs}`, "_blank");
 }
 
 // ─── public API ───────────────────────────────────────────────────────────────
@@ -453,8 +478,22 @@ export function watchLoggingTab() {
   document.getElementById("viewlog-role-filter")?.addEventListener("change", _loadViewLog);
   document.getElementById("viewlog-show-user-events")?.addEventListener("change", _loadViewLog);
 
-  // Export
-  document.getElementById("viewlog-export-btn")?.addEventListener("click", _exportCSV);
+  // Export dropdown
+  const _exportBtn = document.getElementById("viewlog-export-btn");
+  const _exportMenu = document.getElementById("viewlog-export-menu");
+  _exportBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    _exportMenu?.classList.toggle("hidden");
+  });
+  _exportMenu?.querySelectorAll(".export-menu-item").forEach(item => {
+    item.addEventListener("click", () => {
+      _exportMenu.classList.add("hidden");
+      const { scope, format } = item.dataset;
+      if (format === "csv") _exportCSV(scope);
+      else _exportPDF(scope);
+    });
+  });
+  document.addEventListener("click", () => _exportMenu?.classList.add("hidden"));
 
   // React to incident selection
   document.getElementById("incidentSelect")?.addEventListener("change", () => {
