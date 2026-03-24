@@ -9,9 +9,10 @@ bp = Blueprint("log", __name__)
 @bp.route("/incidents/<incident_name>/log", methods=["GET"])
 def list_log(incident_name):
     type_filter = request.args.get("type") or None
+    role_filter = request.args.get("role") or None
     search = request.args.get("search") or None
     order = request.args.get("order") or "asc"
-    rows = get_logs(incident_name, type_filter=type_filter, search=search, order=order)
+    rows = get_logs(incident_name, type_filter=type_filter, role_filter=role_filter, search=search, order=order)
     return jsonify(success=True, log=rows)
 
 

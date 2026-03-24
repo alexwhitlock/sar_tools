@@ -30,8 +30,8 @@ def toggle_important(incident_name: str, log_id: int):
         return True
 
 
-def get_logs(incident_name: str, type_filter: str = None, search: str = None,
-             limit: int = 1000, order: str = "asc"):
+def get_logs(incident_name: str, type_filter: str = None, role_filter: str = None,
+             search: str = None, limit: int = 1000, order: str = "asc"):
     with get_connection(incident_name) as conn:
         clauses = []
         params = []
@@ -44,6 +44,9 @@ def get_logs(incident_name: str, type_filter: str = None, search: str = None,
                 placeholders = ",".join("?" * len(types))
                 clauses.append(f"type IN ({placeholders})")
                 params.extend(types)
+        if role_filter:
+            clauses.append("UPPER(role) = ?")
+            params.append(role_filter.upper())
         if search:
             clauses.append("(message LIKE ? OR role LIKE ?)")
             params.extend([f"%{search}%", f"%{search}%"])

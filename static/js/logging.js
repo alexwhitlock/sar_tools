@@ -267,11 +267,13 @@ async function _loadViewLog() {
 
   const search = document.getElementById("viewlog-search")?.value || "";
   const typeFilter = document.getElementById("viewlog-type-filter")?.value || "";
+  const roleFilter = document.getElementById("viewlog-role-filter")?.value || "";
 
   let url = `/incidents/${encodeURIComponent(incident)}/log`;
   const params = new URLSearchParams();
   if (search) params.set("search", search);
   if (typeFilter) params.set("type", typeFilter);
+  if (roleFilter) params.set("role", roleFilter);
   params.set("order", "desc");
   if (params.toString()) url += `?${params}`;
 
@@ -370,6 +372,7 @@ export function watchLoggingTab() {
   // View log: live search & type filter
   document.getElementById("viewlog-search")?.addEventListener("input", _loadViewLog);
   document.getElementById("viewlog-type-filter")?.addEventListener("change", _loadViewLog);
+  document.getElementById("viewlog-role-filter")?.addEventListener("change", _loadViewLog);
 
   // Export
   document.getElementById("viewlog-export-btn")?.addEventListener("click", _exportCSV);
