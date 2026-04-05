@@ -521,3 +521,13 @@ export function watchLoggingTab() {
     }).observe(panel, { attributes: true, attributeFilter: ["class"] });
   }
 }
+
+window.addEventListener("sar:offline", () => {
+  const comms = document.getElementById("comms-log-entries");
+  if (comms) comms.innerHTML = '<div class="log-empty">Offline.</div>';
+
+  const viewlog = document.getElementById("viewlog-body");
+  if (viewlog) viewlog.innerHTML = '<tr><td colspan="5" class="log-empty-cell">Offline.</td></tr>';
+});
+
+window.addEventListener("sar:online", refreshLogPanels);
