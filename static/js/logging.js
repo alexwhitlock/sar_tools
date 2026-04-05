@@ -528,6 +528,15 @@ window.addEventListener("sar:offline", () => {
 
   const viewlog = document.getElementById("viewlog-body");
   if (viewlog) viewlog.innerHTML = '<tr><td colspan="5" class="log-empty-cell">Offline.</td></tr>';
+
+  document.getElementById("comms-message-input")?.setAttribute("disabled", "");
+  document.getElementById("comms-log-btn")?.setAttribute("disabled", "");
+  document.getElementById("comms-clear-btn")?.setAttribute("disabled", "");
 });
 
-window.addEventListener("sar:online", refreshLogPanels);
+window.addEventListener("sar:online", () => {
+  document.getElementById("comms-message-input")?.removeAttribute("disabled");
+  document.getElementById("comms-log-btn")?.removeAttribute("disabled");
+  // clear btn re-enable is handled by its own input listener (only enabled when input has text)
+  refreshLogPanels();
+});
