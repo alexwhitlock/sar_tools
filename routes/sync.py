@@ -5,8 +5,8 @@ from db.database import get_connection
 
 bp = Blueprint("sync", __name__)
 
-_POLL_INTERVAL = 0.3      # seconds between DB version checks inside the SSE loop
-_KEEPALIVE_INTERVAL = 15  # seconds between SSE keepalive comments
+_POLL_INTERVAL = 0.3   # seconds between DB version checks inside the SSE loop
+_CONNECT_DELAY = 0.5  # wait before sending init so just-disconnected clients clean up first
 
 # In-memory connection registry: incident_name -> connected client count.
 # Safe without locks under gevent (cooperative multitasking; no yields between reads/writes).
@@ -42,11 +42,13 @@ def _msg(type: str, **kwargs) -> str:
 def _event_stream(incident_name: str):
     _on_connect(incident_name)
     try:
+        # Brief pause: lets any just-disconnected client (refresh/tab switch) clean up
+        # before we count, so init reports the correct user count.
+        time.sleep(_CONNECT_DELAY)
+
         last_version = _get_version(incident_name)
         last_users = _connections.get(incident_name, 1)
         yield _msg("init", users=last_users)
-
-        last_keepalive = time.monotonic()
 
         while True:
             time.sleep(_POLL_INTERVAL)
@@ -58,14 +60,13 @@ def _event_stream(incident_name: str):
                 last_version = version
                 last_users = users
                 yield _msg("sync", users=users)
-                last_keepalive = time.monotonic()
             elif users != last_users:
                 last_users = users
                 yield _msg("users", users=users)
-                last_keepalive = time.monotonic()
-            elif time.monotonic() - last_keepalive >= _KEEPALIVE_INTERVAL:
-                yield ": keepalive\n\n"
-                last_keepalive = time.monotonic()
+            else:
+                # Always yield every poll cycle so client disconnects are detected
+                # within _POLL_INTERVAL rather than waiting for the next real event.
+                yield ": k\n\n"
     finally:
         _on_disconnect(incident_name)
 
