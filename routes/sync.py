@@ -75,11 +75,10 @@ def _caltopo_poll_loop(incident_name: str, app):
                 pass  # transient CalTopo errors — try again next cycle
 
 
-def _on_connect(incident_name: str):
+def _on_connect(incident_name: str, app):
     _connections[incident_name] = _connections.get(incident_name, 0) + 1
 
     if incident_name not in _caltopo_pollers:
-        app = current_app._get_current_object()
         _caltopo_pollers[incident_name] = gevent.spawn(
             _caltopo_poll_loop, incident_name, app
         )
@@ -105,8 +104,8 @@ def _msg(type: str, **kwargs) -> str:
     return f"data: {json.dumps({'type': type, **kwargs})}\n\n"
 
 
-def _event_stream(incident_name: str):
-    _on_connect(incident_name)
+def _event_stream(incident_name: str, app):
+    _on_connect(incident_name, app)
     try:
         # Brief pause: lets any just-disconnected client (refresh/tab switch) clean up
         # before we count, so init reports the correct user count.
@@ -143,8 +142,9 @@ def stream():
     if not incident_name:
         return {"error": "incidentName required"}, 400
 
+    app = current_app._get_current_object()
     return Response(
-        _event_stream(incident_name),
+        _event_stream(incident_name, app),
         mimetype="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
