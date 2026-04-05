@@ -391,3 +391,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   watchHomeTab();
   await loadIncidents("");
 });
+
+window.addEventListener("sar:online", () => {
+  const sel = $("incidentSelect");
+  const current = sel ? sel.value.trim() : "";
+  loadIncidents(current);
+});
