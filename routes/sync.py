@@ -1,16 +1,22 @@
+import hashlib
 import json
 import time
-from flask import Blueprint, Response, request
+import gevent
+from flask import Blueprint, Response, request, current_app
 from db.database import get_connection
 
 bp = Blueprint("sync", __name__)
 
-_POLL_INTERVAL = 0.3   # seconds between DB version checks inside the SSE loop
-_CONNECT_DELAY = 0.5  # wait before sending init so just-disconnected clients clean up first
+_POLL_INTERVAL = 0.3    # seconds between DB version checks inside SSE loop
+_CONNECT_DELAY = 0.5    # wait before sending init so just-disconnected clients clean up first
+_CALTOPO_POLL_INTERVAL = 30  # seconds between CalTopo API polls
 
 # In-memory connection registry: incident_name -> connected client count.
 # Safe without locks under gevent (cooperative multitasking; no yields between reads/writes).
 _connections: dict = {}
+
+# Per-incident CalTopo poller greenlets: incident_name -> greenlet
+_caltopo_pollers: dict = {}
 
 
 def get_connected_incidents() -> list:
@@ -18,14 +24,74 @@ def get_connected_incidents() -> list:
     return [name for name, count in _connections.items() if count > 0]
 
 
+def _get_map_id(incident_name: str) -> str | None:
+    """Return the linked CalTopo map ID for this incident, or None if not set."""
+    with get_connection(incident_name) as conn:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = 'linked_caltopo_map_id'"
+        ).fetchone()
+        return row[0] if row else None
+
+
+def _bump_version(incident_name: str):
+    """Increment sync_state.version to signal connected SSE clients to reload."""
+    with get_connection(incident_name) as conn:
+        conn.execute("UPDATE sync_state SET version = version + 1 WHERE id = 1")
+        conn.commit()
+
+
+def _caltopo_poll_loop(incident_name: str, app):
+    """
+    Background greenlet: polls CalTopo every _CALTOPO_POLL_INTERVAL seconds.
+    Bumps sync_state.version when assignment data changes so SSE clients reload.
+    Exits automatically when the last SSE client disconnects from this incident.
+    """
+    from routes.caltopo import get_assignments_for_map
+
+    last_hash = None
+
+    with app.app_context():
+        while _connections.get(incident_name, 0) > 0:
+            time.sleep(_CALTOPO_POLL_INTERVAL)
+
+            if _connections.get(incident_name, 0) <= 0:
+                break
+
+            map_id = _get_map_id(incident_name)
+            if not map_id:
+                continue
+
+            try:
+                assignments = get_assignments_for_map(map_id)
+                h = hashlib.md5(
+                    json.dumps(assignments, sort_keys=True).encode()
+                ).hexdigest()
+
+                if last_hash is not None and h != last_hash:
+                    _bump_version(incident_name)
+
+                last_hash = h
+            except Exception:
+                pass  # transient CalTopo errors — try again next cycle
+
+
 def _on_connect(incident_name: str):
     _connections[incident_name] = _connections.get(incident_name, 0) + 1
+
+    if incident_name not in _caltopo_pollers:
+        app = current_app._get_current_object()
+        _caltopo_pollers[incident_name] = gevent.spawn(
+            _caltopo_poll_loop, incident_name, app
+        )
 
 
 def _on_disconnect(incident_name: str):
     count = _connections.get(incident_name, 0) - 1
     if count <= 0:
         _connections.pop(incident_name, None)
+        g = _caltopo_pollers.pop(incident_name, None)
+        if g:
+            g.kill()
     else:
         _connections[incident_name] = count
 
