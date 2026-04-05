@@ -1171,3 +1171,12 @@ document.addEventListener("DOMContentLoaded", () => {
   wireModal();
   watchTeamsTab();
 });
+
+window.addEventListener("sar:offline", () => {
+  if (teamsTable) teamsTable.setData([]);
+  if (teamsMessage) teamsMessage.show("Offline.", "error");
+  const kanban = document.getElementById("teams-kanban-view");
+  if (kanban) kanban.innerHTML = "";
+});
+
+window.addEventListener("sar:online", loadTeams);

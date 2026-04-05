@@ -96,18 +96,35 @@ body {
 }
 
 /* ===============================
-   Sync countdown
+   Sync pill
    =============================== */
 
-.sync-countdown {
+
+.sync-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
   font-size: 0.72rem;
-  color: #888;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   white-space: nowrap;
+  line-height: 1;
+  background: #3db86a;
+  color: #fff;
+
 }
 
-.sync-countdown.hidden {
+.sync-pill.offline {
+  background: #e05c4a;
+  animation: none;
+}
+
+.sync-pill.hidden {
   display: none;
 }
+
 
 .sync-now-btn.hidden {
   display: none;
@@ -391,4 +408,18 @@ button:disabled {
 .pill.status-completed:has(input:checked) {
   background: #901cfc;
   border-color: #901cfc;
+}
+
+/* ===============================
+   Offline tab panel disable
+   =============================== */
+
+#home.offline,
+#assignments.offline,
+#personnel.offline,
+#teams.offline,
+#logging.offline {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
 }

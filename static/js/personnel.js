@@ -1075,3 +1075,10 @@ document.addEventListener("DOMContentLoaded", () => {
   wireMenuAndModal();
   wireConflictModal();
 });
+
+window.addEventListener("sar:offline", () => {
+  if (personnelTable) personnelTable.setData([]);
+  if (personnelMessage) personnelMessage.show("Offline.", "error");
+});
+
+window.addEventListener("sar:online", loadPersonnel);

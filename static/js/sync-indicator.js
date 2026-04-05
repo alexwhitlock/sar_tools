@@ -1,64 +1,53 @@
 /* sync-indicator.js
- * Drives the top-bar sync countdown element.
- * Whichever tab is currently polling calls syncStart/syncReset/syncStop.
+ * Drives the top-bar sync pill.
  */
 
-const _el = () => document.getElementById("sync-countdown");
+const _pill = () => document.getElementById("sync-pill");
+const _label = () => document.getElementById("sync-countdown");
 const _btn = () => document.getElementById("sync-now-btn");
 
-let _ticker = null;
-let _secondsLeft = 0;
-let _epoch = 0;   // incremented by syncStart; lets deferred syncStop hides detect staleness
+let _epoch = 0;
 
-function _pad(s) {
-  return s < 10 ? `0${s}` : `${s}`;
-}
-
-function _setText(s) {
-  const el = _el();
-  if (el) el.textContent = `Sync in ${_pad(s)}s`;
-}
-
-function _tick() {
-  _secondsLeft = Math.max(0, _secondsLeft - 1);
-  _setText(_secondsLeft);
-}
-
-/** Register a callback to be called when the sync-now button is clicked. */
+/** Register a callback for the Sync Now button. */
 export function onSyncNow(fn) {
   const btn = _btn();
   if (btn) btn.addEventListener("click", fn);
 }
 
-/** Start the visible countdown. Call when polling begins. */
-export function syncStart(intervalMs) {
+/** Show solid green pill with live user count. */
+export function syncLive(users) {
   _epoch++;
-  if (_ticker) { clearInterval(_ticker); _ticker = null; }
-  _secondsLeft = Math.round(intervalMs / 1000);
-  const el = _el();
+  const pill = _pill();
+  const label = _label();
   const btn = _btn();
-  if (el) { _setText(_secondsLeft); el.classList.remove("hidden"); }
+  if (!pill) return;
+  const word = users === 1 ? "User" : "Users";
+  if (label) label.textContent = `LIVE · ${users} ${word}`;
+  pill.classList.remove("offline", "hidden");
   if (btn) btn.classList.remove("hidden");
-  _ticker = setInterval(_tick, 1000);
 }
 
-/** Reset to full interval. Call immediately after each poll fires. */
-export function syncReset(intervalMs) {
-  _secondsLeft = Math.round(intervalMs / 1000);
-  _setText(_secondsLeft);
+/** Show solid red pill when SSE connection is lost. */
+export function syncOffline() {
+  _epoch++;
+  const pill = _pill();
+  const label = _label();
+  const btn = _btn();
+  if (!pill) return;
+  if (label) label.textContent = "Offline";
+  pill.classList.add("offline");
+  pill.classList.remove("hidden");
+  if (btn) btn.classList.remove("hidden");
 }
 
-/** Stop countdown and hide the element. Call when polling stops.
- *  Hide is deferred one tick so a concurrent syncStart() from another
- *  tab's observer wins the race and keeps the countdown visible. */
+/** Hide the pill and button entirely (no incident selected). */
 export function syncStop() {
-  if (_ticker) { clearInterval(_ticker); _ticker = null; }
   const myEpoch = _epoch;
   setTimeout(() => {
-    if (_epoch !== myEpoch) return; // syncStart() was called after us
-    const el = _el();
+    if (_epoch !== myEpoch) return;
+    const pill = _pill();
     const btn = _btn();
-    if (el) el.classList.add("hidden");
+    if (pill) pill.classList.add("hidden");
     if (btn) btn.classList.add("hidden");
   }, 0);
 }

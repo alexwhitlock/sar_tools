@@ -1,22 +1,28 @@
 /* global-sync.js
- * Single poller that refreshes all data every 20 seconds,
- * regardless of which tab is active.
+ * Real-time sync via Server-Sent Events.
  * Only runs when an incident is selected.
+ * EventSource handles reconnection automatically on network drops.
  */
 
 import { loadTeams } from "./teams.js";
 import { loadPersonnel } from "./personnel.js";
 import { loadAssignments } from "./assignments.js";
-import { syncStart, syncReset, syncStop, onSyncNow } from "./sync-indicator.js";
+import { syncLive, syncOffline, syncStop, onSyncNow } from "./sync-indicator.js";
 import { refreshCommsTeams, refreshLogPanels } from "./logging.js";
 
-const POLL_INTERVAL_MS = 20_000;
+const SSE_RETRY_DELAY_MS = 5_000;
+const TAB_IDS = ["home", "assignments", "personnel", "teams", "logging"];
 
-let _timer = null;
+let _sse = null;
+let _sseRetryTimer = null;
 
 function hasIncident() {
   const sel = document.getElementById("incidentSelect");
   return sel ? sel.value.trim() !== "" : false;
+}
+
+function incidentName() {
+  return document.getElementById("incidentSelect")?.value.trim() ?? "";
 }
 
 async function syncAll() {
@@ -25,29 +31,52 @@ async function syncAll() {
   refreshLogPanels();
 }
 
-function startPolling() {
-  if (_timer) return;
+function startSSE() {
+  if (_sse) return;
   if (!hasIncident()) return;
-  syncStart(POLL_INTERVAL_MS);
-  _timer = setInterval(() => {
-    if (document.visibilityState === "hidden") return;
-    if (!hasIncident()) { stopPolling(); return; }
-    syncReset(POLL_INTERVAL_MS);
-    syncAll();
-  }, POLL_INTERVAL_MS);
+
+  const url = `/api/sync/stream?incidentName=${encodeURIComponent(incidentName())}`;
+  _sse = new EventSource(url);
+
+  _sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    syncLive(msg.users);
+    if (msg.type === "init") {
+      TAB_IDS.forEach(id => document.getElementById(id)?.classList.remove("offline"));
+      syncAll(); // always catch up on reconnect regardless of visibility
+      window.dispatchEvent(new CustomEvent("sar:online"));
+    } else if (msg.type === "sync") {
+      if (document.visibilityState !== "hidden") syncAll();
+    }
+  };
+
+  _sse.onerror = () => {
+    closeSSE();
+    syncOffline();
+    TAB_IDS.forEach(id => document.getElementById(id)?.classList.add("offline"));
+    window.dispatchEvent(new CustomEvent("sar:offline"));
+    _sseRetryTimer = setTimeout(() => {
+      _sseRetryTimer = null;
+      if (hasIncident()) startSSE();
+    }, SSE_RETRY_DELAY_MS);
+  };
 }
 
-function stopPolling() {
-  if (_timer) { clearInterval(_timer); _timer = null; }
+function closeSSE() {
+  if (_sse) { _sse.close(); _sse = null; }
+  if (_sseRetryTimer) { clearTimeout(_sseRetryTimer); _sseRetryTimer = null; }
+}
+
+function stopSSE() {
+  closeSSE();
   syncStop();
+  TAB_IDS.forEach(id => document.getElementById(id)?.classList.remove("offline"));
 }
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && hasIncident()) {
     syncAll();
-    startPolling();
-  } else if (document.visibilityState === "hidden") {
-    stopPolling();
+    if (!_sse && !_sseRetryTimer) startSSE();
   }
 });
 
@@ -55,23 +84,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const sel = document.getElementById("incidentSelect");
   if (sel) {
     sel.addEventListener("change", () => {
-      if (hasIncident()) {
-        syncAll();
-        startPolling();
-      } else {
-        stopPolling();
-      }
+      stopSSE();
+      if (hasIncident()) { syncAll(); startSSE(); }
     });
   }
 
-  // Manual sync button
   onSyncNow(() => {
     if (!hasIncident()) return;
-    stopPolling();
     syncAll();
-    startPolling();
   });
 
-  // Start immediately if an incident is already selected on load
-  if (hasIncident()) startPolling();
+  if (hasIncident()) { syncAll(); startSSE(); }
 });
