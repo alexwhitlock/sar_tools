@@ -41,9 +41,6 @@ function startSSE() {
     const msg = JSON.parse(e.data);
     syncLive(msg.users);
     if (msg.type === "init") {
-      ["home", "assignments", "personnel", "teams"].forEach(id =>
-        document.getElementById(id)?.classList.remove("offline")
-      );
       syncAll(); // always catch up on reconnect regardless of visibility
       window.dispatchEvent(new CustomEvent("sar:online"));
     } else if (msg.type === "sync") {
@@ -54,9 +51,6 @@ function startSSE() {
   _sse.onerror = () => {
     closeSSE();
     syncOffline();
-    ["home", "assignments", "personnel", "teams"].forEach(id =>
-      document.getElementById(id)?.classList.add("offline")
-    );
     window.dispatchEvent(new CustomEvent("sar:offline"));
     _sseRetryTimer = setTimeout(() => {
       _sseRetryTimer = null;

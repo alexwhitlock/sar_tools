@@ -130,17 +130,6 @@ body {
   display: none;
 }
 
-/* Disable entire tab panels when offline */
-#home.offline,
-#assignments.offline,
-#personnel.offline,
-#teams.offline {
-  opacity: 0.4;
-  pointer-events: none;
-  user-select: none;
-}
-}
-
 
 /* ===============================
    Tab buttons (binder style)
