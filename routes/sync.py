@@ -1,12 +1,9 @@
 import hashlib
 import json
-import logging
 import time
 import gevent
 from flask import Blueprint, Response, request, current_app
 from db.database import get_connection
-
-log = logging.getLogger(__name__)
 
 bp = Blueprint("sync", __name__)
 
@@ -54,7 +51,6 @@ def _caltopo_poll_loop(incident_name: str, app):
     last_hash = None
 
     with app.app_context():
-        log.info("[caltopo-poll] started for %s", incident_name)
         while _connections.get(incident_name, 0) > 0:
             time.sleep(_CALTOPO_POLL_INTERVAL)
 
@@ -63,7 +59,6 @@ def _caltopo_poll_loop(incident_name: str, app):
 
             map_id = _get_map_id(incident_name)
             if not map_id:
-                log.info("[caltopo-poll] %s: no linked map ID, skipping", incident_name)
                 continue
 
             try:
@@ -73,16 +68,11 @@ def _caltopo_poll_loop(incident_name: str, app):
                 ).hexdigest()
 
                 if last_hash is not None and h != last_hash:
-                    log.info("[caltopo-poll] %s: change detected, bumping version", incident_name)
                     _bump_version(incident_name)
-                else:
-                    log.info("[caltopo-poll] %s: no change (hash=%s)", incident_name, h[:8])
 
                 last_hash = h
-            except Exception as e:
-                log.warning("[caltopo-poll] %s: error polling CalTopo: %s", incident_name, e)
-
-        log.info("[caltopo-poll] stopped for %s", incident_name)
+            except Exception:
+                pass  # transient CalTopo errors — try again next cycle
 
 
 def _on_connect(incident_name: str, app):
