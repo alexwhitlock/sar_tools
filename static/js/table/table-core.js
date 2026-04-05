@@ -5,7 +5,7 @@
 export function createTable(config) {
   const state = {
     data: [],
-    sort: { key: null, dir: 1 },
+    sort: { key: config.defaultSort?.key ?? null, dir: config.defaultSort?.dir ?? 1 },
     filters: {}
   };
 
@@ -185,6 +185,7 @@ export function createTable(config) {
   }
 
   wireSorting();
+  updateSortIndicators();
 
   /* ===============================
      Public API

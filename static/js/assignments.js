@@ -335,6 +335,8 @@ document.addEventListener("DOMContentLoaded", () => {
     tableEl,
     rowRenderer: renderAssignmentRow,
 
+    defaultSort: { key: "number", dir: 1 },
+
     columnTypes: {
       number: "number"
     },
