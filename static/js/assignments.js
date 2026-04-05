@@ -370,9 +370,12 @@ document.addEventListener("DOMContentLoaded", () => {
    Online / Offline handling
    =============================== */
 
-window.addEventListener("online", loadAssignments);
+// Use sar:offline/sar:online (driven by SSE state) rather than the browser's
+// offline/online events, so UI only reacts when the SAR server is confirmed
+// unreachable — not immediately on any network blip.
+window.addEventListener("sar:online", loadAssignments);
 
-window.addEventListener("offline", () => {
+window.addEventListener("sar:offline", () => {
   assignmentsMessage.show("Offline.", "error");
   assignmentsTable.setData([]);
 });

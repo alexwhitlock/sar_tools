@@ -42,12 +42,14 @@ function startSSE() {
     syncLive(msg.users);
     if (msg.type === "init" || msg.type === "sync") {
       if (document.visibilityState !== "hidden") syncAll();
+      if (msg.type === "init") window.dispatchEvent(new CustomEvent("sar:online"));
     }
   };
 
   _sse.onerror = () => {
     closeSSE();
     syncOffline();
+    window.dispatchEvent(new CustomEvent("sar:offline"));
     _sseRetryTimer = setTimeout(() => {
       _sseRetryTimer = null;
       if (hasIncident()) startSSE();
