@@ -48,6 +48,16 @@ export function syncReset(intervalMs) {
   _setText(_secondsLeft);
 }
 
+/** Show button and "Live" label when SSE is active (no countdown needed). */
+export function syncLive() {
+  _epoch++;
+  if (_ticker) { clearInterval(_ticker); _ticker = null; }
+  const el = _el();
+  const btn = _btn();
+  if (el) { el.textContent = "Live"; el.classList.remove("hidden"); }
+  if (btn) btn.classList.remove("hidden");
+}
+
 /** Stop countdown and hide the element. Call when polling stops.
  *  Hide is deferred one tick so a concurrent syncStart() from another
  *  tab's observer wins the race and keeps the countdown visible. */

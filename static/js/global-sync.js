@@ -7,7 +7,7 @@
 import { loadTeams } from "./teams.js";
 import { loadPersonnel } from "./personnel.js";
 import { loadAssignments } from "./assignments.js";
-import { syncStart, syncReset, syncStop, onSyncNow } from "./sync-indicator.js";
+import { syncStart, syncReset, syncStop, syncLive, onSyncNow } from "./sync-indicator.js";
 import { refreshCommsTeams, refreshLogPanels } from "./logging.js";
 
 const POLL_INTERVAL_MS = 20_000;  // fallback polling interval
@@ -59,6 +59,7 @@ function startSSE() {
 
   // Stop fallback polling while SSE is active
   stopPolling();
+  syncLive();
 
   const url = `/api/sync/stream?incidentName=${encodeURIComponent(incidentName())}`;
   _sse = new EventSource(url);
