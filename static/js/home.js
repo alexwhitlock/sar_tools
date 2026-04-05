@@ -17,16 +17,18 @@ async function loadIncidents(selectName = "") {
   const sel = $("incidentSelect");
   if (!sel) return;
 
-  sel.innerHTML = "";
-  const ph = document.createElement("option");
-  ph.value = "";
-  ph.textContent = "— Select an incident —";
-  sel.appendChild(ph);
-
   try {
     const res = await fetch("/api/get_incidents");
     if (!res.ok) throw new Error(`GET /api/get_incidents failed (${res.status})`);
     const data = await res.json();
+
+    // Only clear and repopulate once the fetch succeeds, so a failed fetch
+    // (e.g. while offline) never wipes the current incident selection.
+    sel.innerHTML = "";
+    const ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = "— Select an incident —";
+    sel.appendChild(ph);
 
     const incidents = data.incidents || [];
     for (const inc of incidents) {
