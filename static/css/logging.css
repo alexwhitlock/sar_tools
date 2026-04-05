@@ -628,3 +628,10 @@
   flex: 0 0 auto;
   cursor: pointer;
 }
+
+.comms-compose.offline,
+.comms-builder.offline {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+}
