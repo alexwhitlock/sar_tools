@@ -99,10 +99,6 @@ body {
    Sync pill
    =============================== */
 
-@keyframes sync-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.75; }
-}
 
 .sync-pill {
   display: inline-flex;
@@ -117,7 +113,7 @@ body {
   line-height: 1;
   background: #3db86a;
   color: #fff;
-  animation: sync-pulse 3.5s ease-in-out infinite;
+
 }
 
 .sync-pill.offline {
