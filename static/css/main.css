@@ -99,11 +99,6 @@ body {
    Sync pill
    =============================== */
 
-@keyframes sync-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.45; }
-}
-
 .sync-pill {
   display: inline-flex;
   align-items: center;
@@ -114,42 +109,21 @@ body {
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
-  background: #1a7a3a;
+  background: #3db86a;
   color: #fff;
-  animation: sync-pulse 2s ease-in-out infinite;
 }
 
 .sync-pill.offline {
-  background: #c0392b;
-  animation: none;
+  background: #e05c4a;
 }
 
 .sync-pill.hidden {
   display: none;
 }
 
-.sync-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #fff;
-  flex-shrink: 0;
-}
 
-.sync-pill-btn {
-  background: none;
-  border: 1px solid rgba(255,255,255,0.6);
-  color: #fff;
-  border-radius: 999px;
-  padding: 1px 8px;
-  font-size: 0.68rem;
-  font-weight: 600;
-  cursor: pointer;
-  line-height: 1.6;
-}
-
-.sync-pill-btn:hover {
-  background: rgba(255,255,255,0.15);
+.sync-now-btn.hidden {
+  display: none;
 }
 
 

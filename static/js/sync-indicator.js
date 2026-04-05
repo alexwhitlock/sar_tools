@@ -14,15 +14,17 @@ export function onSyncNow(fn) {
   if (btn) btn.addEventListener("click", fn);
 }
 
-/** Show pulsing green pill with live user count. */
+/** Show solid green pill with live user count. */
 export function syncLive(users) {
   _epoch++;
   const pill = _pill();
   const label = _label();
+  const btn = _btn();
   if (!pill) return;
   const word = users === 1 ? "User" : "Users";
   if (label) label.textContent = `LIVE · ${users} ${word}`;
   pill.classList.remove("offline", "hidden");
+  if (btn) btn.classList.remove("hidden");
 }
 
 /** Show solid red pill when SSE connection is lost. */
@@ -30,18 +32,22 @@ export function syncOffline() {
   _epoch++;
   const pill = _pill();
   const label = _label();
+  const btn = _btn();
   if (!pill) return;
   if (label) label.textContent = "Offline";
   pill.classList.add("offline");
   pill.classList.remove("hidden");
+  if (btn) btn.classList.remove("hidden");
 }
 
-/** Hide the pill entirely (no incident selected). */
+/** Hide the pill and button entirely (no incident selected). */
 export function syncStop() {
   const myEpoch = _epoch;
   setTimeout(() => {
     if (_epoch !== myEpoch) return;
     const pill = _pill();
+    const btn = _btn();
     if (pill) pill.classList.add("hidden");
+    if (btn) btn.classList.add("hidden");
   }, 0);
 }
