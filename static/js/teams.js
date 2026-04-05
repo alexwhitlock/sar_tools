@@ -1171,3 +1171,10 @@ document.addEventListener("DOMContentLoaded", () => {
   wireModal();
   watchTeamsTab();
 });
+
+window.addEventListener("sar:offline", () => {
+  if (teamsTable) teamsTable.setData([]);
+  if (teamsMessage) teamsMessage.show("Offline.", "error");
+});
+
+window.addEventListener("sar:online", loadTeams);

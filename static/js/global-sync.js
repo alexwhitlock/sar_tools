@@ -40,9 +40,11 @@ function startSSE() {
   _sse.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     syncLive(msg.users);
-    if (msg.type === "init" || msg.type === "sync") {
+    if (msg.type === "init") {
+      syncAll(); // always catch up on reconnect regardless of visibility
+      window.dispatchEvent(new CustomEvent("sar:online"));
+    } else if (msg.type === "sync") {
       if (document.visibilityState !== "hidden") syncAll();
-      if (msg.type === "init") window.dispatchEvent(new CustomEvent("sar:online"));
     }
   };
 
