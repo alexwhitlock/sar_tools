@@ -49,6 +49,7 @@ def run_migrations(conn):
         (4, migration_004_personnel_previous_status),
         (5, migration_005_teams_leader_and_status),
         (6, migration_006_incident_log),
+        (7, migration_007_sync_state),
     ]
 
     for version, migration in migrations:
@@ -180,3 +181,31 @@ def migration_006_incident_log(conn):
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_log_timestamp ON incident_log(timestamp);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_log_type     ON incident_log(type);")
+
+
+def migration_007_sync_state(conn):
+    """
+    Adds a sync_state table with a single row tracking a version counter.
+    The version increments whenever personnel, teams, team_members, or incident_log
+    data changes. SSE clients watch this version to know when to re-fetch data.
+
+    Triggers increment the version automatically on any insert/update/delete
+    to the four data tables so mutation routes don't need to remember to call anything.
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS sync_state (
+            id      INTEGER PRIMARY KEY CHECK (id = 1),
+            version INTEGER NOT NULL DEFAULT 1
+        );
+    """)
+    conn.execute("INSERT OR IGNORE INTO sync_state (id, version) VALUES (1, 1);")
+
+    for table in ("personnel", "teams", "team_members", "incident_log"):
+        for event in ("INSERT", "UPDATE", "DELETE"):
+            conn.execute(f"""
+                CREATE TRIGGER IF NOT EXISTS trg_sync_{table}_{event.lower()}
+                AFTER {event} ON {table}
+                BEGIN
+                    UPDATE sync_state SET version = version + 1 WHERE id = 1;
+                END;
+            """)
