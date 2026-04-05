@@ -1,11 +1,33 @@
+import json
 import time
 from flask import Blueprint, Response, request
 from db.database import get_connection
 
 bp = Blueprint("sync", __name__)
 
-_POLL_INTERVAL = 0.3   # seconds between DB version checks inside the SSE loop
+_POLL_INTERVAL = 0.3      # seconds between DB version checks inside the SSE loop
 _KEEPALIVE_INTERVAL = 15  # seconds between SSE keepalive comments
+
+# In-memory connection registry: incident_name -> connected client count.
+# Safe without locks under gevent (cooperative multitasking; no yields between reads/writes).
+_connections: dict = {}
+
+
+def get_connected_incidents() -> list:
+    """Return incident names that currently have at least one SSE client connected."""
+    return [name for name, count in _connections.items() if count > 0]
+
+
+def _on_connect(incident_name: str):
+    _connections[incident_name] = _connections.get(incident_name, 0) + 1
+
+
+def _on_disconnect(incident_name: str):
+    count = _connections.get(incident_name, 0) - 1
+    if count <= 0:
+        _connections.pop(incident_name, None)
+    else:
+        _connections[incident_name] = count
 
 
 def _get_version(incident_name: str) -> int:
@@ -13,24 +35,39 @@ def _get_version(incident_name: str) -> int:
         return conn.execute("SELECT version FROM sync_state WHERE id = 1").fetchone()[0]
 
 
+def _msg(type: str, **kwargs) -> str:
+    return f"data: {json.dumps({'type': type, **kwargs})}\n\n"
+
+
 def _event_stream(incident_name: str):
-    last_version = _get_version(incident_name)
-    yield f"data: {last_version}\n\n"  # send current version immediately on connect
+    _on_connect(incident_name)
+    try:
+        last_version = _get_version(incident_name)
+        last_users = _connections.get(incident_name, 1)
+        yield _msg("init", users=last_users)
 
-    last_keepalive = time.monotonic()
+        last_keepalive = time.monotonic()
 
-    while True:
-        time.sleep(_POLL_INTERVAL)
+        while True:
+            time.sleep(_POLL_INTERVAL)
 
-        version = _get_version(incident_name)
-        if version != last_version:
-            last_version = version
-            yield f"data: {version}\n\n"
-            last_keepalive = time.monotonic()
-        elif time.monotonic() - last_keepalive >= _KEEPALIVE_INTERVAL:
-            # SSE comment — keeps the connection alive through proxies/load balancers
-            yield ": keepalive\n\n"
-            last_keepalive = time.monotonic()
+            version = _get_version(incident_name)
+            users = _connections.get(incident_name, 1)
+
+            if version != last_version:
+                last_version = version
+                last_users = users
+                yield _msg("sync", users=users)
+                last_keepalive = time.monotonic()
+            elif users != last_users:
+                last_users = users
+                yield _msg("users", users=users)
+                last_keepalive = time.monotonic()
+            elif time.monotonic() - last_keepalive >= _KEEPALIVE_INTERVAL:
+                yield ": keepalive\n\n"
+                last_keepalive = time.monotonic()
+    finally:
+        _on_disconnect(incident_name)
 
 
 @bp.route("/api/sync/stream")

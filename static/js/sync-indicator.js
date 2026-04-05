@@ -13,12 +13,15 @@ export function onSyncNow(fn) {
   if (btn) btn.addEventListener("click", fn);
 }
 
-/** Show "Live" label and sync button when SSE is active. */
-export function syncLive() {
+/** Show "LIVE · N Users" label and sync button when SSE is active. */
+export function syncLive(users) {
   _epoch++;
   const el = _el();
   const btn = _btn();
-  if (el) { el.textContent = "Live"; el.classList.remove("hidden"); }
+  if (el) {
+    el.textContent = `LIVE · ${users} ${users === 1 ? "User" : "Users"}`;
+    el.classList.remove("hidden");
+  }
   if (btn) btn.classList.remove("hidden");
 }
 

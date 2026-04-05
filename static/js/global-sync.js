@@ -35,9 +35,10 @@ function startSSE() {
   const url = `/api/sync/stream?incidentName=${encodeURIComponent(incidentName())}`;
   _sse = new EventSource(url);
 
-  _sse.onmessage = () => {
-    if (document.visibilityState === "hidden") return;
-    syncAll();
+  _sse.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    syncLive(msg.users);
+    if (msg.type === "sync" && document.visibilityState !== "hidden") syncAll();
   };
 }
 
