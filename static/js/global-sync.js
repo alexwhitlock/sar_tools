@@ -40,7 +40,9 @@ function startSSE() {
   _sse.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     syncLive(msg.users);
-    if (msg.type === "sync" && document.visibilityState !== "hidden") syncAll();
+    if (msg.type === "init" || msg.type === "sync") {
+      if (document.visibilityState !== "hidden") syncAll();
+    }
   };
 
   _sse.onerror = () => {
