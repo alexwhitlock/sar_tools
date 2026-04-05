@@ -99,22 +99,32 @@ body {
    Sync pill
    =============================== */
 
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.75; }
+}
+
 .sync-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px 3px 8px;
+  justify-content: center;
+  padding: 0 12px;
+  height: 24px;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
+  line-height: 1;
   background: #3db86a;
   color: #fff;
+  vertical-align: middle;
+  animation: sync-pulse 3.5s ease-in-out infinite;
 }
 
 .sync-pill.offline {
   background: #e05c4a;
+  animation: none;
 }
 
 .sync-pill.hidden {
