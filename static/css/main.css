@@ -409,3 +409,17 @@ button:disabled {
   background: #901cfc;
   border-color: #901cfc;
 }
+
+/* ===============================
+   Offline tab panel disable
+   =============================== */
+
+#home.offline,
+#assignments.offline,
+#personnel.offline,
+#teams.offline,
+#logging.offline {
+  opacity: 0.4;
+  pointer-events: none;
+  user-select: none;
+}

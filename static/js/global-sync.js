@@ -11,6 +11,7 @@ import { syncLive, syncOffline, syncStop, onSyncNow } from "./sync-indicator.js"
 import { refreshCommsTeams, refreshLogPanels } from "./logging.js";
 
 const SSE_RETRY_DELAY_MS = 5_000;
+const TAB_IDS = ["home", "assignments", "personnel", "teams", "logging"];
 
 let _sse = null;
 let _sseRetryTimer = null;
@@ -41,6 +42,7 @@ function startSSE() {
     const msg = JSON.parse(e.data);
     syncLive(msg.users);
     if (msg.type === "init") {
+      TAB_IDS.forEach(id => document.getElementById(id)?.classList.remove("offline"));
       syncAll(); // always catch up on reconnect regardless of visibility
       window.dispatchEvent(new CustomEvent("sar:online"));
     } else if (msg.type === "sync") {
@@ -51,6 +53,7 @@ function startSSE() {
   _sse.onerror = () => {
     closeSSE();
     syncOffline();
+    TAB_IDS.forEach(id => document.getElementById(id)?.classList.add("offline"));
     window.dispatchEvent(new CustomEvent("sar:offline"));
     _sseRetryTimer = setTimeout(() => {
       _sseRetryTimer = null;
@@ -67,6 +70,7 @@ function closeSSE() {
 function stopSSE() {
   closeSSE();
   syncStop();
+  TAB_IDS.forEach(id => document.getElementById(id)?.classList.remove("offline"));
 }
 
 document.addEventListener("visibilitychange", () => {

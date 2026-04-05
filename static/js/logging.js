@@ -528,13 +528,8 @@ window.addEventListener("sar:offline", () => {
 
   const viewlog = document.getElementById("viewlog-body");
   if (viewlog) viewlog.innerHTML = '<tr><td colspan="5" class="log-empty-cell">Offline.</td></tr>';
-
-  document.querySelector(".comms-compose")?.classList.add("offline");
-  document.querySelector(".comms-builder")?.classList.add("offline");
 });
 
 window.addEventListener("sar:online", () => {
-  document.querySelector(".comms-compose")?.classList.remove("offline");
-  document.querySelector(".comms-builder")?.classList.remove("offline");
   refreshLogPanels();
 });
