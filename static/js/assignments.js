@@ -289,9 +289,11 @@ function renderKanban(assignments) {
         <div class="kanban-card-header">
           <span class="asgn-card-number">Assignment ${escapeHtml(String(a.number ?? "?"))}</span>
         </div>
-        <div class="asgn-card-team">Team: ${escapeHtml(a.team || "—")}</div>
+        <div class="asgn-card-team">
+          <span>Team: ${escapeHtml(a.team || "—")}</span>
+          ${status === "INPROGRESS" && a.team ? `<span class="asgn-card-team-status">${escapeHtml(getTeamStatus(a.team))}</span>` : ""}
+        </div>
         <div class="asgn-card-meta">${escapeHtml(a.assignmentType ?? "")}${a.resourceType ? " · " + escapeHtml(a.resourceType) : ""}</div>
-        ${status === "INPROGRESS" && a.team ? `<div class="asgn-card-team-status">${escapeHtml(getTeamStatus(a.team))}</div>` : ""}
       `;
 
       // Click opens edit modal
@@ -500,11 +502,33 @@ function openEditModal(asgn) {
   const teamEl   = document.getElementById("asgnTeam");
   const errEl    = document.getElementById("asgnModalError");
 
-  infoEl.textContent  = `Assignment ${asgn.number ?? "?"}  ·  ${asgn.assignmentType ?? ""}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
-  statusEl.value      = (asgn.status || "DRAFT").toUpperCase();
-  teamEl.value        = asgn.team ?? "";
+  infoEl.textContent = `Assignment ${asgn.number ?? "?"}  ·  ${asgn.assignmentType ?? ""}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
+  statusEl.value     = (asgn.status || "DRAFT").toUpperCase();
+
+  // Populate team dropdown from teamsCache (single-letter teams only)
+  const currentTeam = (asgn.team ?? "").trim().toUpperCase();
+  teamEl.innerHTML   = '<option value="">— No Team —</option>';
+  const teamLetters  = teamsCache
+    .map(t => String(t.name).trim().toUpperCase())
+    .filter(n => n.length === 1 && /[A-Z]/.test(n))
+    .sort();
+  for (const letter of teamLetters) {
+    const opt = document.createElement("option");
+    opt.value       = letter;
+    opt.textContent = `Team ${letter}`;
+    teamEl.appendChild(opt);
+  }
+  // If current team isn't in cache (e.g. not yet in DB), add it so we don't lose the value
+  if (currentTeam && !teamLetters.includes(currentTeam)) {
+    const opt = document.createElement("option");
+    opt.value       = currentTeam;
+    opt.textContent = `Team ${currentTeam}`;
+    teamEl.appendChild(opt);
+  }
+  teamEl.value = currentTeam;
+
   errEl.classList.add("hidden");
-  errEl.textContent   = "";
+  errEl.textContent  = "";
 
   const saveBtn = document.getElementById("asgnModalSave");
   saveBtn.disabled    = false;
