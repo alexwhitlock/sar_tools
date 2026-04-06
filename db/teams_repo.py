@@ -6,6 +6,7 @@ from .errors import ConflictError
 TEAM_STATUSES = [
     "Out of Service",
     "Staged",
+    "Briefed",
     "Travelling to Assignment",
     "On Assignment",
     "Returning from Assignment",
