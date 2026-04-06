@@ -156,7 +156,7 @@ function renderAssignmentRow(a) {
     <td>${escapeHtml(a.assignmentType ?? "")}</td>
     <td>${escapeHtml(a.resourceType ?? "")}</td>
     <td><span class="asgn-badge ${ASGN_STATUS_BADGE[(a.status || "").toUpperCase()] ?? ""}">${escapeHtml(STATUS_LABEL[(a.status || "").toUpperCase()] ?? a.status ?? "")}</span></td>
-    <td class="col-team-status">${teamStatusBadge(a.team ?? "")}</td>
+    <td class="col-team-status">${(a.status || "").toUpperCase() === "INPROGRESS" ? teamStatusBadge(a.team ?? "") : ""}</td>
     <td class="col-op-period">${escapeHtml(a.op ?? "")}</td>
     <td class="actions-cell">
       <button type="button" class="asgn-menu-btn"
