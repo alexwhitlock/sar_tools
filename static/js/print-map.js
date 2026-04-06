@@ -127,28 +127,42 @@ export function printAssignmentMap(asgn) {
 
     const bounds = layer.getBounds();
 
-    // Before printing, resize map div to match physical print area so
-    // Leaflet re-fits the bounds at the same aspect ratio as the printed page.
-    // A4 landscape @ 8mm margins: 281mm × 194mm print area.
-    // Header ~28px + footer ~18px leaves ~148mm for map → but we set 155mm in CSS.
-    // At 96 dpi: 281mm ≈ 1063px wide, 155mm ≈ 586px tall.
-    window.addEventListener("beforeprint", () => {
-      const mapEl = document.getElementById("map");
-      mapEl.style.width  = "1063px";
-      mapEl.style.height = "586px";
-      map.invalidateSize({ animate: false });
-      map.fitBounds(bounds, { padding: [20, 20], animate: false });
-    });
-
+    // Restore map to flex window layout after printing
     window.addEventListener("afterprint", () => {
       const mapEl = document.getElementById("map");
       mapEl.style.width  = "";
       mapEl.style.height = "";
       map.invalidateSize({ animate: false });
       map.fitBounds(bounds, { padding: [40, 40], animate: false });
+      btn.disabled = false;
+      btn.textContent = "Print / Save PDF";
     });
 
-    btn.addEventListener("click", () => window.print());
+    btn.addEventListener("click", () => {
+      // Resize map to exact A4 landscape print dimensions (96dpi):
+      // 281mm wide × 155mm tall → 1063px × 586px
+      // so Leaflet fitBounds matches the printed page aspect ratio,
+      // and tiles are fully loaded at the right zoom before print opens.
+      btn.disabled = true;
+      btn.textContent = "Preparing…";
+
+      const mapEl = document.getElementById("map");
+      mapEl.style.width  = "1063px";
+      mapEl.style.height = "586px";
+      map.invalidateSize({ animate: false });
+      map.fitBounds(bounds, { padding: [20, 20], animate: false });
+
+      let printed = false;
+      const doPrint = () => {
+        if (printed) return;
+        printed = true;
+        window.print();
+      };
+
+      // Print once tiles finish loading; 4s fallback in case all tiles are cached
+      tiles.once("load", doPrint);
+      setTimeout(doPrint, 4000);
+    });
   <\/script>
 </body>
 </html>`;
