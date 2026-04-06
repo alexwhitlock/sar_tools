@@ -421,6 +421,7 @@ function wireMouseDnd(card, team) {
     active = false; scrolled = false;
     if (ghost) { ghost.remove(); ghost = null; }
     card.style.opacity = ""; card.style.cursor = "";
+    document.body.style.cursor = "";
     document.querySelectorAll("#teams-kanban-view .kanban-col.drag-over")
       .forEach(c => c.classList.remove("drag-over"));
     targetCol = null;
@@ -480,6 +481,7 @@ function wireMouseDnd(card, team) {
     offX = e.clientX - rect.left;
     offY = e.clientY - rect.top;
     active = false; scrolled = false;
+    document.body.style.cursor = "grabbing";
 
     timer = setTimeout(() => {
       active = true;
