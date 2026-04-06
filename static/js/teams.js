@@ -611,6 +611,7 @@ function wireTouchDnd(card, teamId) {
   });
 
   card.addEventListener("touchcancel", () => _touchCleanup(card));
+  card.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 
 
