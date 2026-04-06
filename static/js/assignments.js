@@ -456,18 +456,15 @@ function wireTouchDnd(card, asgn) {
    Post-complete team staging prompt
    =============================== */
 
-async function maybeStageTeam(teamField) {
+async function maybeUpdateTeamStatus(teamField, newTeamStatus, promptMsg, skipIfStatuses) {
   if (!teamField) return;
   const letter = parseAssignmentTeamLetters(teamField)[0];
   if (!letter) return;
 
   const team = teamsCache.find(t => String(t.name).trim().toUpperCase() === letter);
-  if (!team || team.status === "Staged") return;
+  if (!team || skipIfStatuses.has(team.status)) return;
 
-  const confirmed = window.confirm(
-    `Assignment completed. Move Team ${letter} to "Staged"?`
-  );
-  if (!confirmed) return;
+  if (!window.confirm(promptMsg(letter, team.status))) return;
 
   const incidentName = getCurrentIncidentName();
   if (!incidentName) return;
@@ -479,13 +476,31 @@ async function maybeStageTeam(teamField) {
       body: JSON.stringify({
         incidentName,
         teamId:            team.id,
-        status:            "Staged",
+        status:            newTeamStatus,
         expectedUpdatedAt: team.updatedAt,
       }),
     });
   } catch (_) {
-    // non-fatal — team status update failed silently
+    // non-fatal
   }
+}
+
+function maybeStageTeam(teamField) {
+  return maybeUpdateTeamStatus(
+    teamField,
+    "Staged",
+    (letter) => `Assignment completed. Move Team ${letter} to "Staged"?`,
+    new Set(["Staged"])
+  );
+}
+
+function maybeBriefTeam(teamField) {
+  return maybeUpdateTeamStatus(
+    teamField,
+    "Briefed",
+    (letter) => `Assignment in progress. Move Team ${letter} to "Briefed"?`,
+    new Set(["Briefed", "Travelling to Assignment", "On Assignment", "Returning from Assignment", "Awaiting Debrief"])
+  );
 }
 
 /* ===============================
@@ -502,7 +517,8 @@ async function doStatusWrite(asgn, newStatus, cardEl) {
   try {
     await writeToCalTopo({ featureId: asgn.id, status: newStatus });
     await loadAssignments();
-    if (newStatus === "COMPLETED") await maybeStageTeam(asgn.team);
+    if (newStatus === "COMPLETED")  await maybeStageTeam(asgn.team);
+    if (newStatus === "INPROGRESS") await maybeBriefTeam(asgn.team);
   } catch (err) {
     assignmentsMessage.show(`Failed to update CalTopo: ${err.message}`, "error");
     if (cardEl) cardEl.classList.remove("writing");
@@ -646,7 +662,8 @@ async function saveEditModal() {
     });
     closeEditModal();
     await loadAssignments();
-    if (newStatus === "COMPLETED") await maybeStageTeam(newTeam || _modalAsgn.team);
+    if (newStatus === "COMPLETED")  await maybeStageTeam(newTeam || _modalAsgn.team);
+    if (newStatus === "INPROGRESS") await maybeBriefTeam(newTeam || _modalAsgn.team);
   } catch (err) {
     errEl.textContent = err.message;
     errEl.classList.remove("hidden");
