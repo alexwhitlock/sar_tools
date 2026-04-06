@@ -143,6 +143,14 @@
   margin-top: 2px;
 }
 
+.asgn-card-team-status {
+  font-size: 0.68rem;
+  color: #888;
+  font-style: italic;
+  text-align: right;
+  margin-top: 3px;
+}
+
 /* Writing-to-CalTopo overlay on kanban cards */
 .kanban-card.writing {
   opacity: 0.5;

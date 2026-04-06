@@ -4,6 +4,7 @@ import { initMessageBar } from "./message-bar.js";
 let assignmentsTable = null;
 let assignmentsMessage = null;
 let assignmentsCache = [];   // last-fetched assignment list
+let teamsCache = [];         // last-fetched teams list (for kanban card enrichment)
 let currentView = "table";  // "table" | "kanban"
 
 const ASGN_STATUSES = ["DRAFT", "PREPARED", "INPROGRESS", "COMPLETED"];
@@ -64,6 +65,15 @@ function findAssignmentConflicts(assignments) {
 function getTimeHHMMSS() {
   const d = new Date();
   return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+/** Return the status of the team matching a single-letter team field, or "" if not found. */
+function getTeamStatus(teamField) {
+  const letters = parseAssignmentTeamLetters(teamField);
+  if (!letters.length) return "";
+  const letter = letters[0];
+  const team = teamsCache.find(t => String(t.name).trim().toUpperCase() === letter);
+  return team ? team.status : "";
 }
 
 function escapeHtml(s) {
@@ -189,6 +199,7 @@ export async function loadAssignments() {
           if (teamsResp.ok) {
             const teams = await teamsResp.json().catch(() => []);
             const teamArr = Array.isArray(teams) ? teams : [];
+            teamsCache = teamArr;
             const dbLetters = new Set(
               teamArr.map(t => String(t.name).trim().toUpperCase())
                 .filter(n => n.length === 1 && /[A-Z]/.test(n))
@@ -280,6 +291,7 @@ function renderKanban(assignments) {
         </div>
         <div class="asgn-card-team">Team: ${escapeHtml(a.team || "—")}</div>
         <div class="asgn-card-meta">${escapeHtml(a.assignmentType ?? "")}${a.resourceType ? " · " + escapeHtml(a.resourceType) : ""}</div>
+        ${status === "INPROGRESS" && a.team ? `<div class="asgn-card-team-status">${escapeHtml(getTeamStatus(a.team))}</div>` : ""}
       `;
 
       // Click opens edit modal
