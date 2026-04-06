@@ -562,10 +562,16 @@ function wireTouchDnd(card, teamId) {
       else      { _touchTargetCol = null; }
       e.preventDefault();
     } else {
-      // Moved before long-press fired — cancel drag, let scroll proceed naturally
-      clearTimeout(_touchLongPressTimer);
-      _touchLongPressTimer = null;
-      _touchScrolled = true;
+      // Cancel drag if finger moved enough to be a scroll, not a tap
+      const touch = e.touches[0];
+      const rect  = card.getBoundingClientRect();
+      const moved = Math.abs(touch.clientX - (rect.left + _touchOffsetX)) > 8
+                 || Math.abs(touch.clientY - (rect.top  + _touchOffsetY)) > 8;
+      if (moved) {
+        clearTimeout(_touchLongPressTimer);
+        _touchLongPressTimer = null;
+        _touchScrolled = true;
+      }
     }
   }, { passive: false });
 
