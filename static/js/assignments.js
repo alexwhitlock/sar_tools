@@ -1,9 +1,21 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
 
-
 let assignmentsTable = null;
 let assignmentsMessage = null;
+let assignmentsCache = [];   // last-fetched assignment list
+let currentView = "table";  // "table" | "kanban"
+
+const ASGN_STATUSES = ["DRAFT", "PREPARED", "INPROGRESS", "COMPLETED"];
+
+const STATUS_LABEL = {
+  DRAFT:       "Draft",
+  PREPARED:    "Prepared",
+  INPROGRESS:  "In Progress",
+  COMPLETED:   "Completed",
+};
+
+const collapsedStatuses = new Set();
 
 /* ===============================
    Helpers
@@ -51,41 +63,68 @@ function findAssignmentConflicts(assignments) {
 
 function getTimeHHMMSS() {
   const d = new Date();
-  return d.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 /* ===============================
-   Row renderer
+   CalTopo write
+   =============================== */
+
+async function writeToCalTopo({ featureId, status, team }) {
+  const mapId       = getCurrentMapId();
+  const incidentName = getCurrentIncidentName();
+  if (!mapId || !featureId) throw new Error("Map ID or feature ID missing");
+
+  const body = { mapId, featureId, incidentName };
+  if (status  !== undefined) body.status = status;
+  if (team    !== undefined) body.team   = team;
+
+  assignmentsMessage.show("Writing to CalTopo…", "info");
+
+  const resp = await fetch("/api/caltopo/assignment/update", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify(body),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
+}
+
+/* ===============================
+   Row renderer (table view)
    =============================== */
 
 function renderAssignmentRow(a) {
   const tr = document.createElement("tr");
+  tr.dataset.featureId = a.id ?? "";
 
   let numberHtml = String(a.number ?? "");
   if (a.titleConflict) {
     const tip = (a.status || "").toUpperCase() === "COMPLETED"
       ? `Assignment ${a.number}: status is COMPLETED but title has no X prefix.`
       : `Assignment ${a.number}: title has X (completed) but status is ${a.status}.`;
-    numberHtml += ` <span class="conflict-warn" title="${tip}">⚠</span>`;
+    numberHtml += ` <span class="conflict-warn" title="${escapeHtml(tip)}">⚠</span>`;
   }
 
   tr.innerHTML = `
     <td>${numberHtml}</td>
-    <td>${a.team ?? ""}</td>
-    <td>${a.assignmentType ?? ""}</td>
-    <td>${a.resourceType ?? ""}</td>
-    <td class="status-${(a.status || "").toLowerCase()}">
-      ${a.status ?? ""}
-    </td>
-    <td class="col-op-period">${a.op ?? ""}</td>
+    <td>${escapeHtml(a.team ?? "")}</td>
+    <td>${escapeHtml(a.assignmentType ?? "")}</td>
+    <td>${escapeHtml(a.resourceType ?? "")}</td>
+    <td class="status-${(a.status || "").toLowerCase()}">${escapeHtml(a.status ?? "")}</td>
+    <td class="col-op-period">${escapeHtml(a.op ?? "")}</td>
   `;
 
+  tr.addEventListener("click", () => openEditModal(a));
   return tr;
 }
 
@@ -94,48 +133,34 @@ function renderAssignmentRow(a) {
    =============================== */
 
 export async function loadAssignments() {
-  // 🚫 HARD STOP if offline
   if (!navigator.onLine) {
     assignmentsMessage.show("Offline.", "error");
     assignmentsTable.setData([]);
-    logMessage("ERROR", "Offline — assignments load aborted");
     return;
   }
 
   const mapId = getCurrentMapId();
-
   if (!mapId) {
     assignmentsTable.setData([]);
-    assignmentsMessage.show(
-      "Enter a CalTopo Map ID to load assignments.",
-      "error"
-    );
-    logMessage("ERROR", "Map ID is required to load assignments");
+    assignmentsMessage.show("Enter a CalTopo Map ID to load assignments.", "error");
     return;
   }
 
   assignmentsMessage.show("Loading assignments…", "info");
-  logMessage("INFO", "Loading assignments", mapId);
 
   try {
-    const resp = await fetch(
-      `/api/assignments?mapId=${encodeURIComponent(mapId)}`
-    );
-
-    if (!resp.ok) {
-      throw new Error(`HTTP ${resp.status}`);
-    }
-
+    const resp = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
 
-    logMessage("INFO", "Assignments received", data);
+    assignmentsCache = Array.isArray(data) ? data : [];
 
-    if (!data.length) {
+    if (!assignmentsCache.length) {
       assignmentsMessage.show("No assignments found on this map.", "info");
     } else {
       const warnings = [];
 
-      const conflicts = findAssignmentConflicts(data);
+      const conflicts = findAssignmentConflicts(assignmentsCache);
       if (conflicts.size > 0) {
         const detail = [...conflicts.entries()]
           .map(([letter, nums]) => `Team ${letter} (assignments ${nums.join(", ")})`)
@@ -143,14 +168,12 @@ export async function loadAssignments() {
         warnings.push(`Multiple in-progress assignments: ${detail}`);
       }
 
-      // Title/status mismatch: X prefix vs COMPLETED status disagree
-      const titleConflicts = data.filter(a => a.titleConflict);
+      const titleConflicts = assignmentsCache.filter(a => a.titleConflict);
       if (titleConflicts.length > 0) {
         const nums = titleConflicts.map(a => a.number ?? "?").join(", ");
-        warnings.push(`Title/status mismatch on assignment${titleConflicts.length > 1 ? "s" : ""} ${nums} — check X prefix vs status`);
+        warnings.push(`Title/status mismatch on assignment${titleConflicts.length > 1 ? "s" : ""} ${nums}`);
       }
 
-      // Best-effort: check for team letters not in the DB + OOS teams on active assignments
       const incidentName = getCurrentIncidentName();
       if (incidentName) {
         try {
@@ -158,24 +181,18 @@ export async function loadAssignments() {
           if (teamsResp.ok) {
             const teams = await teamsResp.json().catch(() => []);
             const teamArr = Array.isArray(teams) ? teams : [];
-
             const dbLetters = new Set(
-              teamArr
-                .map(t => String(t.name).trim().toUpperCase())
+              teamArr.map(t => String(t.name).trim().toUpperCase())
                 .filter(n => n.length === 1 && /[A-Z]/.test(n))
             );
-            const missing = findMissingTeams(data, dbLetters);
+            const missing = findMissingTeams(assignmentsCache, dbLetters);
             if (missing.length > 0) {
               warnings.push(`Teams in CalTopo not in database: ${missing.join(", ")}`);
             }
-
-            // Warn if any OOS team has an in-progress assignment
             const inProgressLetters = new Set();
-            for (const a of data) {
+            for (const a of assignmentsCache) {
               if ((a.status || "").toUpperCase() === "INPROGRESS") {
-                for (const letter of parseAssignmentTeamLetters(a.team)) {
-                  inProgressLetters.add(letter);
-                }
+                for (const letter of parseAssignmentTeamLetters(a.team)) inProgressLetters.add(letter);
               }
             }
             const oosWithAssignment = teamArr.filter(t => {
@@ -183,8 +200,7 @@ export async function loadAssignments() {
               return t.status === "Out of Service" && inProgressLetters.has(letter);
             });
             if (oosWithAssignment.length > 0) {
-              const names = oosWithAssignment.map(t => `Team ${t.name}`).join(", ");
-              warnings.push(`${names} marked Out of Service but assigned to an in-progress assignment`);
+              warnings.push(`${oosWithAssignment.map(t => `Team ${t.name}`).join(", ")} marked Out of Service but assigned to an in-progress assignment`);
             }
           }
         } catch (_) { /* non-fatal */ }
@@ -197,15 +213,314 @@ export async function loadAssignments() {
       }
     }
 
-    assignmentsTable.setData(data);
+    if (currentView === "table") {
+      assignmentsTable.setData(assignmentsCache);
+    } else {
+      renderKanban(assignmentsCache);
+    }
 
   } catch (err) {
-    logMessage("ERROR", "Failed to load assignments", err.message);
     assignmentsTable.setData([]);
-    assignmentsMessage.show(
-      "Failed to load assignments. See console for details.",
-      "error"
-    );
+    assignmentsMessage.show("Failed to load assignments. See console for details.", "error");
+  }
+}
+
+/* ===============================
+   Kanban
+   =============================== */
+
+function renderKanban(assignments) {
+  const container = document.getElementById("assignments-kanban-view");
+  if (!container) return;
+  container.innerHTML = "";
+
+  for (const status of ASGN_STATUSES) {
+    const col = document.createElement("div");
+    col.className = "kanban-col";
+    col.dataset.status = status;
+    if (collapsedStatuses.has(status)) col.classList.add("collapsed");
+
+    const statusItems = assignments
+      .filter(a => (a.status || "").toUpperCase() === status)
+      .sort((a, b) => (Number(a.number) || 0) - (Number(b.number) || 0));
+
+    col.innerHTML = `
+      <div class="kanban-col-header">
+        <span class="kanban-col-label">${escapeHtml(STATUS_LABEL[status] ?? status)}</span>
+        <span class="kanban-col-count">${statusItems.length}</span>
+      </div>
+      <div class="kanban-col-cards"></div>
+    `;
+
+    col.querySelector(".kanban-col-header").addEventListener("click", () => {
+      if (collapsedStatuses.has(status)) collapsedStatuses.delete(status);
+      else collapsedStatuses.add(status);
+      renderKanban(assignmentsCache);
+    });
+
+    const cardsEl = col.querySelector(".kanban-col-cards");
+
+    for (const a of statusItems) {
+      const card = document.createElement("div");
+      card.className = "kanban-card";
+      card.setAttribute("draggable", "true");
+      card.dataset.featureId = a.id ?? "";
+
+      card.innerHTML = `
+        <div class="kanban-card-header">
+          <span class="asgn-card-number">Assignment ${escapeHtml(String(a.number ?? "?"))}</span>
+        </div>
+        <div class="asgn-card-team">Team: ${escapeHtml(a.team || "—")}</div>
+        <div class="asgn-card-meta">${escapeHtml(a.assignmentType ?? "")}${a.resourceType ? " · " + escapeHtml(a.resourceType) : ""}</div>
+      `;
+
+      // Click opens edit modal
+      card.addEventListener("click", () => {
+        // don't open modal if this was the end of a drag
+        if (card.dataset.wasDragging === "true") { card.dataset.wasDragging = ""; return; }
+        openEditModal(a);
+      });
+
+      // Mouse drag-and-drop
+      card.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", a.id ?? "");
+        e.dataTransfer.effectAllowed = "move";
+        card.classList.add("dragging");
+        card.dataset.wasDragging = "true";
+      });
+      card.addEventListener("dragend", () => card.classList.remove("dragging"));
+
+      wireTouchDnd(card, a);
+
+      cardsEl.appendChild(card);
+    }
+
+    // Drop target (mouse)
+    col.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      col.classList.add("drag-over");
+    });
+    col.addEventListener("dragleave", (e) => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove("drag-over");
+    });
+    col.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      col.classList.remove("drag-over");
+      const featureId = e.dataTransfer.getData("text/plain");
+      const newStatus = col.dataset.status;
+      const asgn = assignmentsCache.find(a => a.id === featureId);
+      if (!asgn || (asgn.status || "").toUpperCase() === newStatus) return;
+
+      const card = col.closest(".assignments-kanban")
+        ?.querySelector(`[data-feature-id="${CSS.escape(featureId)}"]`);
+
+      await doStatusWrite(asgn, newStatus, card);
+    });
+
+    container.appendChild(col);
+  }
+}
+
+/* ===============================
+   Touch drag-and-drop (kanban)
+   =============================== */
+
+let _touchFeatureId  = null;
+let _touchGhost      = null;
+let _touchTargetCol  = null;
+let _touchOffsetX    = 0;
+let _touchOffsetY    = 0;
+let _touchMoved      = false;
+
+function _touchCleanup(card) {
+  if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
+  if (card) card.style.opacity = "";
+  document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
+    .forEach(c => c.classList.remove("drag-over"));
+  _touchTargetCol = null;
+  _touchFeatureId = null;
+}
+
+function wireTouchDnd(card, asgn) {
+  card.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const rect  = card.getBoundingClientRect();
+
+    _touchFeatureId = asgn.id ?? "";
+    _touchOffsetX   = touch.clientX - rect.left;
+    _touchOffsetY   = touch.clientY - rect.top;
+    _touchMoved     = false;
+
+    _touchGhost = card.cloneNode(true);
+    Object.assign(_touchGhost.style, {
+      position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+      width: `${rect.width}px`, margin: "0", pointerEvents: "none",
+      opacity: "0.85", zIndex: "9999",
+      boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
+    });
+    document.body.appendChild(_touchGhost);
+    card.style.opacity = "0.3";
+    e.preventDefault();
+  }, { passive: false });
+
+  card.addEventListener("touchmove", (e) => {
+    if (!_touchGhost || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    _touchMoved = true;
+
+    _touchGhost.style.left = `${touch.clientX - _touchOffsetX}px`;
+    _touchGhost.style.top  = `${touch.clientY - _touchOffsetY}px`;
+
+    _touchGhost.style.visibility = "hidden";
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    _touchGhost.style.visibility = "";
+
+    const col = el?.closest("#assignments-kanban-view .kanban-col");
+    document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
+      .forEach(c => c.classList.remove("drag-over"));
+    if (col) { col.classList.add("drag-over"); _touchTargetCol = col; }
+    else      { _touchTargetCol = null; }
+    e.preventDefault();
+  }, { passive: false });
+
+  card.addEventListener("touchend", async () => {
+    const col       = _touchTargetCol;
+    const featureId = _touchFeatureId;
+    const moved     = _touchMoved;
+    _touchCleanup(card);
+
+    if (!moved) { openEditModal(asgn); return; }  // tap → edit modal
+    if (!col || !featureId) return;
+
+    const newStatus = col.dataset.status;
+    const a = assignmentsCache.find(x => x.id === featureId);
+    if (!a || (a.status || "").toUpperCase() === newStatus) return;
+
+    await doStatusWrite(a, newStatus, card);
+  });
+
+  card.addEventListener("touchcancel", () => _touchCleanup(card));
+}
+
+/* ===============================
+   Status write (kanban drop)
+   =============================== */
+
+async function doStatusWrite(asgn, newStatus, cardEl) {
+  if (cardEl) cardEl.classList.add("writing");
+  try {
+    await writeToCalTopo({ featureId: asgn.id, status: newStatus });
+    await loadAssignments();  // re-fetch from CalTopo — card moves only on confirmed state
+  } catch (err) {
+    assignmentsMessage.show(`Failed to update CalTopo: ${err.message}`, "error");
+    if (cardEl) cardEl.classList.remove("writing");
+  }
+}
+
+/* ===============================
+   Edit modal
+   =============================== */
+
+let _modalAsgn = null;
+
+function openEditModal(asgn) {
+  _modalAsgn = asgn;
+
+  const backdrop = document.getElementById("asgnModalBackdrop");
+  const infoEl   = document.getElementById("asgnModalInfo");
+  const statusEl = document.getElementById("asgnStatus");
+  const teamEl   = document.getElementById("asgnTeam");
+  const errEl    = document.getElementById("asgnModalError");
+
+  infoEl.textContent  = `Assignment ${asgn.number ?? "?"}  ·  ${asgn.assignmentType ?? ""}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
+  statusEl.value      = (asgn.status || "DRAFT").toUpperCase();
+  teamEl.value        = asgn.team ?? "";
+  errEl.classList.add("hidden");
+  errEl.textContent   = "";
+
+  const saveBtn = document.getElementById("asgnModalSave");
+  saveBtn.disabled    = false;
+  saveBtn.textContent = "Save";
+
+  backdrop.setAttribute("aria-hidden", "false");
+  backdrop.classList.remove("hidden");
+  statusEl.focus();
+}
+
+function closeEditModal() {
+  const backdrop = document.getElementById("asgnModalBackdrop");
+  backdrop.classList.add("hidden");
+  backdrop.setAttribute("aria-hidden", "true");
+  _modalAsgn = null;
+}
+
+async function saveEditModal() {
+  if (!_modalAsgn) return;
+
+  const statusEl  = document.getElementById("asgnStatus");
+  const teamEl    = document.getElementById("asgnTeam");
+  const errEl     = document.getElementById("asgnModalError");
+  const saveBtn   = document.getElementById("asgnModalSave");
+  const cancelBtn = document.getElementById("asgnModalCancel");
+
+  const newStatus = statusEl.value;
+  const newTeam   = teamEl.value.trim();
+
+  const changed = newStatus !== (_modalAsgn.status || "").toUpperCase() ||
+                  newTeam   !== (_modalAsgn.team   || "");
+  if (!changed) { closeEditModal(); return; }
+
+  saveBtn.disabled    = true;
+  saveBtn.textContent = "Writing to CalTopo…";
+  cancelBtn.disabled  = true;
+  errEl.classList.add("hidden");
+
+  try {
+    await writeToCalTopo({
+      featureId: _modalAsgn.id,
+      status:    newStatus,
+      team:      newTeam,
+    });
+    closeEditModal();
+    await loadAssignments();  // re-fetch CalTopo state
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove("hidden");
+    saveBtn.disabled    = false;
+    saveBtn.textContent = "Save";
+    cancelBtn.disabled  = false;
+  }
+}
+
+/* ===============================
+   View toggle
+   =============================== */
+
+function switchView(view) {
+  currentView = view;
+
+  const tableView   = document.getElementById("assignments-table-view");
+  const kanbanView  = document.getElementById("assignments-kanban-view");
+  const filtersRow  = document.getElementById("assignments-filters-row");
+  const tableBtn    = document.getElementById("asgn-view-table-btn");
+  const kanbanBtn   = document.getElementById("asgn-view-kanban-btn");
+
+  if (view === "table") {
+    tableView?.classList.remove("hidden");
+    kanbanView?.classList.add("hidden");
+    if (filtersRow) filtersRow.style.display = "";
+    tableBtn?.classList.add("active");
+    kanbanBtn?.classList.remove("active");
+    assignmentsTable.setData(assignmentsCache);
+  } else {
+    tableView?.classList.add("hidden");
+    kanbanView?.classList.remove("hidden");
+    if (filtersRow) filtersRow.style.display = "none";
+    tableBtn?.classList.remove("active");
+    kanbanBtn?.classList.add("active");
+    renderKanban(assignmentsCache);
   }
 }
 
@@ -214,59 +529,33 @@ export async function loadAssignments() {
    =============================== */
 
 function wireFilters(table) {
-
-  /* ---- Assignment # (text) ---- */
   const numberInput = document.getElementById("filter-number");
-  if (numberInput) {
-    numberInput.addEventListener("input", e => {
-      table.setFilter("number", e.target.value, "startsWith");
-    });
-  }
+  if (numberInput) numberInput.addEventListener("input", e => table.setFilter("number", e.target.value, "startsWith"));
 
-  /* ---- Team (text) ---- */
   const teamInput = document.getElementById("filter-team");
-  if (teamInput) {
-    teamInput.addEventListener("input", e => {
-      table.setFilter("team", e.target.value);
-    });
-  }
+  if (teamInput) teamInput.addEventListener("input", e => table.setFilter("team", e.target.value));
 
-    /* ---- Op Period (text) ---- */
   const opInput = document.getElementById("filter-op");
-  if (opInput) {
-    opInput.addEventListener("input", e => {
-      table.setFilter("op", e.target.value);
-    });
-  }
+  if (opInput) opInput.addEventListener("input", e => table.setFilter("op", e.target.value));
 
-  /* ---- Op Period column + filter toggle ---- */
   const opToggle = document.getElementById("toggle-op-period");
   if (opToggle) {
-    const tableEl = document.querySelector(".assignments-data-table");
-    const opGroup = opToggle.closest(".filter-group-check");
-    const opInput = document.getElementById("filter-op");
+    const tableEl  = document.querySelector(".assignments-data-table");
+    const opGroup  = opToggle.closest(".filter-group-check");
     opToggle.addEventListener("change", () => {
       const on = opToggle.checked;
       if (tableEl) tableEl.classList.toggle("show-op-period", on);
-      if (opGroup)  opGroup.classList.toggle("op-expanded", on);
-      if (!on && opInput) {
-        opInput.value = "";
-        table.setFilter("op", "");
-      }
+      if (opGroup) opGroup.classList.toggle("op-expanded", on);
+      if (!on && opInput) { opInput.value = ""; table.setFilter("op", ""); }
     });
   }
 
-  /* ---- Pill checkbox groups (scoped to assignments panel) ---- */
   const assignmentsPanel = document.getElementById("assignments");
   assignmentsPanel?.querySelectorAll(".pill-group").forEach(group => {
     const key = group.dataset.filterKey;
     if (!key) return;
-
     group.addEventListener("change", () => {
-      const values = Array.from(
-        group.querySelectorAll("input[type=checkbox]:checked")
-      ).map(cb => cb.value);
-
+      const values = Array.from(group.querySelectorAll("input[type=checkbox]:checked")).map(cb => cb.value);
       table.setFilter(key, values, "in");
     });
   });
@@ -281,100 +570,56 @@ function watchAssignmentsTab() {
   if (!panel) return;
 
   let wasActive = panel.classList.contains("active");
-
-  const observer = new MutationObserver(() => {
+  new MutationObserver(() => {
     const isActive = panel.classList.contains("active");
-    if (isActive && !wasActive) {
-      logMessage("INFO", "Assignments tab activated");
-      loadAssignments();
-    }
+    if (isActive && !wasActive) loadAssignments();
     wasActive = isActive;
-  });
-
-  observer.observe(panel, {
-    attributes: true,
-    attributeFilter: ["class"]
-  });
+  }).observe(panel, { attributes: true, attributeFilter: ["class"] });
 }
 
 /* ===============================
    Init
    =============================== */
 
-
-
 document.addEventListener("DOMContentLoaded", () => {
-
-  /* ===============================
-     1. Locate required DOM elements
-     =============================== */
-
   const tableEl = document.querySelector(".assignments-data-table");
-  if (!tableEl) {
-    logMessage("ERROR", "Assignments table not found in DOM");
-    return;
-  }
-
-  /* ===============================
-     2. Initialize message bar
-     =============================== */
+  if (!tableEl) return;
 
   assignmentsMessage = initMessageBar("assignments-message");
-
-  // Initial state (no map ID yet)
-  assignmentsMessage.show(
-    "Enter a CalTopo Map ID to load assignments.",
-    "error"
-  );
-
-  /* ===============================
-     3. Initialize table
-     =============================== */
+  assignmentsMessage.show("Enter a CalTopo Map ID to load assignments.", "error");
 
   assignmentsTable = createTable({
     tableEl,
     rowRenderer: renderAssignmentRow,
-
     defaultSort: { key: "number", dir: 1 },
-
-    columnTypes: {
-      number: "number"
-    },
-
-    sortOrders: {
-      status: {
-        DRAFT: 1,
-        PREPARED: 2,
-        INPROGRESS: 3,
-        COMPLETED: 4
-      }
-    },
-
-    secondarySort: {
-      status: ["number"]
-    }
+    columnTypes: { number: "number" },
+    sortOrders: { status: { DRAFT: 1, PREPARED: 2, INPROGRESS: 3, COMPLETED: 4 } },
+    secondarySort: { status: ["number"] },
   });
 
-  /* ===============================
-     4. Wire UI events
-     =============================== */
-
-
-  // Filters (safe to wire here — DOM now exists)
   wireFilters(assignmentsTable);
-
-  // Tab activation watcher
   watchAssignmentsTab();
-});
 
+  // View toggle
+  document.getElementById("asgn-view-table-btn")?.addEventListener("click",  () => switchView("table"));
+  document.getElementById("asgn-view-kanban-btn")?.addEventListener("click", () => switchView("kanban"));
+
+  // Edit modal wiring
+  document.getElementById("asgnModalClose")?.addEventListener("click",  closeEditModal);
+  document.getElementById("asgnModalCancel")?.addEventListener("click", closeEditModal);
+  document.getElementById("asgnModalSave")?.addEventListener("click",   saveEditModal);
+  document.getElementById("asgnModalBackdrop")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeEditModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeEditModal();
+  });
+});
 
 /* ===============================
    Online / Offline handling
    =============================== */
 
-// Use sar:offline/sar:online (driven by SSE state) rather than the browser's
-// offline/online events, so UI only reacts when the SAR server is confirmed
-// unreachable — not immediately on any network blip.
 window.addEventListener("sar:online", loadAssignments);
 
 window.addEventListener("sar:offline", () => {

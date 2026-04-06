@@ -236,6 +236,102 @@ def validate_shapes(shapes):
     return validated
 
 
+def _build_assignment_title(completed_x: bool, number, team: str) -> str:
+    """Reconstruct a CalTopo assignment title from its parsed components."""
+    parts = []
+    if completed_x:
+        parts.append("X")
+    if number is not None:
+        parts.append(str(number))
+    if team:
+        parts.append(str(team).upper())
+    return " ".join(parts)
+
+
+def _post_assignment_update(map_id: str, feature_id: str, feature: dict):
+    """POST an updated Assignment feature to CalTopo."""
+    cred_id = _cfg("CRED_ID")
+    endpoint = f"/api/v1/map/{map_id}/Assignment/{feature_id}"
+    payload_str = json.dumps(feature, separators=(",", ":"))
+    expires_ms = int(time.time() * 1000) + 2 * 60 * 1000
+    signature = sign_request("POST", endpoint, expires_ms, payload_str)
+    params = {
+        "id": cred_id,
+        "expires": str(expires_ms),
+        "signature": signature,
+        "json": payload_str,
+    }
+    resp = requests.post(caltopo_base_url + endpoint, data=params, timeout=20)
+    try:
+        body = resp.json()
+    except Exception:
+        body = resp.text
+    return resp.status_code, body
+
+
+@bp.post("/api/caltopo/assignment/update")
+def api_update_assignment():
+    """
+    Update an assignment's status and/or team in CalTopo.
+    Rebuilds the title to keep the X prefix in sync with COMPLETED status.
+    Bumps sync_state.version so other SSE clients are notified.
+    """
+    data = request.get_json(silent=True) or {}
+    map_id = (data.get("mapId") or "").strip()
+    feature_id = (data.get("featureId") or "").strip()
+    incident_name = (data.get("incidentName") or "").strip()
+    new_status = data.get("status")   # None = don't change
+    new_team = data.get("team")       # None = don't change; "" = clear team
+
+    if not map_id or not feature_id:
+        return jsonify(ok=False, error="mapId and featureId required"), 400
+
+    try:
+        # Fetch current feature from CalTopo to preserve all fields
+        map_data = get_from_caltopo(f"/api/v1/map/{map_id}/since/0")
+        features = map_data.get("state", {}).get("features", [])
+        feature = next((f for f in features if f.get("id") == feature_id), None)
+        if not feature:
+            return jsonify(ok=False, error=f"Assignment {feature_id} not found in map"), 404
+
+        # Parse current title into components
+        props = dict(feature.get("properties", {}))
+        completed_x, number, team = _parse_assignment_title(props.get("title", ""))
+
+        # Apply requested changes
+        if new_status is not None:
+            props["status"] = str(new_status).strip().upper()
+            completed_x = (props["status"] == "COMPLETED")
+
+        if new_team is not None:
+            team = str(new_team).strip()
+
+        # Rebuild title keeping X prefix in sync with COMPLETED status
+        props["title"] = _build_assignment_title(completed_x, number, team)
+
+        # POST full updated feature back to CalTopo
+        updated_feature = {**feature, "properties": props}
+        status_code, body = _post_assignment_update(map_id, feature_id, updated_feature)
+
+        if status_code != 200:
+            return jsonify(ok=False, error=f"CalTopo returned {status_code}: {body}"), 502
+
+        # Bump sync_state.version to notify other connected SSE clients
+        if incident_name:
+            try:
+                from db.database import get_connection
+                with get_connection(incident_name) as conn:
+                    conn.execute("UPDATE sync_state SET version = version + 1 WHERE id = 1")
+                    conn.commit()
+            except Exception:
+                pass  # non-fatal
+
+        return jsonify(ok=True)
+
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500
+
+
 def _parse_assignment_title(title):
     """
     Parse CalTopo assignment title format: [X] <number> [team]
