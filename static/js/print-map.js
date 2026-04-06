@@ -30,8 +30,12 @@ export function printAssignmentMap(asgn) {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
+    html, body {
+      height: 100%;
+      overflow: hidden;
       font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
     }
 
     .print-header {
@@ -41,11 +45,11 @@ export function printAssignmentMap(asgn) {
     .print-header h1   { font-size: 1.1rem; color: #cc5e31; margin-bottom: 2px; }
     .print-header .details { font-size: 0.8rem; color: #444; }
 
-    /* Map fills remaining space after header and footer */
-    #map {
-      width: 100%;
-      height: calc(100vh - 58px);  /* 58px ≈ header + footer */
-    }
+    .print-header { flex-shrink: 0; }
+    .print-footer { flex-shrink: 0; }
+
+    /* Map fills all remaining space */
+    #map { flex: 1; min-height: 0; }
 
     .print-footer {
       padding: 4px 14px;
@@ -79,7 +83,8 @@ export function printAssignmentMap(asgn) {
       .print-header { page-break-after: avoid; padding: 4px 14px 4px; }
       .print-header h1 { font-size: 0.95rem; }
       .print-header .details { font-size: 0.72rem; }
-      #map         { height: calc(100vh - 58px); page-break-inside: avoid; page-break-after: avoid; }
+      html, body   { overflow: visible; height: auto; display: block; }
+      #map         { height: 155mm; page-break-inside: avoid; page-break-after: avoid; }
       .print-footer { page-break-before: avoid; padding: 2px 14px; }
     }
   </style>
