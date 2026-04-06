@@ -414,7 +414,7 @@ function _touchCleanup(card) {
   _dragActive    = false;
   _touchScrolled = false;
   if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
-  if (card) card.style.opacity = "";
+  if (card) { card.style.opacity = ""; card.style.touchAction = ""; }
   document.querySelectorAll(".kanban-col.drag-over").forEach(c => c.classList.remove("drag-over"));
   _touchTargetCol = null;
   _touchTeamId   = null;
@@ -434,6 +434,7 @@ function wireTouchDnd(card, teamId) {
     // Start long-press timer — don't preventDefault yet so scroll works normally
     _touchLongPressTimer = setTimeout(() => {
       _dragActive = true;
+      card.style.touchAction = "none";
       _touchGhost = card.cloneNode(true);
       Object.assign(_touchGhost.style, {
         position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
