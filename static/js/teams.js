@@ -405,6 +405,102 @@ function findAssignmentConflicts(assignments) {
 
 
 /* ===============================
+   Mouse hold-to-drag (kanban)
+   =============================== */
+
+function wireMouseDnd(card, team) {
+  let timer     = null;
+  let active    = false;
+  let scrolled  = false;
+  let ghost     = null;
+  let targetCol = null;
+  let offX = 0, offY = 0;
+
+  function cleanup() {
+    clearTimeout(timer); timer = null;
+    active = false; scrolled = false;
+    if (ghost) { ghost.remove(); ghost = null; }
+    card.style.opacity = ""; card.style.cursor = "";
+    document.querySelectorAll("#teams-kanban-view .kanban-col.drag-over")
+      .forEach(c => c.classList.remove("drag-over"));
+    targetCol = null;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup",   onUp);
+  }
+
+  function onMove(e) {
+    if (!active) {
+      clearTimeout(timer); timer = null; scrolled = true; return;
+    }
+    ghost.style.left = `${e.clientX - offX}px`;
+    ghost.style.top  = `${e.clientY - offY}px`;
+    ghost.style.visibility = "hidden";
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    ghost.style.visibility = "";
+    const col = el?.closest("#teams-kanban-view .kanban-col");
+    document.querySelectorAll("#teams-kanban-view .kanban-col.drag-over")
+      .forEach(c => c.classList.remove("drag-over"));
+    if (col) { col.classList.add("drag-over"); targetCol = col; }
+    else      { targetCol = null; }
+  }
+
+  async function onUp() {
+    const col       = targetCol;
+    const wasDrag   = active;
+    const wasScroll = scrolled;
+    cleanup();
+    if (!wasDrag && !wasScroll) { await openTeamModal("edit", team); return; }
+    if (!col) return;
+    const newStatus    = col.dataset.status;
+    if (team.status === newStatus) return;
+    const incidentName = getCurrentIncidentName();
+    if (!incidentName) return;
+    const err = validateTeamStatusChange(team, newStatus);
+    if (err) { teamsMessage.show(`⚠ ${err}`, "error"); return; }
+    try {
+      const oldStatus = team.status;
+      await apiPost("/api/teams/update", { incidentName, teamId: parseInt(team.id), status: newStatus, expectedUpdatedAt: team.updatedAt });
+      logUserEvent(incidentName, `Team ${team.name} status changed from "${oldStatus}" to "${newStatus}"`);
+      team.status = newStatus;
+      renderKanban(teamsCache);
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        teamsMessage.show("⚠ Team was modified by another user — reloading.", "warning", 6000);
+        await loadTeams();
+      } else {
+        teamsMessage.show(`Failed to update status: ${err.message}`, "error");
+      }
+    }
+  }
+
+  card.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const rect = card.getBoundingClientRect();
+    offX = e.clientX - rect.left;
+    offY = e.clientY - rect.top;
+    active = false; scrolled = false;
+
+    timer = setTimeout(() => {
+      active = true;
+      ghost = card.cloneNode(true);
+      Object.assign(ghost.style, {
+        position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+        width: `${rect.width}px`, margin: "0", pointerEvents: "none",
+        opacity: "0.85", zIndex: "9999",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
+      });
+      document.body.appendChild(ghost);
+      card.style.opacity = "0.3";
+    }, 400);
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup",   onUp);
+  });
+}
+
+
+/* ===============================
    Touch drag-and-drop
    =============================== */
 
@@ -571,7 +667,6 @@ function renderKanban(teams) {
 
       const card = document.createElement("div");
       card.className = "kanban-card";
-      card.setAttribute("draggable", "true");
       card.dataset.teamId = team.id;
 
       if (searchVal && !(team.searchText || "").includes(searchVal)) {
@@ -587,54 +682,11 @@ function renderKanban(teams) {
         <div class="kanban-card-assignment">${assignmentHtml}</div>
       `;
 
-      // Drag source
-      card.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", String(team.id));
-        e.dataTransfer.effectAllowed = "move";
-        card.classList.add("dragging");
-      });
-      card.addEventListener("dragend", () => {
-        card.classList.remove("dragging");
-      });
-
+      wireMouseDnd(card, team);
       wireTouchDnd(card, team.id);
 
       cardsEl.appendChild(card);
     }
-
-    // Drop target
-    col.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      col.classList.add("drag-over");
-    });
-    col.addEventListener("dragleave", (e) => {
-      if (!col.contains(e.relatedTarget)) col.classList.remove("drag-over");
-    });
-    col.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      col.classList.remove("drag-over");
-      const teamId = e.dataTransfer.getData("text/plain");
-      const newStatus = col.dataset.status;
-      const team = findTeamInCache(teamId);
-      if (!team || team.status === newStatus) return;
-      const incidentName = getCurrentIncidentName();
-      if (!incidentName) return;
-      const err = validateTeamStatusChange(team, newStatus);
-      if (err) { teamsMessage.show(`⚠ ${err}`, "error"); return; }
-      try {
-        await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus, expectedUpdatedAt: team.updatedAt });
-        team.status = newStatus;
-        renderKanban(teamsCache);
-      } catch (err) {
-        if (err instanceof ConflictError) {
-          teamsMessage.show("⚠ Team was modified by another user — reloading.", "warning", 6000);
-          await loadTeams();
-        } else {
-          teamsMessage.show(`Failed to update status: ${err.message}`, "error");
-        }
-      }
-    });
 
     container.appendChild(col);
   }

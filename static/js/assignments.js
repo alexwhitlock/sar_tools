@@ -308,7 +308,6 @@ function renderKanban(assignments) {
     for (const a of statusItems) {
       const card = document.createElement("div");
       card.className = "kanban-card";
-      card.setAttribute("draggable", "true");
       card.dataset.featureId = a.id ?? "";
 
       card.innerHTML = `
@@ -322,53 +321,95 @@ function renderKanban(assignments) {
         <div class="asgn-card-meta">${escapeHtml(a.assignmentType ?? "")}${a.resourceType ? " · " + escapeHtml(a.resourceType) : ""}</div>
       `;
 
-      // Click opens edit modal
-      card.addEventListener("click", () => {
-        // don't open modal if this was the end of a drag
-        if (card.dataset.wasDragging === "true") { card.dataset.wasDragging = ""; return; }
-        openEditModal(a);
-      });
-
-      // Mouse drag-and-drop
-      card.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", a.id ?? "");
-        e.dataTransfer.effectAllowed = "move";
-        card.classList.add("dragging");
-        card.dataset.wasDragging = "true";
-      });
-      card.addEventListener("dragend", () => card.classList.remove("dragging"));
-
+      wireMouseDnd(card, a);
       wireTouchDnd(card, a);
 
       cardsEl.appendChild(card);
     }
 
-    // Drop target (mouse)
-    col.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      col.classList.add("drag-over");
-    });
-    col.addEventListener("dragleave", (e) => {
-      if (!col.contains(e.relatedTarget)) col.classList.remove("drag-over");
-    });
-    col.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      col.classList.remove("drag-over");
-      const featureId = e.dataTransfer.getData("text/plain");
-      const newStatus = col.dataset.status;
-      const asgn = assignmentsCache.find(a => a.id === featureId);
-      if (!asgn || (asgn.status || "").toUpperCase() === newStatus) return;
-
-      const card = col.closest(".assignments-kanban")
-        ?.querySelector(`[data-feature-id="${CSS.escape(featureId)}"]`);
-
-      await doStatusWrite(asgn, newStatus, card);
-    });
-
     container.appendChild(col);
   }
 }
+
+/* ===============================
+   Mouse hold-to-drag (kanban)
+   =============================== */
+
+function wireMouseDnd(card, asgn) {
+  let timer    = null;
+  let active   = false;
+  let scrolled = false;
+  let ghost    = null;
+  let targetCol = null;
+  let offX = 0, offY = 0;
+
+  function cleanup() {
+    clearTimeout(timer); timer = null;
+    active = false; scrolled = false;
+    if (ghost) { ghost.remove(); ghost = null; }
+    card.style.opacity = ""; card.style.cursor = "";
+    document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
+      .forEach(c => c.classList.remove("drag-over"));
+    targetCol = null;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup",   onUp);
+  }
+
+  function onMove(e) {
+    if (!active) {
+      clearTimeout(timer); timer = null; scrolled = true; return;
+    }
+    ghost.style.left = `${e.clientX - offX}px`;
+    ghost.style.top  = `${e.clientY - offY}px`;
+    ghost.style.visibility = "hidden";
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    ghost.style.visibility = "";
+    const col = el?.closest("#assignments-kanban-view .kanban-col");
+    document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
+      .forEach(c => c.classList.remove("drag-over"));
+    if (col) { col.classList.add("drag-over"); targetCol = col; }
+    else      { targetCol = null; }
+  }
+
+  async function onUp() {
+    const col      = targetCol;
+    const wasDrag  = active;
+    const wasScroll = scrolled;
+    cleanup();
+    if (!wasDrag && !wasScroll) { openEditModal(asgn); return; }
+    if (!col) return;
+    const newStatus = col.dataset.status;
+    const a = assignmentsCache.find(x => x.id === (asgn.id ?? ""));
+    if (!a || (a.status || "").toUpperCase() === newStatus) return;
+    await doStatusWrite(a, newStatus, card);
+  }
+
+  card.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const rect = card.getBoundingClientRect();
+    offX = e.clientX - rect.left;
+    offY = e.clientY - rect.top;
+    active = false; scrolled = false;
+
+    timer = setTimeout(() => {
+      active = true;
+      ghost = card.cloneNode(true);
+      Object.assign(ghost.style, {
+        position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+        width: `${rect.width}px`, margin: "0", pointerEvents: "none",
+        opacity: "0.85", zIndex: "9999",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
+      });
+      document.body.appendChild(ghost);
+      card.style.opacity = "0.3";
+    }, 400);
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup",   onUp);
+  });
+}
+
 
 /* ===============================
    Touch drag-and-drop (kanban)
