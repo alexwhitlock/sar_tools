@@ -125,11 +125,30 @@ export function printAssignmentMap(asgn) {
     btn.disabled = false;
     btn.textContent = "Print / Save PDF";
 
-    btn.addEventListener("click", () => {
-      // Invalidate size to ensure map renders correctly before print
-      map.invalidateSize();
-      setTimeout(() => window.print(), 250);
+    const bounds = layer.getBounds();
+
+    // Before printing, resize map div to match physical print area so
+    // Leaflet re-fits the bounds at the same aspect ratio as the printed page.
+    // A4 landscape @ 8mm margins: 281mm × 194mm print area.
+    // Header ~28px + footer ~18px leaves ~148mm for map → but we set 155mm in CSS.
+    // At 96 dpi: 281mm ≈ 1063px wide, 155mm ≈ 586px tall.
+    window.addEventListener("beforeprint", () => {
+      const mapEl = document.getElementById("map");
+      mapEl.style.width  = "1063px";
+      mapEl.style.height = "586px";
+      map.invalidateSize({ animate: false });
+      map.fitBounds(bounds, { padding: [20, 20], animate: false });
     });
+
+    window.addEventListener("afterprint", () => {
+      const mapEl = document.getElementById("map");
+      mapEl.style.width  = "";
+      mapEl.style.height = "";
+      map.invalidateSize({ animate: false });
+      map.fitBounds(bounds, { padding: [40, 40], animate: false });
+    });
+
+    btn.addEventListener("click", () => window.print());
   <\/script>
 </body>
 </html>`;
