@@ -354,6 +354,11 @@
   cursor: pointer;
 }
 
+body.kanban-grabbing,
+body.kanban-grabbing * {
+  cursor: grabbing !important;
+}
+
 .kanban-card.dragging {
   opacity: 0.45;
 }
