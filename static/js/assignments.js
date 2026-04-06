@@ -374,14 +374,18 @@ function renderKanban(assignments) {
    Touch drag-and-drop (kanban)
    =============================== */
 
-let _touchFeatureId  = null;
-let _touchGhost      = null;
-let _touchTargetCol  = null;
-let _touchOffsetX    = 0;
-let _touchOffsetY    = 0;
-let _touchMoved      = false;
+let _touchFeatureId      = null;
+let _touchGhost          = null;
+let _touchTargetCol      = null;
+let _touchOffsetX        = 0;
+let _touchOffsetY        = 0;
+let _dragActive          = false;
+let _touchLongPressTimer = null;
 
 function _touchCleanup(card) {
+  clearTimeout(_touchLongPressTimer);
+  _touchLongPressTimer = null;
+  _dragActive = false;
   if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
   if (card) card.style.opacity = "";
   document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
@@ -399,47 +403,54 @@ function wireTouchDnd(card, asgn) {
     _touchFeatureId = asgn.id ?? "";
     _touchOffsetX   = touch.clientX - rect.left;
     _touchOffsetY   = touch.clientY - rect.top;
-    _touchMoved     = false;
+    _dragActive     = false;
 
-    _touchGhost = card.cloneNode(true);
-    Object.assign(_touchGhost.style, {
-      position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
-      width: `${rect.width}px`, margin: "0", pointerEvents: "none",
-      opacity: "0.85", zIndex: "9999",
-      boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
-    });
-    document.body.appendChild(_touchGhost);
-    card.style.opacity = "0.3";
-    e.preventDefault();
-  }, { passive: false });
+    // Start long-press timer — don't preventDefault yet so scroll works normally
+    _touchLongPressTimer = setTimeout(() => {
+      _dragActive = true;
+      _touchGhost = card.cloneNode(true);
+      Object.assign(_touchGhost.style, {
+        position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+        width: `${rect.width}px`, margin: "0", pointerEvents: "none",
+        opacity: "0.85", zIndex: "9999",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
+      });
+      document.body.appendChild(_touchGhost);
+      card.style.opacity = "0.3";
+    }, 400);
+  }, { passive: true });
 
   card.addEventListener("touchmove", (e) => {
-    if (!_touchGhost || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    _touchMoved = true;
+    if (_dragActive) {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      _touchGhost.style.left = `${touch.clientX - _touchOffsetX}px`;
+      _touchGhost.style.top  = `${touch.clientY - _touchOffsetY}px`;
 
-    _touchGhost.style.left = `${touch.clientX - _touchOffsetX}px`;
-    _touchGhost.style.top  = `${touch.clientY - _touchOffsetY}px`;
+      _touchGhost.style.visibility = "hidden";
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      _touchGhost.style.visibility = "";
 
-    _touchGhost.style.visibility = "hidden";
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    _touchGhost.style.visibility = "";
-
-    const col = el?.closest("#assignments-kanban-view .kanban-col");
-    document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
-      .forEach(c => c.classList.remove("drag-over"));
-    if (col) { col.classList.add("drag-over"); _touchTargetCol = col; }
-    else      { _touchTargetCol = null; }
-    e.preventDefault();
+      const col = el?.closest("#assignments-kanban-view .kanban-col");
+      document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
+        .forEach(c => c.classList.remove("drag-over"));
+      if (col) { col.classList.add("drag-over"); _touchTargetCol = col; }
+      else      { _touchTargetCol = null; }
+      e.preventDefault();
+    } else {
+      // Moved before long-press fired — cancel drag, let scroll proceed naturally
+      clearTimeout(_touchLongPressTimer);
+      _touchLongPressTimer = null;
+    }
   }, { passive: false });
 
   card.addEventListener("touchend", async () => {
     const col       = _touchTargetCol;
     const featureId = _touchFeatureId;
-    const moved     = _touchMoved;
+    const wasDrag   = _dragActive;
     _touchCleanup(card);
 
-    if (!moved) { openEditModal(asgn); return; }  // tap → edit modal
+    if (!wasDrag) { openEditModal(asgn); return; }  // tap → edit modal
     if (!col || !featureId) return;
 
     const newStatus = col.dataset.status;

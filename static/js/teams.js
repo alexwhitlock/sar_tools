@@ -49,11 +49,13 @@ let kanbanAssignments = [];       // CalTopo assignment data (optional)
 const collapsedStatuses = new Set(); // statuses whose kanban column is collapsed
 
 // Touch drag-and-drop state
-let _touchTeamId   = null;
-let _touchGhost    = null;
-let _touchTargetCol = null;
-let _touchOffsetX  = 0;
-let _touchOffsetY  = 0;
+let _touchTeamId         = null;
+let _touchGhost          = null;
+let _touchTargetCol      = null;
+let _touchOffsetX        = 0;
+let _touchOffsetY        = 0;
+let _dragActive          = false;
+let _touchLongPressTimer = null;
 
 /* ===============================
    Helpers
@@ -406,6 +408,9 @@ function findAssignmentConflicts(assignments) {
    =============================== */
 
 function _touchCleanup(card) {
+  clearTimeout(_touchLongPressTimer);
+  _touchLongPressTimer = null;
+  _dragActive = false;
   if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
   if (card) card.style.opacity = "";
   document.querySelectorAll(".kanban-col.drag-over").forEach(c => c.classList.remove("drag-over"));
@@ -422,54 +427,62 @@ function wireTouchDnd(card, teamId) {
     _touchTeamId  = String(teamId);
     _touchOffsetX = touch.clientX - rect.left;
     _touchOffsetY = touch.clientY - rect.top;
+    _dragActive   = false;
 
-    _touchGhost = card.cloneNode(true);
-    Object.assign(_touchGhost.style, {
-      position:      "fixed",
-      left:          `${rect.left}px`,
-      top:           `${rect.top}px`,
-      width:         `${rect.width}px`,
-      margin:        "0",
-      pointerEvents: "none",
-      opacity:       "0.85",
-      zIndex:        "9999",
-      boxShadow:     "0 6px 16px rgba(0,0,0,0.25)",
-      transform:     "rotate(2deg)",
-    });
-    document.body.appendChild(_touchGhost);
-    card.style.opacity = "0.3";
-
-    e.preventDefault();
-  }, { passive: false });
+    // Start long-press timer — don't preventDefault yet so scroll works normally
+    _touchLongPressTimer = setTimeout(() => {
+      _dragActive = true;
+      _touchGhost = card.cloneNode(true);
+      Object.assign(_touchGhost.style, {
+        position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+        width: `${rect.width}px`, margin: "0", pointerEvents: "none",
+        opacity: "0.85", zIndex: "9999",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
+      });
+      document.body.appendChild(_touchGhost);
+      card.style.opacity = "0.3";
+    }, 400);
+  }, { passive: true });
 
   card.addEventListener("touchmove", (e) => {
-    if (!_touchGhost || e.touches.length !== 1) return;
-    const touch = e.touches[0];
+    if (_dragActive) {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      _touchGhost.style.left = `${touch.clientX - _touchOffsetX}px`;
+      _touchGhost.style.top  = `${touch.clientY - _touchOffsetY}px`;
 
-    _touchGhost.style.left = `${touch.clientX - _touchOffsetX}px`;
-    _touchGhost.style.top  = `${touch.clientY - _touchOffsetY}px`;
+      _touchGhost.style.visibility = "hidden";
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      _touchGhost.style.visibility = "";
 
-    // Briefly hide ghost so elementFromPoint sees what's underneath
-    _touchGhost.style.visibility = "hidden";
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    _touchGhost.style.visibility = "";
-
-    const col = el?.closest(".kanban-col");
-    document.querySelectorAll(".kanban-col.drag-over").forEach(c => c.classList.remove("drag-over"));
-    if (col) { col.classList.add("drag-over"); _touchTargetCol = col; }
-    else      { _touchTargetCol = null; }
-
-    e.preventDefault();
+      const col = el?.closest(".kanban-col");
+      document.querySelectorAll(".kanban-col.drag-over").forEach(c => c.classList.remove("drag-over"));
+      if (col) { col.classList.add("drag-over"); _touchTargetCol = col; }
+      else      { _touchTargetCol = null; }
+      e.preventDefault();
+    } else {
+      // Moved before long-press fired — cancel drag, let scroll proceed naturally
+      clearTimeout(_touchLongPressTimer);
+      _touchLongPressTimer = null;
+    }
   }, { passive: false });
 
   card.addEventListener("touchend", async () => {
     const col    = _touchTargetCol;
-    const teamId = _touchTeamId;
+    const tId    = _touchTeamId;
+    const wasDrag = _dragActive;
     _touchCleanup(card);
-    if (!col || !teamId) return;
 
-    const newStatus    = col.dataset.status;
-    const team         = findTeamInCache(teamId);
+    if (!wasDrag) {
+      // Tap — open edit modal
+      const team = findTeamInCache(tId);
+      if (team) await openTeamModal("edit", team);
+      return;
+    }
+    if (!col || !tId) return;
+
+    const newStatus = col.dataset.status;
+    const team      = findTeamInCache(tId);
     if (!team || team.status === newStatus) return;
 
     const incidentName = getCurrentIncidentName();
@@ -480,7 +493,7 @@ function wireTouchDnd(card, teamId) {
 
     try {
       const oldStatus = team.status;
-      await apiPost("/api/teams/update", { incidentName, teamId: parseInt(teamId), status: newStatus, expectedUpdatedAt: team.updatedAt });
+      await apiPost("/api/teams/update", { incidentName, teamId: parseInt(tId), status: newStatus, expectedUpdatedAt: team.updatedAt });
       logUserEvent(incidentName, `Team ${team.name} status changed from "${oldStatus}" to "${newStatus}"`);
       team.status = newStatus;
       renderKanban(teamsCache);
