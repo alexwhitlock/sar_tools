@@ -131,6 +131,7 @@ function renderAssignmentRow(a) {
     <td>${escapeHtml(a.assignmentType ?? "")}</td>
     <td>${escapeHtml(a.resourceType ?? "")}</td>
     <td class="status-${(a.status || "").toLowerCase()}">${escapeHtml(a.status ?? "")}</td>
+    <td class="col-team-status">${escapeHtml(getTeamStatus(a.team ?? ""))}</td>
     <td class="col-op-period">${escapeHtml(a.op ?? "")}</td>
     <td class="actions-cell">
       <button type="button" class="asgn-menu-btn"
@@ -635,6 +636,14 @@ function wireFilters(table) {
 
   const opInput = document.getElementById("filter-op");
   if (opInput) opInput.addEventListener("input", e => table.setFilter("op", e.target.value));
+
+  const teamStatusToggle = document.getElementById("toggle-team-status");
+  if (teamStatusToggle) {
+    const tableEl = document.querySelector(".assignments-data-table");
+    teamStatusToggle.addEventListener("change", () => {
+      tableEl?.classList.toggle("show-team-status", teamStatusToggle.checked);
+    });
+  }
 
   const opToggle = document.getElementById("toggle-op-period");
   if (opToggle) {

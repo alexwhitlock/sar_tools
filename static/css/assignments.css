@@ -5,6 +5,9 @@
 .col-op-period { display: none; }
 .show-op-period .col-op-period { display: table-cell; }
 
+.col-team-status { display: none; }
+.show-team-status .col-team-status { display: table-cell; }
+
 /* ===============================
    Assignments tab layout
    =============================== */
