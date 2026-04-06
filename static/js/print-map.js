@@ -71,13 +71,17 @@ export function printAssignmentMap(asgn) {
     .print-btn:hover    { background: #b04e25; }
     .print-btn:disabled { background: #aaa; cursor: default; }
 
-    @page { size: A4 landscape; margin: 10mm; }
+    @page { size: A4 landscape; margin: 8mm; }
 
     @media print {
-      .print-btn  { display: none; }
-      /* header ~18mm + footer ~8mm + margins 20mm = ~46mm used; rest is map */
-      #map        { height: 170mm; page-break-inside: avoid; }
-      body        { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-btn   { display: none; }
+      body         { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-header { page-break-after: avoid; padding: 4px 14px 4px; }
+      .print-header h1 { font-size: 0.95rem; }
+      .print-header .details { font-size: 0.72rem; }
+      /* A4 landscape 210mm tall - 16mm margins - ~14mm header - ~7mm footer = ~173mm, use 155mm to be safe */
+      #map         { height: 155mm; page-break-inside: avoid; page-break-after: avoid; }
+      .print-footer { page-break-before: avoid; padding: 2px 14px; }
     }
   </style>
 </head>
