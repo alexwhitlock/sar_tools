@@ -58,6 +58,9 @@ body {
   align-items: flex-end;        /* tabs sit on bottom edge */
   gap: 0.25rem;
   padding-top: 0.25rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* ===============================
@@ -68,6 +71,7 @@ body {
   display: flex;
   align-items: center;          /* vertical centering */
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 /* ===============================
@@ -136,7 +140,8 @@ body {
    =============================== */
 
 .tab-button {
-  width: 140px;
+  flex: 0 1 140px;
+  min-width: 50px;
   border: 1px solid #ccc;
   border-bottom: none;
   align-self: flex-end;        /* sit at bottom edge of top-bar */
@@ -148,11 +153,26 @@ body {
   cursor: pointer;
   font-size: 0.85rem;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+}
+
+@media (max-width: 900px) {
+  .tab-button {
+    padding: 0.4rem 0.4rem;
+    font-size: 0.75rem;
+  }
+  .top-bar-controls button,
+  .top-bar-controls .sync-pill {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+  }
 }
 
 .tab-button:hover {
