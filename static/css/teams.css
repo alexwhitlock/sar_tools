@@ -377,7 +377,6 @@ body.kanban-grabbing * {
 
 .kanban-card-members {
   font-size: 0.68rem;
-  color: #888;
   white-space: nowrap;
   margin-left: 4px;
   cursor: help;
@@ -385,14 +384,11 @@ body.kanban-grabbing * {
 
 .kanban-card-tl {
   font-size: 0.72rem;
-  color: #555;
 }
 
 .kanban-card-assignment {
   font-size: 0.72rem;
-  color: #888;
   margin-top: 2px;
-  font-style: italic;
 }
 
 .kanban-card.search-hidden {

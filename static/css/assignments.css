@@ -138,13 +138,11 @@
 
 .asgn-card-team {
   font-size: 0.72rem;
-  color: #555;
   margin-top: 2px;
 }
 
 .asgn-card-meta {
   font-size: 0.68rem;
-  color: #888;
   margin-top: 2px;
 }
 
@@ -156,7 +154,6 @@
 
 .asgn-card-team-status {
   font-size: 0.68rem;
-  color: #888;
   text-align: right;
   margin-left: 4px;
   white-space: nowrap;
