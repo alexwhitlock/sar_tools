@@ -181,6 +181,8 @@ async function _autoTransitionTeam(incident, team, newStatus) {
     const currentTeam = Array.isArray(teams) ? teams.find(t => t.id === team.id) : null;
     const oldStatus = currentTeam?.status || "unknown";
 
+    if (oldStatus === newStatus) return;
+
     // Update team status
     await fetch("/api/teams/update", {
       method: "POST",
