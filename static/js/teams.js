@@ -575,7 +575,7 @@ function wireTouchDnd(card, teamId) {
     }
   }, { passive: false });
 
-  card.addEventListener("touchend", async () => {
+  card.addEventListener("touchend", async (e) => {
     const col      = _touchTargetCol;
     const tId      = _touchTeamId;
     const wasDrag  = _dragActive;
@@ -583,7 +583,7 @@ function wireTouchDnd(card, teamId) {
     _touchCleanup(card);
 
     if (!wasDrag && !wasScroll) {
-      // Tap — open edit modal
+      e.preventDefault();  // suppress synthetic click that would hit the backdrop
       const team = findTeamInCache(tId);
       if (team) await openTeamModal("edit", team);
       return;

@@ -497,14 +497,18 @@ function wireTouchDnd(card, asgn) {
     }
   }, { passive: false });
 
-  card.addEventListener("touchend", async () => {
+  card.addEventListener("touchend", async (e) => {
     const col       = _touchTargetCol;
     const featureId = _touchFeatureId;
     const wasDrag   = _dragActive;
     const wasScroll = _touchScrolled;
     _touchCleanup(card);
 
-    if (!wasDrag && !wasScroll) { openEditModal(asgn); return; }  // tap → edit modal
+    if (!wasDrag && !wasScroll) {
+      e.preventDefault();  // suppress synthetic click that would hit the backdrop
+      openEditModal(asgn);
+      return;
+    }
     if (!col || !featureId) return;
 
     const newStatus = col.dataset.status;
