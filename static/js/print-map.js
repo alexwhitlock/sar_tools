@@ -41,10 +41,10 @@ export function printAssignmentMap(asgn) {
     .print-header h1   { font-size: 1.1rem; color: #cc5e31; margin-bottom: 2px; }
     .print-header .details { font-size: 0.8rem; color: #444; }
 
-    /* Fixed pixel height — Leaflet needs this to render tiles */
+    /* Map fills remaining space after header and footer */
     #map {
       width: 100%;
-      height: 560px;
+      height: calc(100vh - 58px);  /* 58px ≈ header + footer */
     }
 
     .print-footer {
@@ -79,8 +79,7 @@ export function printAssignmentMap(asgn) {
       .print-header { page-break-after: avoid; padding: 4px 14px 4px; }
       .print-header h1 { font-size: 0.95rem; }
       .print-header .details { font-size: 0.72rem; }
-      /* A4 landscape 210mm tall - 16mm margins - ~14mm header - ~7mm footer = ~173mm, use 155mm to be safe */
-      #map         { height: 155mm; page-break-inside: avoid; page-break-after: avoid; }
+      #map         { height: calc(100vh - 58px); page-break-inside: avoid; page-break-after: avoid; }
       .print-footer { page-break-before: avoid; padding: 2px 14px; }
     }
   </style>
@@ -130,7 +129,8 @@ export function printAssignmentMap(asgn) {
 </body>
 </html>`;
 
-  const popup = window.open("", "_blank", "width=960,height=780");
+  // Open at A4 landscape aspect ratio (1.414:1) so WYSIWYG with print output
+  const popup = window.open("", "_blank", "width=1040,height=780");
   if (!popup) {
     alert("Pop-up blocked. Please allow pop-ups for this site.");
     return;
