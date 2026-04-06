@@ -532,7 +532,7 @@ async function maybeUpdateTeamStatus(teamField, newTeamStatus, promptMsg, skipIf
   if (!letter) return;
 
   const team = teamsCache.find(t => String(t.name).trim().toUpperCase() === letter);
-  if (!team || skipIfStatuses.has(team.status)) return;
+  if (!team || team.status === newTeamStatus || skipIfStatuses.has(team.status)) return;
 
   if (!window.confirm(promptMsg(letter, team.status))) return;
 
