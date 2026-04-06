@@ -48,7 +48,7 @@ export function printAssignmentMap(asgn) {
     }
 
     .print-footer {
-      padding: 5px 14px;
+      padding: 4px 14px;
       font-size: 0.7rem;
       color: #888;
       border-top: 1px solid #ddd;
@@ -68,13 +68,16 @@ export function printAssignmentMap(asgn) {
       cursor: pointer;
       z-index: 9999;
     }
-    .print-btn:hover   { background: #b04e25; }
+    .print-btn:hover    { background: #b04e25; }
     .print-btn:disabled { background: #aaa; cursor: default; }
+
+    @page { size: A4 landscape; margin: 10mm; }
 
     @media print {
       .print-btn  { display: none; }
-      #map        { height: 220mm; }
-      .print-header, .print-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      /* header ~18mm + footer ~8mm + margins 20mm = ~46mm used; rest is map */
+      #map        { height: 170mm; page-break-inside: avoid; }
+      body        { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
@@ -110,12 +113,12 @@ export function printAssignmentMap(asgn) {
 
     map.fitBounds(layer.getBounds(), { padding: [40, 40] });
 
-    // Enable print button once tiles are loaded
-    let tilesLoading = 0;
+    // Enable print button once the map has settled on the initial view
     const btn = document.getElementById("printBtn");
-
-    tiles.on("loading", () => { tilesLoading++; btn.disabled = true; btn.textContent = "Loading map…"; });
-    tiles.on("load",    () => { btn.disabled = false; btn.textContent = "Print / Save PDF"; });
+    map.once("moveend", () => {
+      btn.disabled = false;
+      btn.textContent = "Print / Save PDF";
+    });
 
     btn.addEventListener("click", () => {
       // Invalidate size to ensure map renders correctly before print
