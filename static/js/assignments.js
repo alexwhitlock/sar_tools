@@ -86,6 +86,7 @@ function getTeamStatus(teamField) {
 const TS_BADGE_CLASS = {
   "Out of Service":            "ts-badge-oos",
   "Staged":                    "ts-badge-staged",
+  "Briefed":                   "ts-badge-briefed",
   "Travelling to Assignment":  "ts-badge-travelling",
   "On Assignment":             "ts-badge-on-assignment",
   "Returning from Assignment": "ts-badge-returning",

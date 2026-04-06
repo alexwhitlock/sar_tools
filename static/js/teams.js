@@ -5,6 +5,7 @@ import { logUserEvent } from "./logging.js";
 const TEAM_STATUSES = [
   "Out of Service",
   "Staged",
+  "Briefed",
   "Travelling to Assignment",
   "On Assignment",
   "Returning from Assignment",
@@ -13,6 +14,7 @@ const TEAM_STATUSES = [
 ];
 
 const IN_PROGRESS_TEAM_STATES = new Set([
+  "Briefed",
   "Travelling to Assignment",
   "On Assignment",
   "Returning from Assignment",
@@ -22,6 +24,7 @@ const IN_PROGRESS_TEAM_STATES = new Set([
 const STATUS_BADGE_CLASS = {
   "Out of Service":            "ts-badge-oos",
   "Staged":                    "ts-badge-staged",
+  "Briefed":                   "ts-badge-briefed",
   "Travelling to Assignment":  "ts-badge-travelling",
   "On Assignment":             "ts-badge-on-assignment",
   "Returning from Assignment": "ts-badge-returning",

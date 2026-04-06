@@ -117,6 +117,7 @@
 /* Status pill colours */
 .pill.ts-oos:has(input:checked)           { background: #757575; border-color: #757575; }
 .pill.ts-staged:has(input:checked)        { background: #1565c0; border-color: #1565c0; }
+.pill.ts-briefed:has(input:checked)       { background: #00838f; border-color: #00838f; }
 .pill.ts-travelling:has(input:checked)    { background: #e65100; border-color: #e65100; }
 .pill.ts-on-assignment:has(input:checked) { background: #2e7d32; border-color: #2e7d32; }
 .pill.ts-returning:has(input:checked)     { background: #6a1b9a; border-color: #6a1b9a; }
@@ -215,6 +216,7 @@
 
 .ts-badge-oos           { background: #757575; }
 .ts-badge-staged        { background: #1565c0; }
+.ts-badge-briefed       { background: #00838f; }
 .ts-badge-travelling    { background: #e65100; }
 .ts-badge-on-assignment { background: #2e7d32; }
 .ts-badge-returning     { background: #6a1b9a; }
@@ -311,6 +313,7 @@
 /* Column header colours matching status */
 .kanban-col[data-status="Out of Service"]             .kanban-col-header { background: #757575; }
 .kanban-col[data-status="Staged"]                     .kanban-col-header { background: #1565c0; }
+.kanban-col[data-status="Briefed"]                    .kanban-col-header { background: #00838f; }
 .kanban-col[data-status="Travelling to Assignment"]   .kanban-col-header { background: #e65100; }
 .kanban-col[data-status="On Assignment"]              .kanban-col-header { background: #2e7d32; }
 .kanban-col[data-status="Returning from Assignment"]  .kanban-col-header { background: #6a1b9a; }
