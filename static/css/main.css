@@ -60,7 +60,7 @@ body {
   padding-top: 0.25rem;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ===============================
@@ -140,8 +140,7 @@ body {
    =============================== */
 
 .tab-button {
-  flex: 0 1 140px;
-  min-width: 50px;
+  width: 140px;
   border: 1px solid #ccc;
   border-bottom: none;
   align-self: flex-end;        /* sit at bottom edge of top-bar */
@@ -154,8 +153,6 @@ body {
   font-size: 0.85rem;
   text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
@@ -163,16 +160,79 @@ body {
   border-bottom-right-radius: 0;
 }
 
-@media (max-width: 900px) {
-  .tab-button {
-    padding: 0.4rem 0.4rem;
-    font-size: 0.75rem;
-  }
-  .top-bar-controls button,
-  .top-bar-controls .sync-pill {
-    font-size: 0.75rem;
-    padding: 0.3rem 0.5rem;
-  }
+/* ===============================
+   Hamburger tab menu
+   =============================== */
+
+.tab-hamburger {
+  position: relative;
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+
+.tab-hamburger.hidden {
+  display: none;
+}
+
+.tab-hamburger-btn {
+  height: 34px;
+  padding: 0 0.75rem;
+  font-size: 1.1rem;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-bottom: none;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.tab-hamburger-btn:hover {
+  background: #f0f0f0;
+}
+
+.tab-hamburger-btn.active {
+  background: #fff;
+  border-top: 3px solid #cc5e31;
+}
+
+.tab-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 0 4px 4px 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-dropdown.hidden {
+  display: none;
+}
+
+.tab-dropdown-item {
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  text-align: left;
+  color: #333;
+}
+
+.tab-dropdown-item:hover {
+  background: #f0f0f0;
+}
+
+.tab-dropdown-item.active {
+  font-weight: 600;
+  color: #cc5e31;
+  background: #fff8f5;
 }
 
 .tab-button:hover {
