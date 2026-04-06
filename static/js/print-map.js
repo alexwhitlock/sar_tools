@@ -113,12 +113,9 @@ export function printAssignmentMap(asgn) {
 
     map.fitBounds(layer.getBounds(), { padding: [40, 40] });
 
-    // Enable print button once the map has settled on the initial view
     const btn = document.getElementById("printBtn");
-    map.once("moveend", () => {
-      btn.disabled = false;
-      btn.textContent = "Print / Save PDF";
-    });
+    btn.disabled = false;
+    btn.textContent = "Print / Save PDF";
 
     btn.addEventListener("click", () => {
       // Invalidate size to ensure map renders correctly before print
