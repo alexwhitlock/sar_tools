@@ -452,6 +452,42 @@ function wireTouchDnd(card, asgn) {
 }
 
 /* ===============================
+   Post-complete team staging prompt
+   =============================== */
+
+async function maybeStageTeam(teamField) {
+  if (!teamField) return;
+  const letter = parseAssignmentTeamLetters(teamField)[0];
+  if (!letter) return;
+
+  const team = teamsCache.find(t => String(t.name).trim().toUpperCase() === letter);
+  if (!team || team.status === "Staged") return;
+
+  const confirmed = window.confirm(
+    `Assignment completed. Move Team ${letter} to "Staged"?`
+  );
+  if (!confirmed) return;
+
+  const incidentName = getCurrentIncidentName();
+  if (!incidentName) return;
+
+  try {
+    await fetch("/api/teams/update", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        incidentName,
+        teamId:            team.id,
+        status:            "Staged",
+        expectedUpdatedAt: team.updatedAt,
+      }),
+    });
+  } catch (_) {
+    // non-fatal — team status update failed silently
+  }
+}
+
+/* ===============================
    Status write (kanban drop)
    =============================== */
 
@@ -464,7 +500,8 @@ async function doStatusWrite(asgn, newStatus, cardEl) {
   if (cardEl) cardEl.classList.add("writing");
   try {
     await writeToCalTopo({ featureId: asgn.id, status: newStatus });
-    await loadAssignments();  // re-fetch from CalTopo — card moves only on confirmed state
+    await loadAssignments();
+    if (newStatus === "COMPLETED") await maybeStageTeam(asgn.team);
   } catch (err) {
     assignmentsMessage.show(`Failed to update CalTopo: ${err.message}`, "error");
     if (cardEl) cardEl.classList.remove("writing");
@@ -607,7 +644,8 @@ async function saveEditModal() {
       team:      newTeam,
     });
     closeEditModal();
-    await loadAssignments();  // re-fetch CalTopo state
+    await loadAssignments();
+    if (newStatus === "COMPLETED") await maybeStageTeam(newTeam || _modalAsgn.team);
   } catch (err) {
     errEl.textContent = err.message;
     errEl.classList.remove("hidden");
