@@ -186,11 +186,36 @@
   padding: 4px 8px;
 }
 
-/* Clickable table rows */
-.assignments-data-table tbody tr {
+/* ===============================
+   Table row menu button
+   =============================== */
+
+.asgn-menu-btn {
+  width: auto !important;
+  min-width: 0;
+  padding: 2px 6px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #555;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
+  box-shadow: none;
+  outline: none;
 }
 
-.assignments-data-table tbody tr:hover {
-  background: #f5f5f5;
+.asgn-menu-btn:hover,
+.asgn-menu-btn:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  color: #000;
+}
+
+.asgn-menu-btn:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.asgn-menu-btn:focus {
+  outline: none;
 }

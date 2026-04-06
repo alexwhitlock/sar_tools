@@ -122,9 +122,17 @@ function renderAssignmentRow(a) {
     <td>${escapeHtml(a.resourceType ?? "")}</td>
     <td class="status-${(a.status || "").toLowerCase()}">${escapeHtml(a.status ?? "")}</td>
     <td class="col-op-period">${escapeHtml(a.op ?? "")}</td>
+    <td class="actions-cell">
+      <button type="button" class="asgn-menu-btn"
+        data-feature-id="${escapeHtml(a.id ?? "")}"
+        title="Actions" aria-label="Actions">⋮</button>
+    </td>
   `;
 
-  tr.addEventListener("click", () => openEditModal(a));
+  tr.querySelector(".asgn-menu-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    openAsgnMenu(e.currentTarget, a);
+  });
   return tr;
 }
 
@@ -409,6 +417,11 @@ function wireTouchDnd(card, asgn) {
    =============================== */
 
 async function doStatusWrite(asgn, newStatus, cardEl) {
+  const validationErr = validateStatusChange(asgn, newStatus);
+  if (validationErr) {
+    assignmentsMessage.show(`⚠ ${validationErr}`, "error");
+    return;
+  }
   if (cardEl) cardEl.classList.add("writing");
   try {
     await writeToCalTopo({ featureId: asgn.id, status: newStatus });
@@ -417,6 +430,47 @@ async function doStatusWrite(asgn, newStatus, cardEl) {
     assignmentsMessage.show(`Failed to update CalTopo: ${err.message}`, "error");
     if (cardEl) cardEl.classList.remove("writing");
   }
+}
+
+/* ===============================
+   Validation
+   =============================== */
+
+const TEAM_REQUIRED_STATUSES = new Set(["INPROGRESS", "COMPLETED"]);
+
+function validateStatusChange(asgn, newStatus) {
+  if (TEAM_REQUIRED_STATUSES.has(newStatus) && !(asgn.team || "").trim()) {
+    return `Assignment ${asgn.number ?? "?"} must have a team assigned before setting status to "${STATUS_LABEL[newStatus] ?? newStatus}".`;
+  }
+  return null;
+}
+
+/* ===============================
+   Popup menu
+   =============================== */
+
+let _menuAsgn = null;
+
+function openAsgnMenu(anchorBtn, asgn) {
+  const menu = document.getElementById("asgnMenu");
+  if (!menu) return;
+  _menuAsgn = asgn;
+  menu.classList.remove("hidden");
+
+  const rect = anchorBtn.getBoundingClientRect();
+  const gapY = 4;
+  let top  = rect.bottom + gapY;
+  let left = rect.left - 2;
+  menu.style.top  = `${top}px`;
+  menu.style.left = `${left}px`;
+
+  const mRect = menu.getBoundingClientRect();
+  if (mRect.right  > window.innerWidth  - 8) menu.style.left = `${window.innerWidth  - mRect.width  - 8}px`;
+  if (mRect.bottom > window.innerHeight - 8) menu.style.top  = `${rect.top - mRect.height - gapY}px`;
+}
+
+function closeAsgnMenu() {
+  document.getElementById("asgnMenu")?.classList.add("hidden");
 }
 
 /* ===============================
@@ -471,6 +525,14 @@ async function saveEditModal() {
   const changed = newStatus !== (_modalAsgn.status || "").toUpperCase() ||
                   newTeam   !== (_modalAsgn.team   || "");
   if (!changed) { closeEditModal(); return; }
+
+  // Validate team required for INPROGRESS / COMPLETED
+  const validationErr = validateStatusChange({ ..._modalAsgn, team: newTeam }, newStatus);
+  if (validationErr) {
+    errEl.textContent = validationErr;
+    errEl.classList.remove("hidden");
+    return;
+  }
 
   saveBtn.disabled    = true;
   saveBtn.textContent = "Writing to CalTopo…";
@@ -604,6 +666,16 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("asgn-view-table-btn")?.addEventListener("click",  () => switchView("table"));
   document.getElementById("asgn-view-kanban-btn")?.addEventListener("click", () => switchView("kanban"));
 
+  // Popup menu wiring
+  document.getElementById("asgnMenu")?.addEventListener("click", (e) => {
+    const action = e.target.closest("[data-action]")?.dataset.action;
+    if (action === "edit" && _menuAsgn) openEditModal(_menuAsgn);
+    closeAsgnMenu();
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#asgnMenu") && !e.target.closest(".asgn-menu-btn")) closeAsgnMenu();
+  });
+
   // Edit modal wiring
   document.getElementById("asgnModalClose")?.addEventListener("click",  closeEditModal);
   document.getElementById("asgnModalCancel")?.addEventListener("click", closeEditModal);
@@ -612,7 +684,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === e.currentTarget) closeEditModal();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeEditModal();
+    if (e.key === "Escape") { closeAsgnMenu(); closeEditModal(); }
   });
 });
 
