@@ -21,6 +21,11 @@ const IN_PROGRESS_TEAM_STATES = new Set([
   "Awaiting Debrief",
 ]);
 
+const KANBAN_COL_LABEL = {
+  "Travelling to Assignment":  "Travelling To",
+  "Returning from Assignment": "Returning From",
+};
+
 const STATUS_BADGE_CLASS = {
   "Out of Service":            "ts-badge-oos",
   "Staged":                    "ts-badge-staged",
@@ -640,7 +645,7 @@ function renderKanban(teams) {
 
     col.innerHTML = `
       <div class="kanban-col-header">
-        <span class="kanban-col-label">${escapeHtml(status)}</span>
+        <span class="kanban-col-label">${escapeHtml(KANBAN_COL_LABEL[status] ?? status)}</span>
         <span class="kanban-col-count">${statusTeams.length}</span>
       </div>
       <div class="kanban-col-cards"></div>
