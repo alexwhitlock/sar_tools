@@ -16,6 +16,13 @@ const STATUS_LABEL = {
   COMPLETED:   "Completed",
 };
 
+const ASGN_STATUS_BADGE = {
+  DRAFT:       "asgn-badge-draft",
+  PREPARED:    "asgn-badge-prepared",
+  INPROGRESS:  "asgn-badge-inprogress",
+  COMPLETED:   "asgn-badge-completed",
+};
+
 const collapsedStatuses = new Set();
 
 /* ===============================
@@ -76,6 +83,23 @@ function getTeamStatus(teamField) {
   return team ? team.status : "";
 }
 
+const TS_BADGE_CLASS = {
+  "Out of Service":            "ts-badge-oos",
+  "Staged":                    "ts-badge-staged",
+  "Travelling to Assignment":  "ts-badge-travelling",
+  "On Assignment":             "ts-badge-on-assignment",
+  "Returning from Assignment": "ts-badge-returning",
+  "Awaiting Debrief":          "ts-badge-debrief",
+  "Retired":                   "ts-badge-retired",
+};
+
+function teamStatusBadge(teamField) {
+  const status = getTeamStatus(teamField);
+  if (!status) return "";
+  const cls = TS_BADGE_CLASS[status] ?? "";
+  return `<span class="ts-badge ${cls}">${escapeHtml(status)}</span>`;
+}
+
 function escapeHtml(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
@@ -130,8 +154,8 @@ function renderAssignmentRow(a) {
     <td>${escapeHtml(a.team ?? "")}</td>
     <td>${escapeHtml(a.assignmentType ?? "")}</td>
     <td>${escapeHtml(a.resourceType ?? "")}</td>
-    <td class="status-${(a.status || "").toLowerCase()}">${escapeHtml(a.status ?? "")}</td>
-    <td class="col-team-status">${escapeHtml(getTeamStatus(a.team ?? ""))}</td>
+    <td><span class="asgn-badge ${ASGN_STATUS_BADGE[(a.status || "").toUpperCase()] ?? ""}">${escapeHtml(STATUS_LABEL[(a.status || "").toUpperCase()] ?? a.status ?? "")}</span></td>
+    <td class="col-team-status">${teamStatusBadge(a.team ?? "")}</td>
     <td class="col-op-period">${escapeHtml(a.op ?? "")}</td>
     <td class="actions-cell">
       <button type="button" class="asgn-menu-btn"

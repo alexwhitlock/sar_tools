@@ -64,24 +64,26 @@
 
 
 /* ===============================
-   Status colors
+   Status badge (table rows)
    =============================== */
 
-.status-draft {
-  color: #5596fd;
+.asgn-badge {
+  display: inline-block;
+  font-size: inherit;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: #fff;
 }
 
-.status-prepared {
-  color: #f68c21;
-}
+.asgn-badge-draft      { background: #5596fd; }
+.asgn-badge-prepared   { background: #f68c21; }
+.asgn-badge-inprogress { background: #ec3f3b; }
+.asgn-badge-completed  { background: #901cfc; }
 
-.status-inprogress {
-  color: #ec3f3b;
-}
-
-.status-completed {
-  color: #901cfc;
-}
+/* Legacy pill filter colours (status-* on <td> no longer used for text colour) */
+.status-draft, .status-prepared, .status-inprogress, .status-completed { color: inherit; }
 
 /* ===============================
    Filters
