@@ -380,12 +380,14 @@ let _touchTargetCol      = null;
 let _touchOffsetX        = 0;
 let _touchOffsetY        = 0;
 let _dragActive          = false;
+let _touchScrolled       = false;
 let _touchLongPressTimer = null;
 
 function _touchCleanup(card) {
   clearTimeout(_touchLongPressTimer);
   _touchLongPressTimer = null;
-  _dragActive = false;
+  _dragActive   = false;
+  _touchScrolled = false;
   if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
   if (card) card.style.opacity = "";
   document.querySelectorAll("#assignments-kanban-view .kanban-col.drag-over")
@@ -441,6 +443,7 @@ function wireTouchDnd(card, asgn) {
       // Moved before long-press fired — cancel drag, let scroll proceed naturally
       clearTimeout(_touchLongPressTimer);
       _touchLongPressTimer = null;
+      _touchScrolled = true;
     }
   }, { passive: false });
 
@@ -448,9 +451,10 @@ function wireTouchDnd(card, asgn) {
     const col       = _touchTargetCol;
     const featureId = _touchFeatureId;
     const wasDrag   = _dragActive;
+    const wasScroll = _touchScrolled;
     _touchCleanup(card);
 
-    if (!wasDrag) { openEditModal(asgn); return; }  // tap → edit modal
+    if (!wasDrag && !wasScroll) { openEditModal(asgn); return; }  // tap → edit modal
     if (!col || !featureId) return;
 
     const newStatus = col.dataset.status;

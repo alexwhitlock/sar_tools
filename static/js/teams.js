@@ -55,6 +55,7 @@ let _touchTargetCol      = null;
 let _touchOffsetX        = 0;
 let _touchOffsetY        = 0;
 let _dragActive          = false;
+let _touchScrolled       = false;
 let _touchLongPressTimer = null;
 
 /* ===============================
@@ -410,7 +411,8 @@ function findAssignmentConflicts(assignments) {
 function _touchCleanup(card) {
   clearTimeout(_touchLongPressTimer);
   _touchLongPressTimer = null;
-  _dragActive = false;
+  _dragActive    = false;
+  _touchScrolled = false;
   if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
   if (card) card.style.opacity = "";
   document.querySelectorAll(".kanban-col.drag-over").forEach(c => c.classList.remove("drag-over"));
@@ -464,16 +466,18 @@ function wireTouchDnd(card, teamId) {
       // Moved before long-press fired — cancel drag, let scroll proceed naturally
       clearTimeout(_touchLongPressTimer);
       _touchLongPressTimer = null;
+      _touchScrolled = true;
     }
   }, { passive: false });
 
   card.addEventListener("touchend", async () => {
-    const col    = _touchTargetCol;
-    const tId    = _touchTeamId;
-    const wasDrag = _dragActive;
+    const col      = _touchTargetCol;
+    const tId      = _touchTeamId;
+    const wasDrag  = _dragActive;
+    const wasScroll = _touchScrolled;
     _touchCleanup(card);
 
-    if (!wasDrag) {
+    if (!wasDrag && !wasScroll) {
       // Tap — open edit modal
       const team = findTeamInCache(tId);
       if (team) await openTeamModal("edit", team);
