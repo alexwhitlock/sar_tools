@@ -177,8 +177,10 @@ body {
 .tab-hamburger-btn {
   height: 34px;
   padding: 0 0.75rem;
-  font-size: 1.1rem;
+  font-size: 0.85rem;
+  font-weight: normal;
   background: #eee;
+  color: #333;
   border: 1px solid #ccc;
   border-bottom: none;
   border-top-left-radius: 6px;
