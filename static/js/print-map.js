@@ -11,11 +11,11 @@ export function printAssignmentMap(asgn) {
 
   const title   = `Assignment ${asgn.number ?? "?"}`;
   const details = [
-    asgn.team        ? `Team: ${asgn.team}`                 : null,
-    asgn.assignmentType                                       ? `Type: ${asgn.assignmentType}` : null,
-    asgn.resourceType ? `Resource: ${asgn.resourceType}`    : null,
-    asgn.op          ? `Op Period: ${asgn.op}`              : null,
-    asgn.status      ? `Status: ${asgn.status}`             : null,
+    asgn.team         ? `Team: ${asgn.team}`            : null,
+    asgn.assignmentType ? `Type: ${asgn.assignmentType}` : null,
+    asgn.resourceType ? `Resource: ${asgn.resourceType}` : null,
+    asgn.op           ? `Op Period: ${asgn.op}`          : null,
+    asgn.status       ? `Status: ${asgn.status}`         : null,
   ].filter(Boolean).join("  ·  ");
 
   const geomJson = JSON.stringify(asgn.geometry);
@@ -29,24 +29,29 @@ export function printAssignmentMap(asgn) {
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+
+    body {
+      font-family: Arial, sans-serif;
+    }
 
     .print-header {
       padding: 10px 14px 8px;
       border-bottom: 2px solid #cc5e31;
-      flex-shrink: 0;
     }
-    .print-header h1 { font-size: 1.1rem; color: #cc5e31; margin-bottom: 2px; }
+    .print-header h1   { font-size: 1.1rem; color: #cc5e31; margin-bottom: 2px; }
     .print-header .details { font-size: 0.8rem; color: #444; }
 
-    #map { flex: 1; }
+    /* Fixed pixel height — Leaflet needs this to render tiles */
+    #map {
+      width: 100%;
+      height: 560px;
+    }
 
     .print-footer {
       padding: 5px 14px;
       font-size: 0.7rem;
       color: #888;
       border-top: 1px solid #ddd;
-      flex-shrink: 0;
     }
 
     .print-btn {
@@ -63,12 +68,13 @@ export function printAssignmentMap(asgn) {
       cursor: pointer;
       z-index: 9999;
     }
-    .print-btn:hover { background: #b04e25; }
+    .print-btn:hover   { background: #b04e25; }
+    .print-btn:disabled { background: #aaa; cursor: default; }
 
     @media print {
-      .print-btn { display: none; }
-      body { height: auto; }
-      #map { height: 85vh; }
+      .print-btn  { display: none; }
+      #map        { height: 220mm; }
+      .print-header, .print-footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
@@ -79,17 +85,19 @@ export function printAssignmentMap(asgn) {
   </div>
   <div id="map"></div>
   <div class="print-footer">Printed from SAR Tools &nbsp;·&nbsp; ${new Date().toLocaleString()}</div>
-  <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+  <button class="print-btn" id="printBtn" disabled>Loading map…</button>
 
   <script>
     const geometry = ${geomJson};
 
-    const map = L.map("map");
+    const map = L.map("map", { preferCanvas: true });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
-    }).addTo(map);
+      crossOrigin: true,
+    });
+    tiles.addTo(map);
 
     const layer = L.geoJSON(geometry, {
       style: {
@@ -100,12 +108,25 @@ export function printAssignmentMap(asgn) {
       }
     }).addTo(map);
 
-    map.fitBounds(layer.getBounds(), { padding: [32, 32] });
+    map.fitBounds(layer.getBounds(), { padding: [40, 40] });
+
+    // Enable print button once tiles are loaded
+    let tilesLoading = 0;
+    const btn = document.getElementById("printBtn");
+
+    tiles.on("loading", () => { tilesLoading++; btn.disabled = true; btn.textContent = "Loading map…"; });
+    tiles.on("load",    () => { btn.disabled = false; btn.textContent = "Print / Save PDF"; });
+
+    btn.addEventListener("click", () => {
+      // Invalidate size to ensure map renders correctly before print
+      map.invalidateSize();
+      setTimeout(() => window.print(), 250);
+    });
   <\/script>
 </body>
 </html>`;
 
-  const popup = window.open("", "_blank", "width=900,height=700");
+  const popup = window.open("", "_blank", "width=960,height=780");
   if (!popup) {
     alert("Pop-up blocked. Please allow pop-ups for this site.");
     return;
