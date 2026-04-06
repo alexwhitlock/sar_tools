@@ -93,7 +93,8 @@
 
     <!-- Kebab popup menu -->
     <div id="asgnMenu" class="popup-menu hidden" role="menu" aria-label="Assignment actions">
-      <button type="button" class="menu-item" data-action="edit" role="menuitem">Edit</button>
+      <button type="button" class="menu-item" data-action="edit"      role="menuitem">Edit</button>
+      <button type="button" class="menu-item" data-action="print-map" role="menuitem">Print Map</button>
     </div>
 
     <!-- Edit assignment modal -->
@@ -121,6 +122,7 @@
         </div>
         <div id="asgnModalError" class="modal-error hidden"></div>
         <div class="modal-footer">
+          <button type="button" id="asgnModalPrint">Print Map</button>
           <button type="button" id="asgnModalCancel">Cancel</button>
           <button type="button" id="asgnModalSave">Save</button>
         </div>

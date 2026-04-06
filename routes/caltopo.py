@@ -408,6 +408,7 @@ def get_assignments_for_map(map_id):
             "status": status,
             "op": op_info.get("title"),
             "titleConflict": title_conflict,
+            "geometry": geometry if geometry else None,
         })
 
     return assignments

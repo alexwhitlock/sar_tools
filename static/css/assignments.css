@@ -235,3 +235,11 @@
 .asgn-menu-btn:focus {
   outline: none;
 }
+#asgnModalPrint {
+  margin-right: auto;
+  background: #fff;
+  color: #333;
+  border: 1px solid #bbb;
+  font-weight: normal;
+}
+#asgnModalPrint:hover { background: #f5f5f5; }

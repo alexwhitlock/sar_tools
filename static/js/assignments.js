@@ -1,5 +1,6 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
+import { printAssignmentMap } from "./print-map.js";
 
 let assignmentsTable = null;
 let assignmentsMessage = null;
@@ -864,7 +865,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Popup menu wiring
   document.getElementById("asgnMenu")?.addEventListener("click", (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
-    if (action === "edit" && _menuAsgn) openEditModal(_menuAsgn);
+    if (action === "edit"      && _menuAsgn) openEditModal(_menuAsgn);
+    if (action === "print-map" && _menuAsgn) printAssignmentMap(_menuAsgn);
     closeAsgnMenu();
   });
   document.addEventListener("click", (e) => {
@@ -875,6 +877,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("asgnModalClose")?.addEventListener("click",  closeEditModal);
   document.getElementById("asgnModalCancel")?.addEventListener("click", closeEditModal);
   document.getElementById("asgnModalSave")?.addEventListener("click",   saveEditModal);
+  document.getElementById("asgnModalPrint")?.addEventListener("click",  () => { if (_modalAsgn) printAssignmentMap(_modalAsgn); });
   document.getElementById("asgnModalBackdrop")?.addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeEditModal();
   });
