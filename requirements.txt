@@ -5,3 +5,4 @@ gevent
 fpdf2
 staticmap
 Pillow
+mgrs
