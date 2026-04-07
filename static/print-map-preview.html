@@ -16,7 +16,7 @@
       font-family: Arial, sans-serif;
     }
 
-    #map { flex: 1; min-width: 0; }
+    #map { flex: 1; min-width: 0; min-height: 0; }
 
     #panel {
       width: 230px;
@@ -91,7 +91,9 @@
   <script>
     let _map, _vertexLayer, _geometry, _title, _detailStr, _vertices;
 
-    document.addEventListener("DOMContentLoaded", () => {
+    // Use window load (not DOMContentLoaded) so Leaflet CSS from CDN is
+    // fully applied before we measure the map container size.
+    window.addEventListener("load", () => {
       const raw = new URLSearchParams(location.search).get("asgn");
       if (!raw) {
         document.getElementById("panelTitle").textContent = "No assignment data.";
@@ -135,6 +137,8 @@
         style: { color: "#cc5e31", weight: 2.5, fillColor: "#cc5e31", fillOpacity: 0.15 },
       }).addTo(_map);
       _map.fitBounds(layer.getBounds(), { padding: [40, 40] });
+      // Force Leaflet to remeasure the container after layout settles
+      setTimeout(() => _map.invalidateSize({ animate: false }), 100);
 
       // Vertex markers layer
       _vertexLayer = L.layerGroup().addTo(_map);
@@ -193,9 +197,15 @@
           return;
         }
 
-        const blob     = await resp.blob();
-        const url      = URL.createObjectURL(blob);
-        const filename = _title.replace(/\s+/g, "_") + ".pdf";
+        const blob = await resp.blob();
+        const url  = URL.createObjectURL(blob);
+        const now  = new Date();
+        const ts   = now.getFullYear()
+          + String(now.getMonth() + 1).padStart(2, "0")
+          + String(now.getDate()).padStart(2, "0")
+          + "_" + String(now.getHours()).padStart(2, "0")
+          + String(now.getMinutes()).padStart(2, "0");
+        const filename = _title.replace(/\s+/g, "_") + "_" + ts + ".pdf";
 
         const a    = document.createElement("a");
         a.href     = url;
