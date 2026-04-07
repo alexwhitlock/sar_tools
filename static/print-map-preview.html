@@ -91,13 +91,14 @@
   <script>
     let _map, _vertexLayer, _geometry, _title, _detailStr, _vertices;
 
-    // Signal the opener that we are ready to receive data
-    window.addEventListener("load", () => {
-      if (window.opener) window.opener.postMessage({ type: "ready" }, "*");
-    });
-
-    window.addEventListener("message", (e) => {
-      if (e.data?.type === "init") init(e.data.asgn);
+    document.addEventListener("DOMContentLoaded", () => {
+      const raw = new URLSearchParams(location.search).get("asgn");
+      if (!raw) {
+        document.getElementById("panelTitle").textContent = "No assignment data.";
+        return;
+      }
+      try { init(JSON.parse(raw)); }
+      catch (e) { document.getElementById("panelTitle").textContent = "Error: " + e.message; }
     });
 
     function init(asgn) {
