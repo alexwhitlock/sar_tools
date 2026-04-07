@@ -12,28 +12,34 @@ from staticmap import StaticMap, Line, Polygon as StaticPolygon
 
 bp = Blueprint("pdf", __name__)
 
-# A4 landscape in mm
-PAGE_W, PAGE_H = 297, 210
-MARGIN = 10
-CONTENT_W = PAGE_W - 2 * MARGIN   # 277 mm
+# ── Page geometry (mm) ────────────────────────────────────────────────────────
+PAGE_W, PAGE_H = 297, 210          # A4 landscape
+MARGIN         = 10
+CONTENT_W      = PAGE_W - 2 * MARGIN   # 277 mm
 
-# Staticmap tile image dimensions.
-# Aspect ratio matches map area on page: 277mm wide × ~168mm tall → ~1.65:1
-IMG_W, IMG_H = 1108, 672  # pixels
+# Fixed layout heights (mm)
+_TITLE_H      = 7.0
+_DETAILS_H    = 5.0
+_DIVIDER_PAD  = 3.0   # gap after divider line before map
+_FOOTER_H     = 5.0   # footer text height
+_FOOTER_PAD   = 2.0   # gap between footer text top and page bottom margin
+_VTAB_SEC_H   = 6.0   # "Vertex Coordinates" label
+_VTAB_ROW_H   = 5.0   # height per coordinate row
+
+# Image rendering
+PDF_DPI = 150   # dots per inch for the embedded map raster
 
 
-# ---------------------------------------------------------------------------
-# Route
-# ---------------------------------------------------------------------------
+# ── Route ─────────────────────────────────────────────────────────────────────
 
 @bp.post("/api/assignment/map-pdf")
 def assignment_map_pdf():
-    data = request.get_json(silent=True) or {}
-    geometry     = data.get("geometry")
-    title        = data.get("title", "Assignment Map")
-    details      = data.get("details", "")
-    center       = data.get("center")        # [lon, lat] from Leaflet, or None
-    zoom         = data.get("zoom")          # int from Leaflet, or None
+    data          = request.get_json(silent=True) or {}
+    geometry      = data.get("geometry")
+    title         = data.get("title", "Assignment Map")
+    details       = data.get("details", "")
+    center        = data.get("center")        # [lon, lat] from Leaflet, or None
+    zoom          = data.get("zoom")          # int from Leaflet, or None
     show_vertices = bool(data.get("show_vertices", False))
 
     if not geometry:
@@ -44,20 +50,24 @@ def assignment_map_pdf():
     if not coordinates:
         return jsonify(error="invalid geometry"), 400
 
+    vertices = []
+    if show_vertices and geom_type == "Polygon":
+        vertices = coordinates[0][:-1]   # drop repeated closing point
+
     try:
+        layout   = _calc_layout(bool(details), len(vertices))
         map_img, x_center, y_center, render_zoom = _render_map(
-            geom_type, coordinates, center, zoom
+            geom_type, coordinates, center, zoom,
+            img_w=_mm_to_px(CONTENT_W),
+            img_h=_mm_to_px(layout["map_h"]),
         )
 
-        vertices = []
-        if show_vertices and geom_type == "Polygon":
-            ring = coordinates[0]
-            vertices = ring[:-1]   # drop the repeated closing point
+        if vertices:
             map_img = _draw_vertex_markers(
                 map_img, vertices, x_center, y_center, render_zoom
             )
 
-        pdf_bytes = _make_pdf(title, details, map_img, vertices)
+        pdf_bytes = _make_pdf(title, details, map_img, vertices, layout)
         filename  = title.replace(" ", "_") + ".pdf"
         return send_file(
             io.BytesIO(pdf_bytes),
@@ -69,9 +79,41 @@ def assignment_map_pdf():
         return jsonify(error=str(e)), 500
 
 
-# ---------------------------------------------------------------------------
-# Map rendering
-# ---------------------------------------------------------------------------
+# ── Layout calculation ─────────────────────────────────────────────────────────
+
+def _calc_layout(has_details, n_verts):
+    """Return a dict of vertical positions (all in mm from page top)."""
+    map_top = MARGIN + _TITLE_H
+    if has_details:
+        map_top += _DETAILS_H
+    map_top += _DIVIDER_PAD
+
+    footer_line_y = PAGE_H - MARGIN - _FOOTER_H - _FOOTER_PAD
+
+    if n_verts > 0:
+        n_rows  = math.ceil(n_verts / 2)
+        table_h = _VTAB_SEC_H + n_rows * _VTAB_ROW_H
+        table_top  = footer_line_y - table_h - 2
+        map_bottom = table_top - 2
+    else:
+        table_top  = None
+        map_bottom = footer_line_y - 2
+
+    return {
+        "map_top":      map_top,
+        "map_bottom":   map_bottom,
+        "map_h":        map_bottom - map_top,
+        "table_top":    table_top,
+        "footer_line_y": footer_line_y,
+        "n_vtab_rows":  math.ceil(n_verts / 2) if n_verts else 0,
+    }
+
+
+def _mm_to_px(mm):
+    return int(round(mm / 25.4 * PDF_DPI))
+
+
+# ── Map rendering ──────────────────────────────────────────────────────────────
 
 def _lon_to_x(lon, zoom):
     return ((lon + 180) / 360) * (2 ** zoom)
@@ -82,17 +124,16 @@ def _lat_to_y(lat, zoom):
     return (1 - math.log(math.tan(lat_r) + 1 / math.cos(lat_r)) / math.pi) / 2 * (2 ** zoom)
 
 
-def _latlon_to_px(lat, lon, x_center, y_center, zoom):
-    """Convert a lat/lon to pixel coordinates on the rendered staticmap image."""
-    x = (_lon_to_x(lon, zoom) - x_center) * 256 + IMG_W / 2
-    y = (_lat_to_y(lat, zoom) - y_center) * 256 + IMG_H / 2
+def _latlon_to_px(lat, lon, x_center, y_center, zoom, img_w, img_h):
+    x = (_lon_to_x(lon, zoom) - x_center) * 256 + img_w / 2
+    y = (_lat_to_y(lat, zoom) - y_center) * 256 + img_h / 2
     return int(round(x)), int(round(y))
 
 
-def _render_map(geom_type, coordinates, center=None, zoom=None):
-    """Fetch OSM tiles and draw the assignment geometry. Returns (PIL Image, x_center, y_center, zoom)."""
+def _render_map(geom_type, coordinates, center, zoom, img_w, img_h):
+    """Fetch OSM tiles and draw geometry. Returns (PIL Image, x_center, y_center, zoom)."""
     m = StaticMap(
-        IMG_W, IMG_H,
+        img_w, img_h,
         url_template="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         headers={"User-Agent": "sar-tools/1.0 (SAR management application)"},
     )
@@ -100,39 +141,32 @@ def _render_map(geom_type, coordinates, center=None, zoom=None):
     if geom_type == "Polygon":
         ring   = coordinates[0]
         coords = [(pt[0], pt[1]) for pt in ring]
-        m.add_polygon(StaticPolygon(
-            coords,
-            fill_color="#cc5e3140",
-            outline_color="#cc5e31",
-            simplify=True,
-        ))
+        m.add_polygon(StaticPolygon(coords, fill_color="#cc5e3140",
+                                    outline_color="#cc5e31", simplify=True))
     elif geom_type == "LineString":
         coords = [(pt[0], pt[1]) for pt in coordinates]
         m.add_line(Line(coords, "#cc5e31", 4, simplify=True))
 
     render_zoom   = int(zoom)   if zoom   else None
-    render_center = center      if center else None   # [lon, lat]
+    render_center = center      if center else None
 
     img = m.render(zoom=render_zoom, center=render_center)
 
-    # Compute tile-space center ourselves (staticmap internals are not public API).
-    # When center was provided by the client we already know it exactly.
-    # When auto-fit was used we fall back to computing from the geometry bounds.
+    # Compute tile-space center without relying on staticmap private attributes
     if render_center and render_zoom is not None:
         lon_c, lat_c = render_center
-        x_center = _lon_to_x(lon_c, render_zoom)
-        y_center = _lat_to_y(lat_c, render_zoom)
+        x_center  = _lon_to_x(lon_c, render_zoom)
+        y_center  = _lat_to_y(lat_c, render_zoom)
         final_zoom = render_zoom
     else:
-        # Auto-fit: approximate center from feature bounds for vertex placement.
-        all_lons = [pt[0] for pt in (coordinates[0] if geom_type == "Polygon" else coordinates)]
-        all_lats = [pt[1] for pt in (coordinates[0] if geom_type == "Polygon" else coordinates)]
-        lon_c = (min(all_lons) + max(all_lons)) / 2
-        lat_c = (min(all_lats) + max(all_lats)) / 2
-        # Determine zoom from what staticmap chose (try common attribute names)
+        src = coordinates[0] if geom_type == "Polygon" else coordinates
+        lons = [p[0] for p in src]
+        lats = [p[1] for p in src]
+        lon_c = (min(lons) + max(lons)) / 2
+        lat_c = (min(lats) + max(lats)) / 2
         final_zoom = getattr(m, "_zoom", getattr(m, "zoom", 14))
-        x_center = _lon_to_x(lon_c, final_zoom)
-        y_center = _lat_to_y(lat_c, final_zoom)
+        x_center   = _lon_to_x(lon_c, final_zoom)
+        y_center   = _lat_to_y(lat_c, final_zoom)
 
     return img, x_center, y_center, final_zoom
 
@@ -141,127 +175,103 @@ def _draw_vertex_markers(img, vertices, x_center, y_center, zoom):
     """Draw numbered circles at each vertex on the PIL image."""
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.load_default(size=16)
+        font = ImageFont.load_default(size=20)
     except TypeError:
         font = ImageFont.load_default()
 
-    r = 13  # circle radius in pixels
+    img_w, img_h = img.size
+    r = max(14, img_w // 70)   # scale radius with image width
 
     for i, (lon, lat) in enumerate(vertices):
-        px, py = _latlon_to_px(lat, lon, x_center, y_center, zoom)
+        px, py = _latlon_to_px(lat, lon, x_center, y_center, zoom, img_w, img_h)
         label  = str(i + 1)
 
-        # White halo then filled circle
-        draw.ellipse([px - r - 1, py - r - 1, px + r + 1, py + r + 1],
-                     fill="white")
+        # White halo + filled circle
+        draw.ellipse([px - r - 2, py - r - 2, px + r + 2, py + r + 2], fill="white")
         draw.ellipse([px - r, py - r, px + r, py + r],
                      fill="#cc5e31", outline="white", width=2)
 
-        # Centre the label in the circle
         bbox = draw.textbbox((0, 0), label, font=font)
-        tw   = bbox[2] - bbox[0]
-        th   = bbox[3] - bbox[1]
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
         draw.text((px - tw / 2, py - th / 2), label, fill="white", font=font)
 
     return img
 
 
-# ---------------------------------------------------------------------------
-# MGRS coordinate formatting
-# ---------------------------------------------------------------------------
+# ── MGRS formatting ────────────────────────────────────────────────────────────
 
 _mgrs = mgrs_lib.MGRS()
 
 def _to_mgrs(lat, lon):
-    """Return a formatted 10-digit MGRS string, e.g. '10U EF 12345 67890'."""
     raw   = _mgrs.toMGRS(lat, lon, MGRSPrecision=5)
     match = re.match(r'(\d{1,2}[A-Z])([A-Z]{2})(\d{5})(\d{5})', raw)
     if match:
         zone, square, east, north = match.groups()
         return f"{zone} {square} {east} {north}"
-    return raw   # fallback: unformatted
+    return raw
 
 
-# ---------------------------------------------------------------------------
-# PDF composition
-# ---------------------------------------------------------------------------
+# ── PDF composition ────────────────────────────────────────────────────────────
 
-def _make_pdf(title, details, map_img, vertices):
-    """Compose A4 landscape PDF. Returns bytes."""
+def _make_pdf(title, details, map_img, vertices, layout):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     pdf.set_margins(MARGIN, MARGIN, MARGIN)
     pdf.add_page()
 
-    # --- Header ---
+    # ── Header ──
     pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(204, 94, 49)
     pdf.set_xy(MARGIN, MARGIN)
-    pdf.cell(CONTENT_W, 7, title)
-    pdf.ln(7)
+    pdf.cell(CONTENT_W, _TITLE_H, title)
 
     if details:
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(68, 68, 68)
-        pdf.set_x(MARGIN)
-        pdf.cell(CONTENT_W, 5, details)
-        pdf.ln(5)
+        pdf.set_xy(MARGIN, MARGIN + _TITLE_H)
+        pdf.cell(CONTENT_W, _DETAILS_H, details)
 
-    divider_y = pdf.get_y() + 1
+    divider_y = layout["map_top"] - 1
     pdf.set_draw_color(204, 94, 49)
     pdf.set_line_width(0.4)
     pdf.line(MARGIN, divider_y, PAGE_W - MARGIN, divider_y)
-    map_top = divider_y + 2
 
-    # --- Footer ---
-    footer_y = PAGE_H - MARGIN - 5
+    # ── Footer ──
+    fy = layout["footer_line_y"]
     pdf.set_draw_color(200, 200, 200)
     pdf.set_line_width(0.2)
-    pdf.line(MARGIN, footer_y, PAGE_W - MARGIN, footer_y)
-    pdf.set_xy(MARGIN, footer_y + 1)
+    pdf.line(MARGIN, fy, PAGE_W - MARGIN, fy)
+    pdf.set_xy(MARGIN, fy + 1)
     pdf.set_font("Helvetica", "", 7)
     pdf.set_text_color(136, 136, 136)
-    pdf.cell(CONTENT_W, 4,
+    pdf.cell(CONTENT_W, _FOOTER_H,
              f"Printed from SAR Tools  \u00b7  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-    # --- Vertex coordinate table (optional) ---
-    table_top = None
-    if vertices:
-        n_verts    = len(vertices)
-        n_cols     = 2
-        n_rows     = math.ceil(n_verts / n_cols)
-        row_h      = 5.0
-        table_h    = 7 + n_rows * row_h   # 7mm for section header
+    # ── Vertex coordinate table ──
+    if vertices and layout["table_top"] is not None:
+        tt       = layout["table_top"]
+        col_w    = CONTENT_W / 2
+        content_y = tt + _VTAB_SEC_H
 
-        table_top = footer_y - table_h - 2
-        col_w     = CONTENT_W / n_cols
-
-        # Section header
-        pdf.set_xy(MARGIN, table_top)
         pdf.set_font("Helvetica", "B", 8)
-        pdf.set_text_color(68, 68, 68)
-        pdf.cell(CONTENT_W, 5, "Vertex Coordinates (MGRS)")
-        pdf.ln(5)
+        pdf.set_text_color(80, 80, 80)
+        pdf.set_xy(MARGIN, tt)
+        pdf.cell(CONTENT_W, _VTAB_SEC_H - 1, "Vertex Coordinates (MGRS)")
 
         pdf.set_font("Helvetica", "", 8)
         pdf.set_text_color(50, 50, 50)
-
         for idx, (lon, lat) in enumerate(vertices):
-            col   = idx % n_cols
-            row   = idx // n_cols
-            x     = MARGIN + col * col_w
-            y     = pdf.get_y() if col == 0 else table_top + 7 + row * row_h
-            coord = _to_mgrs(lat, lon)
+            col  = idx % 2
+            row  = idx // 2
+            x    = MARGIN + col * col_w
+            y    = content_y + row * _VTAB_ROW_H
             pdf.set_xy(x, y)
-            pdf.cell(col_w, row_h, f"{idx + 1}.  {coord}")
+            pdf.cell(col_w, _VTAB_ROW_H, f"{idx + 1}.  {_to_mgrs(lat, lon)}")
 
-    # --- Map image ---
-    map_bottom = (table_top - 2) if table_top else footer_y
-    map_h      = map_bottom - map_top
-
+    # ── Map image (drawn last; natural aspect ratio preserved by omitting h) ──
     img_buf = io.BytesIO()
     map_img.save(img_buf, format="PNG")
     img_buf.seek(0)
-    pdf.image(img_buf, x=MARGIN, y=map_top, w=CONTENT_W, h=map_h)
+    pdf.image(img_buf, x=MARGIN, y=layout["map_top"], w=CONTENT_W)
 
     return bytes(pdf.output())
