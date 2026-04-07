@@ -83,6 +83,9 @@
       <label class="option-label">
         <input type="checkbox" id="showVertices"> Vertex coordinates
       </label>
+      <label class="option-label">
+        <input type="checkbox" id="showBearings"> Side bearings
+      </label>
     </div>
     <div class="spacer"></div>
     <button id="generateBtn" disabled>Loading…</button>
@@ -134,7 +137,7 @@
       }).addTo(_map);
 
       const layer = L.geoJSON(_geometry, {
-        style: { color: "#cc5e31", weight: 3.5, fill: false },
+        style: { color: "#cc0000", weight: 3.5, fill: false },
       }).addTo(_map);
       _map.fitBounds(layer.getBounds(), { padding: [40, 40] });
       // Force Leaflet to remeasure the container after layout settles
@@ -156,15 +159,29 @@
       _vertexLayer.clearLayers();
       if (!show) return;
       _vertices.forEach(([lon, lat], i) => {
+        // Small dot at exact vertex
+        L.circleMarker([lat, lon], {
+          radius: 4,
+          color: "white",
+          weight: 2,
+          fillColor: "#cc0000",
+          fillOpacity: 1,
+          interactive: false,
+        }).addTo(_vertexLayer);
+
+        // Number label floating above-right with white text-shadow outline
         const icon = L.divIcon({
           className: "",
-          html: '<div style="width:22px;height:22px;border-radius:50%;background:#cc5e31;'
-              + 'color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;'
-              + 'justify-content:center;border:2px solid #fff;'
-              + 'box-shadow:0 1px 4px rgba(0,0,0,.4)">' + (i + 1) + "</div>",
-          iconSize: [22, 22], iconAnchor: [11, 11],
+          html: '<span style="font-size:13px;font-weight:700;color:#cc0000;'
+              + 'text-shadow:-2px -2px 0 #fff,2px -2px 0 #fff,'
+              + '-2px 2px 0 #fff,2px 2px 0 #fff;'
+              + 'white-space:nowrap;pointer-events:none;line-height:1;">'
+              + (i + 1) + "</span>",
+          iconSize: null,
+          iconAnchor: [-6, 16],
         });
-        L.marker([lat, lon], { icon }).addTo(_vertexLayer);
+        L.marker([lat, lon], { icon, interactive: false, keyboard: false })
+          .addTo(_vertexLayer);
       });
     }
 
@@ -176,6 +193,7 @@
       const center       = _map.getCenter();
       const zoom         = Math.round(_map.getZoom());
       const showVertices = document.getElementById("showVertices")?.checked ?? false;
+      const showBearings = document.getElementById("showBearings")?.checked ?? false;
 
       try {
         const resp = await fetch("/api/assignment/map-pdf", {
@@ -188,6 +206,7 @@
             center:        [center.lng, center.lat],
             zoom,
             show_vertices: showVertices,
+            show_bearings: showBearings,
           }),
         });
 
