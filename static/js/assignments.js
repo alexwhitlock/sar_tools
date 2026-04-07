@@ -866,7 +866,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("asgnMenu")?.addEventListener("click", (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;
     if (action === "edit"      && _menuAsgn) openEditModal(_menuAsgn);
-    if (action === "print-map" && _menuAsgn) printAssignmentMap(_menuAsgn);
+    if (action === "print-map" && _menuAsgn) printAssignmentMap(_menuAsgn, e.target.closest("[data-action]"));
     closeAsgnMenu();
   });
   document.addEventListener("click", (e) => {
@@ -877,7 +877,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("asgnModalClose")?.addEventListener("click",  closeEditModal);
   document.getElementById("asgnModalCancel")?.addEventListener("click", closeEditModal);
   document.getElementById("asgnModalSave")?.addEventListener("click",   saveEditModal);
-  document.getElementById("asgnModalPrint")?.addEventListener("click",  () => { if (_modalAsgn) printAssignmentMap(_modalAsgn); });
+  document.getElementById("asgnModalPrint")?.addEventListener("click",  (e) => { if (_modalAsgn) printAssignmentMap(_modalAsgn, e.currentTarget); });
   document.getElementById("asgnModalBackdrop")?.addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeEditModal();
   });

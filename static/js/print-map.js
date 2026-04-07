@@ -1,178 +1,52 @@
 /**
  * print-map.js
- * Opens a print-ready popup window with a Leaflet map centred on an assignment polygon.
+ * Requests a server-rendered PDF for an assignment map and opens it in a new tab.
  */
 
-export function printAssignmentMap(asgn) {
+export async function printAssignmentMap(asgn, triggerEl) {
   if (!asgn.geometry) {
     alert("No geometry available for this assignment.");
     return;
   }
 
-  const title   = `Assignment ${asgn.number ?? "?"}`;
+  const title = `Assignment ${asgn.number ?? "?"}`;
   const details = [
-    asgn.team         ? `Team: ${asgn.team}`            : null,
-    asgn.assignmentType ? `Type: ${asgn.assignmentType}` : null,
-    asgn.resourceType ? `Resource: ${asgn.resourceType}` : null,
-    asgn.op           ? `Op Period: ${asgn.op}`          : null,
-    asgn.status       ? `Status: ${asgn.status}`         : null,
-  ].filter(Boolean).join("  ·  ");
+    asgn.team          ? `Team: ${asgn.team}`             : null,
+    asgn.assignmentType ? `Type: ${asgn.assignmentType}`  : null,
+    asgn.resourceType  ? `Resource: ${asgn.resourceType}` : null,
+    asgn.op            ? `Op Period: ${asgn.op}`           : null,
+    asgn.status        ? `Status: ${asgn.status}`          : null,
+  ].filter(Boolean).join("  \u00b7  ");
 
-  const geomJson = JSON.stringify(asgn.geometry);
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${title}</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .print-header {
-      padding: 10px 14px 8px;
-      border-bottom: 2px solid #cc5e31;
-    }
-    .print-header h1   { font-size: 1.1rem; color: #cc5e31; margin-bottom: 2px; }
-    .print-header .details { font-size: 0.8rem; color: #444; }
-
-    .print-header { flex-shrink: 0; }
-    .print-footer { flex-shrink: 0; }
-
-    /* Map fills all remaining space */
-    #map { flex: 1; min-height: 0; }
-
-    .print-footer {
-      padding: 4px 14px;
-      font-size: 0.7rem;
-      color: #888;
-      border-top: 1px solid #ddd;
-    }
-
-    .print-btn {
-      position: fixed;
-      top: 10px;
-      right: 14px;
-      padding: 6px 14px;
-      background: #cc5e31;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      z-index: 9999;
-    }
-    .print-btn:hover    { background: #b04e25; }
-    .print-btn:disabled { background: #aaa; cursor: default; }
-
-    @page { size: A4 landscape; margin: 8mm; }
-
-    @media print {
-      .print-btn   { display: none; }
-      body         { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .print-header { page-break-after: avoid; padding: 4px 14px 4px; }
-      .print-header h1 { font-size: 0.95rem; }
-      .print-header .details { font-size: 0.72rem; }
-      html, body   { overflow: visible; height: auto; display: block; }
-      #map         { height: 155mm; page-break-inside: avoid; page-break-after: avoid; }
-      .print-footer { page-break-before: avoid; padding: 2px 14px; }
-    }
-  </style>
-</head>
-<body>
-  <div class="print-header">
-    <h1>${title}</h1>
-    <div class="details">${details}</div>
-  </div>
-  <div id="map"></div>
-  <div class="print-footer">Printed from SAR Tools &nbsp;·&nbsp; ${new Date().toLocaleString()}</div>
-  <button class="print-btn" id="printBtn" disabled>Loading map…</button>
-
-  <script>
-    const geometry = ${geomJson};
-
-    const map = L.map("map", { preferCanvas: true });
-
-    const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-      crossOrigin: true,
-    });
-    tiles.addTo(map);
-
-    const layer = L.geoJSON(geometry, {
-      style: {
-        color: "#cc5e31",
-        weight: 2.5,
-        fillColor: "#cc5e31",
-        fillOpacity: 0.15,
-      }
-    }).addTo(map);
-
-    map.fitBounds(layer.getBounds(), { padding: [40, 40] });
-
-    const btn = document.getElementById("printBtn");
-    btn.disabled = false;
-    btn.textContent = "Print / Save PDF";
-
-    const bounds = layer.getBounds();
-
-    // Restore map to flex window layout after printing
-    window.addEventListener("afterprint", () => {
-      const mapEl = document.getElementById("map");
-      mapEl.style.width  = "";
-      mapEl.style.height = "";
-      map.invalidateSize({ animate: false });
-      map.fitBounds(bounds, { padding: [40, 40], animate: false });
-      btn.disabled = false;
-      btn.textContent = "Print / Save PDF";
-    });
-
-    btn.addEventListener("click", () => {
-      // Resize map to exact A4 landscape print dimensions (96dpi):
-      // 281mm wide × 155mm tall → 1063px × 586px
-      // so Leaflet fitBounds matches the printed page aspect ratio,
-      // and tiles are fully loaded at the right zoom before print opens.
-      btn.disabled = true;
-      btn.textContent = "Preparing…";
-
-      const mapEl = document.getElementById("map");
-      mapEl.style.width  = "1063px";
-      mapEl.style.height = "586px";
-      map.invalidateSize({ animate: false });
-      map.fitBounds(bounds, { padding: [20, 20], animate: false });
-
-      let printed = false;
-      const doPrint = () => {
-        if (printed) return;
-        printed = true;
-        window.print();
-      };
-
-      // Print once tiles finish loading; 4s fallback in case all tiles are cached
-      tiles.once("load", doPrint);
-      setTimeout(doPrint, 4000);
-    });
-  <\/script>
-</body>
-</html>`;
-
-  // Open at A4 landscape aspect ratio (1.414:1) so WYSIWYG with print output
-  const popup = window.open("", "_blank", "width=1040,height=780");
-  if (!popup) {
-    alert("Pop-up blocked. Please allow pop-ups for this site.");
-    return;
+  // Give the user feedback while we wait for tiles to be fetched server-side
+  const original = triggerEl?.textContent;
+  if (triggerEl) {
+    triggerEl.disabled = true;
+    triggerEl.textContent = "Generating…";
   }
-  popup.document.write(html);
-  popup.document.close();
+
+  try {
+    const resp = await fetch("/api/assignment/map-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ geometry: asgn.geometry, title, details }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      alert(`Failed to generate PDF: ${err.error ?? resp.statusText}`);
+      return;
+    }
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    // Revoke after a short delay to free memory once the tab has loaded
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } finally {
+    if (triggerEl) {
+      triggerEl.disabled = false;
+      triggerEl.textContent = original;
+    }
+  }
 }
