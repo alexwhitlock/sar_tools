@@ -115,8 +115,26 @@ def _render_map(geom_type, coordinates, center=None, zoom=None):
 
     img = m.render(zoom=render_zoom, center=render_center)
 
-    # staticmap sets these after render()
-    return img, m._x_center, m._y_center, m._zoom
+    # Compute tile-space center ourselves (staticmap internals are not public API).
+    # When center was provided by the client we already know it exactly.
+    # When auto-fit was used we fall back to computing from the geometry bounds.
+    if render_center and render_zoom is not None:
+        lon_c, lat_c = render_center
+        x_center = _lon_to_x(lon_c, render_zoom)
+        y_center = _lat_to_y(lat_c, render_zoom)
+        final_zoom = render_zoom
+    else:
+        # Auto-fit: approximate center from feature bounds for vertex placement.
+        all_lons = [pt[0] for pt in (coordinates[0] if geom_type == "Polygon" else coordinates)]
+        all_lats = [pt[1] for pt in (coordinates[0] if geom_type == "Polygon" else coordinates)]
+        lon_c = (min(all_lons) + max(all_lons)) / 2
+        lat_c = (min(all_lats) + max(all_lats)) / 2
+        # Determine zoom from what staticmap chose (try common attribute names)
+        final_zoom = getattr(m, "_zoom", getattr(m, "zoom", 14))
+        x_center = _lon_to_x(lon_c, final_zoom)
+        y_center = _lat_to_y(lat_c, final_zoom)
+
+    return img, x_center, y_center, final_zoom
 
 
 def _draw_vertex_markers(img, vertices, x_center, y_center, zoom):

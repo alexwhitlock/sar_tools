@@ -186,7 +186,7 @@ export function printAssignmentMap(asgn) {
       const showVertices = checkbox?.checked ?? false;
 
       try {
-        const resp = await fetch("/api/assignment/map-pdf", {
+        const resp = await fetch(${JSON.stringify(window.location.origin)} + "/api/assignment/map-pdf", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({
@@ -226,11 +226,13 @@ export function printAssignmentMap(asgn) {
 </body>
 </html>`;
 
-  const popup = window.open("", "_blank", "width=1100,height=720");
+  // Use a blob: URL so the popup inherits the app's origin — this allows
+  // relative fetch paths (/api/...) and CDN scripts to load correctly.
+  const blob   = new Blob([html], { type: "text/html" });
+  const blobUrl = URL.createObjectURL(blob);
+  const popup  = window.open(blobUrl, "_blank", "width=1100,height=720");
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
   if (!popup) {
     alert("Pop-up blocked. Please allow pop-ups for this site.");
-    return;
   }
-  popup.document.write(html);
-  popup.document.close();
 }
