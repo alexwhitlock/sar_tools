@@ -134,7 +134,7 @@
       }).addTo(_map);
 
       const layer = L.geoJSON(_geometry, {
-        style: { color: "#cc5e31", weight: 2.5, fillColor: "#cc5e31", fillOpacity: 0.15 },
+        style: { color: "#cc5e31", weight: 3.5, fill: false },
       }).addTo(_map);
       _map.fitBounds(layer.getBounds(), { padding: [40, 40] });
       // Force Leaflet to remeasure the container after layout settles

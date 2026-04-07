@@ -139,13 +139,13 @@ def _render_map(geom_type, coordinates, center, zoom, img_w, img_h):
     )
 
     if geom_type == "Polygon":
-        ring   = coordinates[0]
+        # No fill — draw the closed ring as a thick line
+        ring   = coordinates[0]   # already closed (first == last)
         coords = [(pt[0], pt[1]) for pt in ring]
-        m.add_polygon(StaticPolygon(coords, fill_color="#cc5e3140",
-                                    outline_color="#cc5e31", simplify=True))
+        m.add_line(Line(coords, "#cc5e31", 5, simplify=True))
     elif geom_type == "LineString":
         coords = [(pt[0], pt[1]) for pt in coordinates]
-        m.add_line(Line(coords, "#cc5e31", 4, simplify=True))
+        m.add_line(Line(coords, "#cc5e31", 5, simplify=True))
 
     render_zoom   = int(zoom)   if zoom   else None
     render_center = center      if center else None
@@ -172,28 +172,37 @@ def _render_map(geom_type, coordinates, center, zoom, img_w, img_h):
 
 
 def _draw_vertex_markers(img, vertices, x_center, y_center, zoom):
-    """Draw numbered circles at each vertex on the PIL image."""
-    draw = ImageDraw.Draw(img)
+    """Draw a small dot at each vertex and a numbered label offset above-right."""
+    draw  = ImageDraw.Draw(img)
+    img_w, img_h = img.size
+
+    font_size = max(18, img_w // 75)
     try:
-        font = ImageFont.load_default(size=20)
+        font = ImageFont.load_default(size=font_size)
     except TypeError:
         font = ImageFont.load_default()
 
-    img_w, img_h = img.size
-    r = max(14, img_w // 70)   # scale radius with image width
+    dot_r    = max(5, img_w // 280)          # small dot radius
+    lbl_dx   = dot_r + 6                     # label offset right of dot
+    lbl_dy   = -(font_size + dot_r + 2)      # label offset above dot
 
     for i, (lon, lat) in enumerate(vertices):
         px, py = _latlon_to_px(lat, lon, x_center, y_center, zoom, img_w, img_h)
         label  = str(i + 1)
 
-        # White halo + filled circle
-        draw.ellipse([px - r - 2, py - r - 2, px + r + 2, py + r + 2], fill="white")
-        draw.ellipse([px - r, py - r, px + r, py + r],
+        # Small filled dot at exact vertex location
+        draw.ellipse([px - dot_r, py - dot_r, px + dot_r, py + dot_r],
                      fill="#cc5e31", outline="white", width=2)
 
-        bbox = draw.textbbox((0, 0), label, font=font)
-        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        draw.text((px - tw / 2, py - th / 2), label, fill="white", font=font)
+        # Number floating above-right with white stroke for readability on any background
+        draw.text(
+            (px + lbl_dx, py + lbl_dy),
+            label,
+            fill="#cc5e31",
+            font=font,
+            stroke_width=2,
+            stroke_fill="white",
+        )
 
     return img
 
