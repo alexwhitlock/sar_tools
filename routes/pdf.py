@@ -65,7 +65,7 @@ def assignment_map_pdf():
             lon1, lat1 = ring[i]
             lon2, lat2 = ring[(i + 1) % n]
             b = _bearing(lat1, lon1, lat2, lon2)
-            bearings.append(f"{i + 1}-{(i + 1) % n + 1}: {b:05.1f}\u00b0T")
+            bearings.append(f"{i + 1}-{(i + 1) % n + 1}: {round(b) % 360:03d}\u00b0")
 
     grid_zone = ""
     if show_grid and ring:
