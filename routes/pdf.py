@@ -274,9 +274,10 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
                 pass
         if len(pts) >= 2:
             draw.line(pts, fill=BLUE, width=1)
-        # Label every 1000 m at top edge
-        if e_int % 1000 == 0 and pts:
-            draw.text((pts[0][0] + 2, 3), f"{e_int % 100_000:05d}",
+        # Label every line at bottom edge — drop trailing "00" (all multiples of 100)
+        if pts:
+            draw.text((pts[0][0] + 2, img_h - lbl_sz - 3),
+                      f"{(e_int % 100_000) // 100:03d}",
                       fill=BLUE, font=font, stroke_width=2, stroke_fill="white")
 
     # ── Horizontal lines (constant northing) ───────────────────────────────
@@ -291,9 +292,10 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
                 pass
         if len(pts) >= 2:
             draw.line(pts, fill=BLUE, width=1)
-        # Label every 1000 m at left edge
-        if n_int % 1000 == 0 and pts:
-            draw.text((3, pts[0][1] - lbl_sz - 2), f"{n_int % 100_000:05d}",
+        # Label every line at left edge — drop trailing "00"
+        if pts:
+            draw.text((3, pts[0][1] - lbl_sz - 2),
+                      f"{(n_int % 100_000) // 100:03d}",
                       fill=BLUE, font=font, stroke_width=2, stroke_fill="white")
 
     return img
