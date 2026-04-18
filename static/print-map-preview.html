@@ -92,22 +92,15 @@
 
   <script>
     // ── PDF layout constants (must match routes/pdf.py) ──────────────────────
-    const PDF_PAGE_W   = 297, PDF_PAGE_H  = 210;
-    const PDF_HEADER_H = 12,  PDF_FOOTER_H = 8;
-    const PDF_VTAB_SEC = 5,   PDF_VTAB_ROW = 4.5;
+    // 0.5-inch margin, 1-inch bottom strip — fully fixed, no vertex dependency
+    const PDF_PAGE_W  = 297, PDF_PAGE_H = 210;
+    const PDF_MARGIN  = 12.7;   // 0.5 inch
+    const PDF_BOTTOM_H = 25.4;  // 1 inch
 
     function _pdfAspectRatio() {
-      // Mirrors _calc_layout() in pdf.py — uses actual ring size,
-      // independent of checkbox state, so map height never changes.
-      const mapTop    = PDF_HEADER_H;
-      const footerTop = PDF_PAGE_H - PDF_FOOTER_H;
-      const nRing     = _vertices.length;
-
-      const mapBottom = nRing > 0
-        ? footerTop - (PDF_VTAB_SEC + nRing * PDF_VTAB_ROW)
-        : footerTop;
-
-      return PDF_PAGE_W / (mapBottom - mapTop);
+      const contentW = PDF_PAGE_W - 2 * PDF_MARGIN;          // 271.6
+      const mapH     = (PDF_PAGE_H - 2 * PDF_MARGIN) - PDF_BOTTOM_H;  // 159.2
+      return contentW / mapH;   // ~1.706, always fixed
     }
 
     function _resizeMap() {

@@ -12,21 +12,23 @@ from staticmap import StaticMap, Line, Polygon as StaticPolygon
 
 bp = Blueprint("pdf", __name__)
 
-# ── Page geometry (mm) ────────────────────────────────────────────────────────
-PAGE_W, PAGE_H = 297, 210
+# ── Page geometry ─────────────────────────────────────────────────────────────
+PAGE_W, PAGE_H = 297, 210          # A4 landscape (mm)
+MARGIN         = 12.7              # 0.5 inch all sides
+CONTENT_W      = PAGE_W - 2 * MARGIN   # 271.6 mm
+CONTENT_H      = PAGE_H - 2 * MARGIN   # 184.6 mm
+BOTTOM_H       = 25.4              # 1 inch data strip (inside border)
 
-# Map bleeds full width; header/footer bands sandwich it
-_HEADER_H    = 12.0   # dark title band at very top
-_FOOTER_H    =  8.0   # light footer strip at very bottom
-_VTAB_PAD    =  5.0   # left/right indent inside table and footer zones
-_VTAB_SEC_H  =  5.0   # section-label row height
-_VTAB_ROW_H  =  4.5   # data-row height
-
-# Table column positions (from left edge of page)
+# Bottom-strip column layout (x positions are page-absolute)
+_INFO_COL_W    = 70.0              # title / details / timestamp on the left
+_COORD_COL_X   = MARGIN + _INFO_COL_W + 5.0   # 87.7 mm
 _COORD_COL_W   = 80.0
-_BEARING_GAP   =  5.0
-_BEARING_COL_X = _VTAB_PAD + _COORD_COL_W + _BEARING_GAP   # 90 mm
-_BEARING_COL_W = 80.0   # fixed; leaves room on right for future columns
+_BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 5.0   # 172.7 mm
+_BEARING_COL_W = 80.0
+
+# Bottom-strip row metrics
+_VTAB_SEC_H = 4.5
+_VTAB_ROW_H = 4.0
 
 PDF_DPI = 150
 
@@ -35,14 +37,14 @@ PDF_DPI = 150
 
 @bp.post("/api/assignment/map-pdf")
 def assignment_map_pdf():
-    data           = request.get_json(silent=True) or {}
-    geometry       = data.get("geometry")
-    title          = data.get("title", "Assignment Map")
-    details        = data.get("details", "")
-    center         = data.get("center")
-    zoom           = data.get("zoom")
-    show_vertices  = bool(data.get("show_vertices", False))
-    show_bearings  = bool(data.get("show_bearings", False))
+    data          = request.get_json(silent=True) or {}
+    geometry      = data.get("geometry")
+    title         = data.get("title", "Assignment Map")
+    details       = data.get("details", "")
+    center        = data.get("center")
+    zoom          = data.get("zoom")
+    show_vertices = bool(data.get("show_vertices", False))
+    show_bearings = bool(data.get("show_bearings", False))
 
     if not geometry:
         return jsonify(error="geometry required"), 400
@@ -52,9 +54,7 @@ def assignment_map_pdf():
     if not coordinates:
         return jsonify(error="invalid geometry"), 400
 
-    # Ring size drives reserved table space regardless of checkbox state
-    ring = coordinates[0][:-1] if geom_type == "Polygon" else []
-
+    ring     = coordinates[0][:-1] if geom_type == "Polygon" else []
     vertices = ring if show_vertices else []
 
     bearings = []
@@ -67,10 +67,10 @@ def assignment_map_pdf():
             bearings.append(f"{i + 1}-{(i + 1) % n + 1}: {b:05.1f}\u00b0T")
 
     try:
-        layout  = _calc_layout(len(ring))
+        layout  = _calc_layout()
         map_img, x_center, y_center, render_zoom = _render_map(
             geom_type, coordinates, center, zoom,
-            img_w=_mm_to_px(PAGE_W),
+            img_w=_mm_to_px(CONTENT_W),
             img_h=_mm_to_px(layout["map_h"]),
         )
 
@@ -93,28 +93,14 @@ def assignment_map_pdf():
 
 # ── Layout calculation ─────────────────────────────────────────────────────────
 
-def _calc_layout(n_ring):
-    """Compute PDF zone positions for a polygon with n_ring vertices.
-
-    Table space is always reserved for the full ring so the map height is
-    constant regardless of which checkboxes are enabled.
-    """
-    map_top   = _HEADER_H
-    footer_top = PAGE_H - _FOOTER_H
-
-    if n_ring > 0:
-        table_h   = _VTAB_SEC_H + n_ring * _VTAB_ROW_H
-        table_top = footer_top - table_h
-        map_bottom = table_top
-    else:
-        table_top  = None
-        map_bottom = footer_top
-
+def _calc_layout():
+    """Fixed layout: map fills content area above the 1-inch data strip."""
+    map_top    = MARGIN
+    bottom_top = PAGE_H - MARGIN - BOTTOM_H   # 171.9 mm
     return {
         "map_top":    map_top,
-        "map_h":      map_bottom - map_top,
-        "table_top":  table_top,
-        "footer_top": footer_top,
+        "map_h":      bottom_top - map_top,    # 159.2 mm
+        "bottom_top": bottom_top,
     }
 
 
@@ -125,7 +111,6 @@ def _mm_to_px(mm):
 # ── Bearing calculation ────────────────────────────────────────────────────────
 
 def _bearing(lat1, lon1, lat2, lon2):
-    """True bearing in degrees clockwise from north."""
     lat1r = math.radians(lat1)
     lat2r = math.radians(lat2)
     dlon  = math.radians(lon2 - lon1)
@@ -159,8 +144,7 @@ def _render_map(geom_type, coordinates, center, zoom, img_w, img_h):
     )
 
     if geom_type == "Polygon":
-        ring   = coordinates[0]
-        coords = [(pt[0], pt[1]) for pt in ring]
+        coords = [(pt[0], pt[1]) for pt in coordinates[0]]
         m.add_line(Line(coords, "#cc0000", 5, simplify=True))
     elif geom_type == "LineString":
         coords = [(pt[0], pt[1]) for pt in coordinates]
@@ -168,7 +152,6 @@ def _render_map(geom_type, coordinates, center, zoom, img_w, img_h):
 
     render_zoom   = int(zoom) if zoom   else None
     render_center = center    if center else None
-
     img = m.render(zoom=render_zoom, center=render_center)
 
     if render_center and render_zoom is not None:
@@ -204,14 +187,10 @@ def _draw_vertex_markers(img, vertices, x_center, y_center, zoom):
 
     for i, (lon, lat) in enumerate(vertices):
         px, py = _latlon_to_px(lat, lon, x_center, y_center, zoom, img_w, img_h)
-        label  = str(i + 1)
-
         draw.ellipse([px - dot_r, py - dot_r, px + dot_r, py + dot_r],
                      fill="#cc0000", outline="white", width=2)
-        draw.text(
-            (px + lbl_dx, py + lbl_dy), label,
-            fill="#cc0000", font=font, stroke_width=2, stroke_fill="white",
-        )
+        draw.text((px + lbl_dx, py + lbl_dy), str(i + 1),
+                  fill="#cc0000", font=font, stroke_width=2, stroke_fill="white")
 
     return img
 
@@ -237,68 +216,69 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
     pdf.set_margins(0, 0, 0)
     pdf.add_page()
 
-    # ── Map image (full width, sits behind header/footer bands) ──
+    # ── Map image ──
     img_buf = io.BytesIO()
     map_img.save(img_buf, format="PNG")
     img_buf.seek(0)
-    pdf.image(img_buf, x=0, y=layout["map_top"], w=PAGE_W)
+    pdf.image(img_buf, x=MARGIN, y=MARGIN, w=CONTENT_W)
 
-    # ── Dark header band ──
-    pdf.set_fill_color(30, 30, 30)
-    pdf.rect(0, 0, PAGE_W, _HEADER_H, style="F")
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.set_xy(_VTAB_PAD, 1.5)
-    pdf.cell(PAGE_W - _VTAB_PAD * 2, 5, title)
+    # ── Bottom data strip (light background) ──
+    bt = layout["bottom_top"]
+    pdf.set_fill_color(248, 248, 248)
+    pdf.rect(MARGIN, bt, CONTENT_W, BOTTOM_H, style="F")
+
+    # Divider line between map and data strip
+    pdf.set_draw_color(140, 140, 140)
+    pdf.set_line_width(0.3)
+    pdf.line(MARGIN, bt, MARGIN + CONTENT_W, bt)
+
+    # ── Left info column: title, details, timestamp ──
+    pdf.set_text_color(20, 20, 20)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_xy(MARGIN + 2, bt + 2)
+    pdf.cell(_INFO_COL_W - 2, 6, title)
+
     if details:
         pdf.set_font("Helvetica", "", 7)
-        pdf.set_xy(_VTAB_PAD, 7)
-        pdf.cell(PAGE_W - _VTAB_PAD * 2, 4, details)
-
-    # ── Table area ──
-    tt = layout["table_top"]
-    if tt is not None:
-        # Light background for the whole table + footer zone
-        pdf.set_fill_color(250, 250, 250)
-        pdf.rect(0, tt, PAGE_W, PAGE_H - tt, style="F")
-
-        # Thin top border line
-        pdf.set_draw_color(180, 180, 180)
-        pdf.set_line_width(0.3)
-        pdf.line(0, tt, PAGE_W, tt)
-
-        content_y = tt + _VTAB_SEC_H
-
-        pdf.set_font("Helvetica", "B", 7.5)
         pdf.set_text_color(80, 80, 80)
+        pdf.set_xy(MARGIN + 2, bt + 8.5)
+        pdf.cell(_INFO_COL_W - 2, 4, details)
 
-        if vertices:
-            pdf.set_xy(_VTAB_PAD, tt + 0.5)
-            pdf.cell(_COORD_COL_W, _VTAB_SEC_H - 1, "Vertex Coordinates (MGRS)")
+    pdf.set_font("Helvetica", "", 6)
+    pdf.set_text_color(130, 130, 130)
+    pdf.set_xy(MARGIN + 2, bt + BOTTOM_H - 5)
+    pdf.cell(_INFO_COL_W - 2, 4,
+             f"SAR Tools  \u00b7  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-        if bearings:
-            pdf.set_xy(_BEARING_COL_X, tt + 0.5)
-            pdf.cell(_BEARING_COL_W, _VTAB_SEC_H - 1, "Side Bearings")
+    # ── Vertex coordinates column ──
+    if vertices:
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_text_color(80, 80, 80)
+        pdf.set_xy(_COORD_COL_X, bt + 1)
+        pdf.cell(_COORD_COL_W, _VTAB_SEC_H - 1, "Vertex Coordinates (MGRS)")
 
-        pdf.set_font("Helvetica", "", 7.5)
-        pdf.set_text_color(30, 30, 30)
-
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_text_color(20, 20, 20)
         for idx, (lon, lat) in enumerate(vertices):
-            pdf.set_xy(_VTAB_PAD, content_y + idx * _VTAB_ROW_H)
+            pdf.set_xy(_COORD_COL_X, bt + _VTAB_SEC_H + idx * _VTAB_ROW_H)
             pdf.cell(_COORD_COL_W, _VTAB_ROW_H, f"{idx + 1}.  {_to_mgrs(lat, lon)}")
 
+    # ── Side bearings column ──
+    if bearings:
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_text_color(80, 80, 80)
+        pdf.set_xy(_BEARING_COL_X, bt + 1)
+        pdf.cell(_BEARING_COL_W, _VTAB_SEC_H - 1, "Side Bearings")
+
+        pdf.set_font("Helvetica", "", 7)
+        pdf.set_text_color(20, 20, 20)
         for idx, b_str in enumerate(bearings):
-            pdf.set_xy(_BEARING_COL_X, content_y + idx * _VTAB_ROW_H)
+            pdf.set_xy(_BEARING_COL_X, bt + _VTAB_SEC_H + idx * _VTAB_ROW_H)
             pdf.cell(_BEARING_COL_W, _VTAB_ROW_H, b_str)
 
-    # ── Footer strip ──
-    ft = layout["footer_top"]
-    pdf.set_fill_color(220, 220, 220)
-    pdf.rect(0, ft, PAGE_W, _FOOTER_H, style="F")
-    pdf.set_font("Helvetica", "", 6.5)
-    pdf.set_text_color(80, 80, 80)
-    pdf.set_xy(_VTAB_PAD, ft + 1.5)
-    pdf.cell(PAGE_W - _VTAB_PAD * 2, _FOOTER_H - 3,
-             f"SAR Tools  \u00b7  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    # ── Border rectangle around entire content area ──
+    pdf.set_draw_color(0, 0, 0)
+    pdf.set_line_width(0.5)
+    pdf.rect(MARGIN, MARGIN, CONTENT_W, CONTENT_H)
 
     return bytes(pdf.output())
