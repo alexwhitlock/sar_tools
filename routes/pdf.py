@@ -28,8 +28,8 @@ _BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 4.0   # 141.7 mm
 _BEARING_COL_W = 30.0              # compact — fits "10-1: 359.9°T"
 
 # Bottom-strip row metrics — HDR_Y=bt+1.5, HDR_H=3.5, DATA_Y=bt+5 → 5 rows fit
-_VTAB_HDR_H = 3.5
-_VTAB_ROW_H = 4.0
+_VTAB_HDR_H = 4.5
+_VTAB_ROW_H = 4.5
 
 PDF_DPI = 150
 
@@ -321,28 +321,28 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone=""):
 
     # ── Left info column: vertical stack ──
     y = bt + 2.0
-    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(20, 20, 20)
     pdf.set_xy(MARGIN + 2, y)
     pdf.cell(_INFO_COL_W - 2, 5, title)
     y += 5.5
 
     if grid_zone:
-        pdf.set_font("Helvetica", "", 6.5)
+        pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(60, 60, 60)
         pdf.set_xy(MARGIN + 2, y)
-        pdf.cell(_INFO_COL_W - 2, 3.2, f"Grid zone: {grid_zone}")
-        y += 3.2
+        pdf.cell(_INFO_COL_W - 2, 4.5, f"Grid zone: {grid_zone}")
+        y += 4.5
 
-    y = max(y + 1, bt + BOTTOM_H - 7.5)   # push timestamp block toward bottom
+    y = max(y + 1, bt + BOTTOM_H - 10.0)  # push timestamp block toward bottom
     now = datetime.now()
-    pdf.set_font("Helvetica", "", 6.5)
+    pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(60, 60, 60)
     pdf.set_xy(MARGIN + 2, y)
-    pdf.cell(_INFO_COL_W - 2, 3.2, "Printed from SAR Tools")
-    y += 3.2
+    pdf.cell(_INFO_COL_W - 2, 4.5, "Printed from SAR Tools")
+    y += 4.5
     pdf.set_xy(MARGIN + 2, y)
-    pdf.cell(_INFO_COL_W - 2, 3.2, now.strftime("%Y-%m-%d %H:%M"))
+    pdf.cell(_INFO_COL_W - 2, 4.5, now.strftime("%Y-%m-%d %H:%M"))
 
     # ── North arrow (right side of bottom strip) ──
     ax   = PAGE_W - MARGIN - 12    # centre x
@@ -352,10 +352,10 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone=""):
     bot  = bt + BOTTOM_H - 2.5    # shaft bottom
     hw   = 2.0                     # half-width of arrowhead
 
-    pdf.set_font("Helvetica", "B", 7)
+    pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(30, 30, 30)
     pdf.set_xy(ax - 2.5, atop)
-    pdf.cell(5, 3.2, "N", align="C")
+    pdf.cell(5, 4.5, "N", align="C")
 
     pdf.set_fill_color(0, 0, 0)
     pdf.polygon([(ax, tip), (ax - hw, base), (ax + hw, base)], style="F")
@@ -366,24 +366,24 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone=""):
 
     # ── Table columns (compact, no decorative lines) ──
     if vertices:
-        pdf.set_font("Helvetica", "B", 6)
+        pdf.set_font("Helvetica", "B", 10)
         pdf.set_text_color(100, 100, 100)
         pdf.set_xy(_COORD_COL_X, HDR_Y)
         pdf.cell(_COORD_COL_W, _VTAB_HDR_H, "Vertex (MGRS)")
 
-        pdf.set_font("Helvetica", "", 6.5)
+        pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(20, 20, 20)
         for idx, (lon, lat) in enumerate(vertices):
             pdf.set_xy(_COORD_COL_X, DATA_Y + idx * _VTAB_ROW_H)
             pdf.cell(_COORD_COL_W, _VTAB_ROW_H, f"{idx + 1}.  {_to_mgrs(lat, lon)}")
 
     if bearings:
-        pdf.set_font("Helvetica", "B", 6)
+        pdf.set_font("Helvetica", "B", 10)
         pdf.set_text_color(100, 100, 100)
         pdf.set_xy(_BEARING_COL_X, HDR_Y)
         pdf.cell(_BEARING_COL_W, _VTAB_HDR_H, "Bearings")
 
-        pdf.set_font("Helvetica", "", 6.5)
+        pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(20, 20, 20)
         for idx, b_str in enumerate(bearings):
             pdf.set_xy(_BEARING_COL_X, DATA_Y + idx * _VTAB_ROW_H)
