@@ -231,9 +231,14 @@
       btn.textContent = "Generating\u2026";
 
       const center       = _map.getCenter();
-      const zoom         = Math.round(_map.getZoom());
       const showVertices = document.getElementById("showVertices")?.checked ?? false;
       const showBearings = document.getElementById("showBearings")?.checked ?? false;
+
+      // The PDF canvas is larger than the preview container (150dpi vs screen pixels).
+      // Compensate zoom so the PDF shows the same geographic extent as the preview.
+      const previewW   = parseInt(document.getElementById("map").style.width);
+      const pdfW_px    = (PDF_PAGE_W - 2 * PDF_MARGIN) / 25.4 * 150;  // ~1603px
+      const zoom       = Math.round(_map.getZoom() + Math.log2(pdfW_px / previewW));
 
       try {
         const resp = await fetch("/api/assignment/map-pdf", {
