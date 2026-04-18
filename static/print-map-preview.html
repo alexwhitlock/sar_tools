@@ -85,6 +85,9 @@
       <label class="option-label">
         <input type="checkbox" id="showBearings"> Side bearings
       </label>
+      <label class="option-label">
+        <input type="checkbox" id="showGrid"> MGRS 100m grid
+      </label>
     </div>
     <div class="spacer"></div>
     <button id="generateBtn" disabled>Loading…</button>
@@ -257,6 +260,7 @@
       const center       = _map.getCenter();
       const showVertices = document.getElementById("showVertices")?.checked ?? false;
       const showBearings = document.getElementById("showBearings")?.checked ?? false;
+      const showGrid     = document.getElementById("showGrid")?.checked     ?? false;
 
       // Add log2(pdf_w/preview_w) to recover the PDF zoom from the fractional preview zoom.
       const previewW = parseInt(document.getElementById("map").style.width);
@@ -275,6 +279,7 @@
             zoom,
             show_vertices: showVertices,
             show_bearings: showBearings,
+            show_grid:     showGrid,
           }),
         });
 

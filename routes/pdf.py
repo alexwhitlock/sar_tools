@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 
 import mgrs as mgrs_lib
+import utm as _utm_lib
 from flask import Blueprint, jsonify, request, send_file
 from fpdf import FPDF
 from PIL import ImageDraw, ImageFont
@@ -45,6 +46,7 @@ def assignment_map_pdf():
     zoom          = data.get("zoom")
     show_vertices = bool(data.get("show_vertices", False))
     show_bearings = bool(data.get("show_bearings", False))
+    show_grid     = bool(data.get("show_grid",     False))
 
     if not geometry:
         return jsonify(error="geometry required"), 400
@@ -66,6 +68,11 @@ def assignment_map_pdf():
             b = _bearing(lat1, lon1, lat2, lon2)
             bearings.append(f"{i + 1}-{(i + 1) % n + 1}: {b:05.1f}\u00b0T")
 
+    grid_zone = ""
+    if show_grid and ring:
+        lons = [p[0] for p in ring];  lats = [p[1] for p in ring]
+        grid_zone = _mgrs_zone_label(sum(lats) / len(lats), sum(lons) / len(lons))
+
     try:
         layout  = _calc_layout()
         map_img, x_center, y_center, render_zoom = _render_map(
@@ -74,12 +81,15 @@ def assignment_map_pdf():
             img_h=_mm_to_px(layout["map_h"]),
         )
 
+        if show_grid:
+            map_img = _draw_mgrs_grid(map_img, x_center, y_center, render_zoom)
+
         if vertices:
             map_img = _draw_vertex_markers(
                 map_img, vertices, x_center, y_center, render_zoom
             )
 
-        pdf_bytes = _make_pdf(title, details, map_img, vertices, bearings, layout)
+        pdf_bytes = _make_pdf(title, details, map_img, vertices, bearings, layout, grid_zone)
         filename  = title.replace(" ", "_") + ".pdf"
         return send_file(
             io.BytesIO(pdf_bytes),
@@ -208,9 +218,90 @@ def _to_mgrs(lat, lon):
     return raw
 
 
+def _mgrs_zone_label(lat, lon):
+    """Return 100 km square identifier, e.g. '18T VR'."""
+    raw   = _mgrs.toMGRS(lat, lon, MGRSPrecision=5)
+    match = re.match(r'(\d{1,2}[A-Z])([A-Z]{2})', raw)
+    return f"{match.group(1)} {match.group(2)}" if match else ""
+
+
+# ── MGRS grid drawing ─────────────────────────────────────────────────────────
+
+def _draw_mgrs_grid(img, x_center, y_center, zoom):
+    """Draw MGRS 100 m grid lines (blue) with 5-digit labels every 1000 m."""
+    draw  = ImageDraw.Draw(img)
+    img_w, img_h = img.size
+    BLUE = (0, 100, 200)
+
+    def _px_to_latlon(px, py):
+        tile_x = (px - img_w / 2) / 256 + x_center
+        tile_y = (py - img_h / 2) / 256 + y_center
+        lon    = tile_x / (2 ** zoom) * 360 - 180
+        n      = math.pi - 2 * math.pi * tile_y / (2 ** zoom)
+        return math.degrees(math.atan(math.sinh(n))), lon
+
+    # Determine UTM zone from image centre
+    lat_c, lon_c = _px_to_latlon(img_w / 2, img_h / 2)
+    _, _, zn, zl = _utm_lib.from_latlon(lat_c, lon_c)
+
+    # UTM extents from all four corners
+    es, ns = [], []
+    for cx, cy in [(0, 0), (img_w, 0), (0, img_h), (img_w, img_h)]:
+        lat, lon = _px_to_latlon(cx, cy)
+        e, n, _, _ = _utm_lib.from_latlon(lat, lon, force_zone_number=zn)
+        es.append(e);  ns.append(n)
+
+    min_e = math.floor(min(es) / 100) * 100
+    max_e = math.ceil (max(es) / 100) * 100
+    min_n = math.floor(min(ns) / 100) * 100
+    max_n = math.ceil (max(ns) / 100) * 100
+
+    lbl_sz = max(14, img_w // 90)
+    try:
+        font = ImageFont.load_default(size=lbl_sz)
+    except TypeError:
+        font = ImageFont.load_default()
+
+    # ── Vertical lines (constant easting) ──────────────────────────────────
+    for e_int in range(int(min_e), int(max_e) + 1, 100):
+        e_val = float(e_int)
+        pts = []
+        for n_sample in (min_n, (min_n + max_n) / 2, max_n):
+            try:
+                lat, lon = _utm_lib.to_latlon(e_val, n_sample, zn, zl, strict=False)
+                pts.append(_latlon_to_px(lat, lon, x_center, y_center, zoom, img_w, img_h))
+            except Exception:
+                pass
+        if len(pts) >= 2:
+            draw.line(pts, fill=BLUE, width=1)
+        # Label every 1000 m at top edge
+        if e_int % 1000 == 0 and pts:
+            draw.text((pts[0][0] + 2, 3), f"{e_int % 100_000:05d}",
+                      fill=BLUE, font=font, stroke_width=2, stroke_fill="white")
+
+    # ── Horizontal lines (constant northing) ───────────────────────────────
+    for n_int in range(int(min_n), int(max_n) + 1, 100):
+        n_val = float(n_int)
+        pts = []
+        for e_sample in (min_e, (min_e + max_e) / 2, max_e):
+            try:
+                lat, lon = _utm_lib.to_latlon(e_sample, n_val, zn, zl, strict=False)
+                pts.append(_latlon_to_px(lat, lon, x_center, y_center, zoom, img_w, img_h))
+            except Exception:
+                pass
+        if len(pts) >= 2:
+            draw.line(pts, fill=BLUE, width=1)
+        # Label every 1000 m at left edge
+        if n_int % 1000 == 0 and pts:
+            draw.text((3, pts[0][1] - lbl_sz - 2), f"{n_int % 100_000:05d}",
+                      fill=BLUE, font=font, stroke_width=2, stroke_fill="white")
+
+    return img
+
+
 # ── PDF composition ────────────────────────────────────────────────────────────
 
-def _make_pdf(title, details, map_img, vertices, bearings, layout):
+def _make_pdf(title, details, map_img, vertices, bearings, layout, grid_zone=""):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     pdf.set_margins(0, 0, 0)
@@ -242,6 +333,13 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
     for line in detail_lines:
         pdf.set_xy(MARGIN + 2, y)
         pdf.cell(_INFO_COL_W - 2, 3.2, line)
+        y += 3.2
+
+    if grid_zone:
+        pdf.set_font("Helvetica", "I", 6.0)
+        pdf.set_text_color(80, 80, 140)
+        pdf.set_xy(MARGIN + 2, y)
+        pdf.cell(_INFO_COL_W - 2, 3.2, f"Grid zone: {grid_zone}")
         y += 3.2
 
     y = max(y + 1, bt + BOTTOM_H - 4.5)   # push timestamp toward bottom
