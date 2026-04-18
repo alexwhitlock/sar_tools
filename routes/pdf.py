@@ -2,7 +2,8 @@
 import io
 import math
 import re
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import mgrs as mgrs_lib
 import utm as _utm_lib
@@ -46,6 +47,11 @@ def assignment_map_pdf():
     show_vertices = bool(data.get("show_vertices", False))
     show_bearings = bool(data.get("show_bearings", False))
     show_grid     = bool(data.get("show_grid",     False))
+    tz_name       = data.get("tz", "")
+    try:
+        tz = ZoneInfo(tz_name) if tz_name else timezone.utc
+    except ZoneInfoNotFoundError:
+        tz = timezone.utc
 
     if not geometry:
         return jsonify(error="geometry required"), 400
@@ -88,7 +94,8 @@ def assignment_map_pdf():
                 map_img, vertices, x_center, y_center, render_zoom
             )
 
-        pdf_bytes = _make_pdf(title, map_img, vertices, bearings, layout, grid_zone)
+        pdf_bytes = _make_pdf(title, map_img, vertices, bearings, layout, grid_zone,
+                              now=datetime.now(tz))
         filename  = title.replace(" ", "_") + ".pdf"
         return send_file(
             io.BytesIO(pdf_bytes),
@@ -302,7 +309,7 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
 
 # ── PDF composition ────────────────────────────────────────────────────────────
 
-def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone=""):
+def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     pdf.set_margins(0, 0, 0)
@@ -335,7 +342,8 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone=""):
         y += 4.5
 
     y = max(y + 1, bt + BOTTOM_H - 10.0)  # push timestamp block toward bottom
-    now = datetime.now()
+    if now is None:
+        now = datetime.now(timezone.utc)
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(60, 60, 60)
     pdf.set_xy(MARGIN + 2, y)

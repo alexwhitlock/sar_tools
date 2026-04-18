@@ -7,3 +7,4 @@ staticmap
 Pillow
 mgrs
 utm
+tzdata
