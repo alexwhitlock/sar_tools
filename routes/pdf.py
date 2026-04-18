@@ -34,6 +34,12 @@ _VTAB_ROW_H = 4.5
 
 PDF_DPI = 150
 
+_TILE_URLS = {
+    "osm":     "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "topo":    "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+    "imagery": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+}
+
 
 # ── Route ─────────────────────────────────────────────────────────────────────
 
@@ -47,6 +53,7 @@ def assignment_map_pdf():
     show_vertices = bool(data.get("show_vertices", False))
     show_bearings = bool(data.get("show_bearings", False))
     show_grid     = bool(data.get("show_grid",     False))
+    tile_url      = _TILE_URLS.get(data.get("basemap", "osm"), _TILE_URLS["osm"])
     tz_name       = data.get("tz", "")
     try:
         tz = ZoneInfo(tz_name) if tz_name else timezone.utc
@@ -84,6 +91,7 @@ def assignment_map_pdf():
             geom_type, coordinates, center, zoom,
             img_w=_mm_to_px(CONTENT_W),
             img_h=_mm_to_px(layout["map_h"]),
+            tile_url=tile_url,
         )
 
         if show_grid:
@@ -152,10 +160,11 @@ def _latlon_to_px(lat, lon, x_center, y_center, zoom, img_w, img_h):
     return int(round(x)), int(round(y))
 
 
-def _render_map(geom_type, coordinates, center, zoom, img_w, img_h):
+def _render_map(geom_type, coordinates, center, zoom, img_w, img_h,
+                tile_url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"):
     m = StaticMap(
         img_w, img_h,
-        url_template="https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        url_template=tile_url,
         headers={"User-Agent": "sar-tools/1.0 (SAR management application)"},
     )
 

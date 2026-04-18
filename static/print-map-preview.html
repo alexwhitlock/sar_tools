@@ -77,6 +77,12 @@
   <div id="panel">
     <div id="panelTitle"   class="panel-title">Loading…</div>
     <div id="panelDetails"></div>
+    <div class="section">
+      <div class="section-title">Basemap</div>
+      <label class="option-label"><input type="radio" name="basemap" value="osm"     checked> OpenStreetMap</label>
+      <label class="option-label"><input type="radio" name="basemap" value="topo"          > OpenTopoMap</label>
+      <label class="option-label"><input type="radio" name="basemap" value="imagery"       > World Imagery</label>
+    </div>
     <div id="vertexSection" class="section" style="display:none">
       <div class="section-title">Options</div>
       <div id="vertexOptions">
@@ -144,7 +150,13 @@
       if (_map) _map.invalidateSize({ animate: false });
     }
 
-    let _map, _vertexLayer, _geometry, _title, _detailStr, _vertices;
+    const _BASEMAP_URLS = {
+      osm:     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      topo:    "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+      imagery: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    };
+
+    let _map, _tileLayer, _vertexLayer, _geometry, _title, _detailStr, _vertices;
 
     // Use window load (not DOMContentLoaded) so Leaflet CSS from CDN is
     // fully applied before we measure the map container size.
@@ -188,10 +200,14 @@
 
       // Init Leaflet — zoomSnap:0 allows fractional zoom for precise extent matching
       _map = L.map("map", { zoomSnap: 0 });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "\u00a9 OpenStreetMap contributors",
-        maxZoom: 19,
-      }).addTo(_map);
+      _tileLayer = L.tileLayer(_BASEMAP_URLS.osm, { maxZoom: 19 }).addTo(_map);
+
+      document.querySelectorAll('input[name="basemap"]').forEach(r => {
+        r.addEventListener("change", () => {
+          _map.removeLayer(_tileLayer);
+          _tileLayer = L.tileLayer(_BASEMAP_URLS[r.value], { maxZoom: 19 }).addTo(_map);
+        });
+      });
 
       const layer = L.geoJSON(_geometry, {
         style: { color: "#cc0000", weight: 3.5, fill: false },
@@ -263,6 +279,7 @@
       const showVertices = document.getElementById("showVertices")?.checked ?? false;
       const showBearings = document.getElementById("showBearings")?.checked ?? false;
       const showGrid     = document.getElementById("showGrid")?.checked     ?? false;
+      const basemap      = document.querySelector('input[name="basemap"]:checked')?.value ?? "osm";
 
       // Add log2(pdf_w/preview_w) to recover the PDF zoom from the fractional preview zoom.
       const previewW = parseInt(document.getElementById("map").style.width);
@@ -283,6 +300,7 @@
             show_bearings: showBearings,
             show_grid:     showGrid,
             tz:            Intl.DateTimeFormat().resolvedOptions().timeZone,
+            basemap,
           }),
         });
 
