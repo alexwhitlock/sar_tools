@@ -26,11 +26,11 @@ _FOOTER_PAD   = 2.0
 _VTAB_SEC_H   = 6.0   # section label row
 _VTAB_ROW_H   = 5.0   # height per data row
 
-# Vertex table column widths (mm) — narrow so right side stays free
-_COORD_COL_W    = 80.0   # each MGRS column  (2 cols = 160 mm)
-_BEARING_GAP    = 5.0    # gap between coord cols and bearing col
-_BEARING_COL_X  = MARGIN + 2 * _COORD_COL_W + _BEARING_GAP   # 175 mm from left
-_BEARING_COL_W  = CONTENT_W - 2 * _COORD_COL_W - _BEARING_GAP  # 112 mm
+# Vertex table column widths (mm)
+_COORD_COL_W    = 80.0   # single MGRS column
+_BEARING_GAP    = 5.0    # gap between coord col and bearing col
+_BEARING_COL_X  = MARGIN + _COORD_COL_W + _BEARING_GAP   # 95 mm from left
+_BEARING_COL_W  = CONTENT_W - _COORD_COL_W - _BEARING_GAP  # 192 mm
 
 PDF_DPI = 150
 
@@ -107,7 +107,7 @@ def _calc_layout(has_details, n_verts, n_bearings):
 
     has_table = n_verts > 0 or n_bearings > 0
     if has_table:
-        coord_rows   = math.ceil(n_verts / 2) if n_verts else 0
+        coord_rows   = n_verts
         bearing_rows = n_bearings
         n_rows       = max(coord_rows, bearing_rows)
         table_h      = _VTAB_SEC_H + n_rows * _VTAB_ROW_H
@@ -283,7 +283,7 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
 
         if vertices:
             pdf.set_xy(MARGIN, tt)
-            pdf.cell(2 * _COORD_COL_W, _VTAB_SEC_H - 1, "Vertex Coordinates (MGRS)")
+            pdf.cell(_COORD_COL_W, _VTAB_SEC_H - 1, "Vertex Coordinates (MGRS)")
 
         if bearings:
             pdf.set_xy(_BEARING_COL_X, tt)
@@ -293,9 +293,7 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
         pdf.set_font("Helvetica", "", 8)
         pdf.set_text_color(50, 50, 50)
         for idx, (lon, lat) in enumerate(vertices):
-            col = idx % 2
-            row = idx // 2
-            pdf.set_xy(MARGIN + col * _COORD_COL_W, content_y + row * _VTAB_ROW_H)
+            pdf.set_xy(MARGIN, content_y + idx * _VTAB_ROW_H)
             pdf.cell(_COORD_COL_W, _VTAB_ROW_H, f"{idx + 1}.  {_to_mgrs(lat, lon)}")
 
         # Bearing rows
