@@ -358,19 +358,21 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout, grid_zone="")
     ax   = PAGE_W - MARGIN - 12    # centre x
     atop = bt + 1.0                # top of "N" label
     tip  = atop + 3.5              # arrowhead tip
-    base = tip  + 5.5              # arrowhead base / shaft top
+    base = tip  + 3.5              # arrowhead base / shaft top (smaller triangle)
     bot  = bt + BOTTOM_H - 2.5    # shaft bottom
+    hw   = 2.0                     # half-width of arrowhead
 
     pdf.set_font("Helvetica", "B", 7)
     pdf.set_text_color(30, 30, 30)
     pdf.set_xy(ax - 2.5, atop)
     pdf.cell(5, 3.2, "N", align="C")
 
+    pdf.set_fill_color(0, 0, 0)
+    pdf.polygon([(ax, tip), (ax - hw, base), (ax + hw, base)], style="F")
+
     pdf.set_draw_color(30, 30, 30)
     pdf.set_line_width(0.5)
-    pdf.line(ax, tip,  ax - 3.5, base)   # left side of head
-    pdf.line(ax, tip,  ax + 3.5, base)   # right side of head
-    pdf.line(ax, base, ax,       bot  )  # shaft
+    pdf.line(ax, base, ax, bot)    # shaft
 
     # ── Table columns (compact, no decorative lines) ──
     if vertices:
