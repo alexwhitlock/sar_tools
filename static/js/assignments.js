@@ -150,6 +150,9 @@ function renderAssignmentRow(a) {
       : `Assignment ${a.number}: title has X (completed) but status is ${a.status}.`;
     numberHtml += ` <span class="conflict-warn" title="${escapeHtml(tip)}">⚠</span>`;
   }
+  if (a.duplicateNumber) {
+    numberHtml += ` <span class="conflict-warn" title="Duplicate: assignment number ${a.number} is used more than once">⚠</span>`;
+  }
 
   tr.innerHTML = `
     <td>${numberHtml}</td>
@@ -217,6 +220,20 @@ export async function loadAssignments() {
       if (titleConflicts.length > 0) {
         const nums = titleConflicts.map(a => a.number ?? "?").join(", ");
         warnings.push(`Title/status mismatch on assignment${titleConflicts.length > 1 ? "s" : ""} ${nums}`);
+      }
+
+      const numCounts = new Map();
+      for (const a of assignmentsCache) {
+        const n = a.number ?? null;
+        if (n !== null) numCounts.set(n, (numCounts.get(n) ?? 0) + 1);
+      }
+      const dupNums = [...numCounts.entries()].filter(([, c]) => c > 1).map(([n]) => n)
+        .sort((a, b) => Number(a) - Number(b));
+      if (dupNums.length > 0) {
+        for (const a of assignmentsCache) {
+          if (dupNums.includes(a.number)) a.duplicateNumber = true;
+        }
+        warnings.push(`Duplicate assignment number${dupNums.length > 1 ? "s" : ""}: ${dupNums.join(", ")}`);
       }
 
       const incidentName = getCurrentIncidentName();
@@ -313,7 +330,7 @@ function renderKanban(assignments) {
 
       card.innerHTML = `
         <div class="kanban-card-header">
-          <span class="asgn-card-number">Assignment ${escapeHtml(String(a.number ?? "?"))}</span>
+          <span class="asgn-card-number">Assignment ${escapeHtml(String(a.number ?? "?"))}${a.duplicateNumber ? ` <span class="conflict-warn" title="Duplicate: assignment number ${a.number} is used more than once">⚠</span>` : ""}${a.titleConflict ? ` <span class="conflict-warn" title="Title/status mismatch">⚠</span>` : ""}</span>
         </div>
         <div class="asgn-card-team">
           <span>Team: ${escapeHtml(a.team || "—")}</span>
