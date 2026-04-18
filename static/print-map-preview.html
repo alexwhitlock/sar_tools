@@ -103,17 +103,26 @@
       return contentW / mapH;   // ~1.706, always fixed
     }
 
-    function _resizeMap() {
-      if (!_map) return;
-      const panelW = 230;
-      const availW = window.innerWidth - panelW;
-      const mapEl  = document.getElementById("map");
-      const w      = availW;
-      const h      = w / _pdfAspectRatio();
-
+    function _sizeMapContainer() {
+      const w = window.innerWidth - 230;
+      const h = w / _pdfAspectRatio();
+      const mapEl = document.getElementById("map");
       mapEl.style.width  = w + "px";
       mapEl.style.height = h + "px";
-      _map.invalidateSize({ animate: false });
+      return h;
+    }
+
+    function _fitWindowToMap() {
+      // Snap the popup height to the map so no gray shows below.
+      // Only called on initial load; manual resizes are left alone.
+      const mapH   = _sizeMapContainer();
+      const chrome = window.outerHeight - window.innerHeight;
+      window.resizeTo(window.outerWidth, mapH + chrome);
+    }
+
+    function _resizeMap() {
+      _sizeMapContainer();
+      if (_map) _map.invalidateSize({ animate: false });
     }
 
     let _map, _vertexLayer, _geometry, _title, _detailStr, _vertices;
@@ -152,6 +161,11 @@
         detailParts.map(d => '<div class="detail-row">' + d + "</div>").join("");
 
       if (isArea) document.getElementById("vertexSection").style.display = "";
+
+      // Size the container to the PDF aspect ratio BEFORE Leaflet init
+      // so fitBounds sees the correct dimensions when computing zoom.
+      // Also snap the popup window height to eliminate gray below the map.
+      _fitWindowToMap();
 
       // Init Leaflet
       _map = L.map("map");

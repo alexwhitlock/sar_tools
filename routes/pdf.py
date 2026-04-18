@@ -276,9 +276,4 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
             pdf.set_xy(_BEARING_COL_X, bt + _VTAB_SEC_H + idx * _VTAB_ROW_H)
             pdf.cell(_BEARING_COL_W, _VTAB_ROW_H, b_str)
 
-    # ── Border rectangle around entire content area ──
-    pdf.set_draw_color(0, 0, 0)
-    pdf.set_line_width(0.5)
-    pdf.rect(MARGIN, MARGIN, CONTENT_W, CONTENT_H)
-
     return bytes(pdf.output())
