@@ -249,7 +249,7 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
     pdf.set_text_color(150, 150, 150)
     pdf.set_xy(MARGIN + 2, y)
     pdf.cell(_INFO_COL_W - 2, 3.5,
-             f"SAR Tools  \u00b7  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+             f"Printed from SAR Tools {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
     # ── Table columns (compact, no decorative lines) ──
     if vertices:
