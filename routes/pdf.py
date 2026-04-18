@@ -222,58 +222,69 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
     img_buf.seek(0)
     pdf.image(img_buf, x=MARGIN, y=MARGIN, w=CONTENT_W)
 
-    # ── Bottom data strip (light background) ──
+    # ── Bottom data strip ──
     bt = layout["bottom_top"]
-    pdf.set_fill_color(248, 248, 248)
-    pdf.rect(MARGIN, bt, CONTENT_W, BOTTOM_H, style="F")
 
-    # Divider line between map and data strip
-    pdf.set_draw_color(140, 140, 140)
-    pdf.set_line_width(0.3)
-    pdf.line(MARGIN, bt, MARGIN + CONTENT_W, bt)
-
-    # ── Left info column: title, details, timestamp ──
+    # ── Left info column: vertical stack ──
+    y = bt + 2.5
+    pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(20, 20, 20)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.set_xy(MARGIN + 2, bt + 2)
-    pdf.cell(_INFO_COL_W - 2, 6, title)
+    pdf.set_xy(MARGIN + 2, y)
+    pdf.cell(_INFO_COL_W - 2, 5, title)
+    y += 5.5
 
     if details:
         pdf.set_font("Helvetica", "", 7)
-        pdf.set_text_color(80, 80, 80)
-        pdf.set_xy(MARGIN + 2, bt + 8.5)
+        pdf.set_text_color(70, 70, 70)
+        pdf.set_xy(MARGIN + 2, y)
         pdf.cell(_INFO_COL_W - 2, 4, details)
+        y += 4.5
 
     pdf.set_font("Helvetica", "", 6)
-    pdf.set_text_color(130, 130, 130)
-    pdf.set_xy(MARGIN + 2, bt + BOTTOM_H - 5)
-    pdf.cell(_INFO_COL_W - 2, 4,
+    pdf.set_text_color(140, 140, 140)
+    pdf.set_xy(MARGIN + 2, y)
+    pdf.cell(_INFO_COL_W - 2, 3.5,
              f"SAR Tools  \u00b7  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-    # ── Vertex coordinates column ──
+    # ── Table columns ──
+    # Section label at top of strip, thin rule below it, then data rows
+    HDR_H    = 4.5   # column-header row height
+    HDR_Y    = bt + 2.0
+    DATA_Y   = HDR_Y + HDR_H + 0.5   # 0.5 mm gap after rule
+
     if vertices:
-        pdf.set_font("Helvetica", "B", 7)
-        pdf.set_text_color(80, 80, 80)
-        pdf.set_xy(_COORD_COL_X, bt + 1)
-        pdf.cell(_COORD_COL_W, _VTAB_SEC_H - 1, "Vertex Coordinates (MGRS)")
+        pdf.set_font("Helvetica", "B", 6.5)
+        pdf.set_text_color(90, 90, 90)
+        pdf.set_xy(_COORD_COL_X, HDR_Y)
+        pdf.cell(_COORD_COL_W, HDR_H, "Vertex Coordinates (MGRS)")
+
+        # Thin rule under header
+        rule_y = HDR_Y + HDR_H
+        pdf.set_draw_color(180, 180, 180)
+        pdf.set_line_width(0.2)
+        pdf.line(_COORD_COL_X, rule_y, _COORD_COL_X + _COORD_COL_W, rule_y)
 
         pdf.set_font("Helvetica", "", 7)
         pdf.set_text_color(20, 20, 20)
         for idx, (lon, lat) in enumerate(vertices):
-            pdf.set_xy(_COORD_COL_X, bt + _VTAB_SEC_H + idx * _VTAB_ROW_H)
+            pdf.set_xy(_COORD_COL_X, DATA_Y + idx * _VTAB_ROW_H)
             pdf.cell(_COORD_COL_W, _VTAB_ROW_H, f"{idx + 1}.  {_to_mgrs(lat, lon)}")
 
-    # ── Side bearings column ──
     if bearings:
-        pdf.set_font("Helvetica", "B", 7)
-        pdf.set_text_color(80, 80, 80)
-        pdf.set_xy(_BEARING_COL_X, bt + 1)
-        pdf.cell(_BEARING_COL_W, _VTAB_SEC_H - 1, "Side Bearings")
+        pdf.set_font("Helvetica", "B", 6.5)
+        pdf.set_text_color(90, 90, 90)
+        pdf.set_xy(_BEARING_COL_X, HDR_Y)
+        pdf.cell(_BEARING_COL_W, HDR_H, "Side Bearings")
+
+        rule_y = HDR_Y + HDR_H
+        pdf.set_draw_color(180, 180, 180)
+        pdf.set_line_width(0.2)
+        pdf.line(_BEARING_COL_X, rule_y, _BEARING_COL_X + _BEARING_COL_W, rule_y)
 
         pdf.set_font("Helvetica", "", 7)
         pdf.set_text_color(20, 20, 20)
         for idx, b_str in enumerate(bearings):
-            pdf.set_xy(_BEARING_COL_X, bt + _VTAB_SEC_H + idx * _VTAB_ROW_H)
+            pdf.set_xy(_BEARING_COL_X, DATA_Y + idx * _VTAB_ROW_H)
             pdf.cell(_BEARING_COL_W, _VTAB_ROW_H, b_str)
 
     return bytes(pdf.output())

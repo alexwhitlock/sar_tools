@@ -238,7 +238,7 @@
       // Compensate zoom so the PDF shows the same geographic extent as the preview.
       const previewW   = parseInt(document.getElementById("map").style.width);
       const pdfW_px    = (PDF_PAGE_W - 2 * PDF_MARGIN) / 25.4 * 150;  // ~1603px
-      const zoom       = Math.round(_map.getZoom() + Math.log2(pdfW_px / previewW));
+      const zoom       = Math.round(_map.getZoom() + Math.log2(pdfW_px / previewW)) - 1;
 
       try {
         const resp = await fetch("/api/assignment/map-pdf", {
