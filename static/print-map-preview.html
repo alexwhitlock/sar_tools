@@ -8,13 +8,23 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; }
+    html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #666; }
 
-    /* Fixed layout so Leaflet always gets a concrete pixel size */
-    #map {
+    /* Map sits in the letterbox area to the left of the panel */
+    #mapArea {
       position: fixed;
       top: 0; left: 0; bottom: 0;
       right: 230px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #666;
+    }
+
+    /* Sized dynamically by JS to match the PDF map aspect ratio */
+    #map {
+      position: relative;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.5);
     }
 
     #panel {
@@ -74,7 +84,7 @@
   </style>
 </head>
 <body>
-  <div id="map"></div>
+  <div id="mapArea"><div id="map"></div></div>
   <div id="panel">
     <div id="panelTitle"   class="panel-title">Loading…</div>
     <div id="panelDetails"></div>
@@ -92,6 +102,52 @@
   </div>
 
   <script>
+    // ── PDF layout constants (must match routes/pdf.py) ──────────────────────
+    const PDF_PAGE_H   = 210, PDF_CONTENT_W = 277;
+    const PDF_MARGIN   = 10,  PDF_TITLE_H   = 7,  PDF_DETAILS_H  = 5;
+    const PDF_DIV_PAD  = 3,   PDF_FOOTER_H  = 5,  PDF_FOOTER_PAD = 2;
+    const PDF_VTAB_SEC = 6,   PDF_VTAB_ROW  = 5;
+
+    function _pdfAspectRatio() {
+      // Mirrors _calc_layout() in pdf.py
+      let mapTop = PDF_MARGIN + PDF_TITLE_H;
+      if (_detailStr) mapTop += PDF_DETAILS_H;
+      mapTop += PDF_DIV_PAD;
+
+      const footerY = PDF_PAGE_H - PDF_MARGIN - PDF_FOOTER_H - PDF_FOOTER_PAD; // 193
+
+      const nVerts = (document.getElementById("showVertices")?.checked) ? _vertices.length : 0;
+      const nBears = (document.getElementById("showBearings")?.checked) ? _vertices.length : 0;
+      const hasTable = nVerts > 0 || nBears > 0;
+
+      let mapBottom;
+      if (hasTable) {
+        const nRows  = Math.max(nVerts, nBears);
+        const tableH = PDF_VTAB_SEC + nRows * PDF_VTAB_ROW;
+        mapBottom    = footerY - tableH - 2 - 2;
+      } else {
+        mapBottom = footerY - 2;
+      }
+
+      return PDF_CONTENT_W / (mapBottom - mapTop);
+    }
+
+    function _resizeMap() {
+      if (!_map) return;
+      const area  = document.getElementById("mapArea");
+      const mapEl = document.getElementById("map");
+      const availW = area.clientWidth  - 20;   // 10px breathing room each side
+      const availH = area.clientHeight - 20;
+      const ratio  = _pdfAspectRatio();
+
+      let w = availW, h = w / ratio;
+      if (h > availH) { h = availH; w = h * ratio; }
+
+      mapEl.style.width  = w + "px";
+      mapEl.style.height = h + "px";
+      _map.invalidateSize({ animate: false });
+    }
+
     let _map, _vertexLayer, _geometry, _title, _detailStr, _vertices;
 
     // Use window load (not DOMContentLoaded) so Leaflet CSS from CDN is
@@ -140,19 +196,22 @@
         style: { color: "#cc0000", weight: 3.5, fill: false },
       }).addTo(_map);
       _map.fitBounds(layer.getBounds(), { padding: [40, 40] });
-      // Force Leaflet to remeasure the container after layout settles
-      setTimeout(() => _map.invalidateSize({ animate: false }), 100);
 
       // Vertex markers layer
       _vertexLayer = L.layerGroup().addTo(_map);
       const checkbox = document.getElementById("showVertices");
-      checkbox.addEventListener("change", () => _setVertexMarkers(checkbox.checked));
+      checkbox.addEventListener("change", () => { _setVertexMarkers(checkbox.checked); _resizeMap(); });
+      document.getElementById("showBearings").addEventListener("change", _resizeMap);
 
       // Wire generate button
       const btn = document.getElementById("generateBtn");
       btn.textContent = "Generate PDF";
       btn.disabled = false;
       btn.addEventListener("click", _generate);
+
+      // Size map to PDF aspect ratio; re-run on window resize
+      _resizeMap();
+      window.addEventListener("resize", _resizeMap);
     }
 
     function _setVertexMarkers(show) {
