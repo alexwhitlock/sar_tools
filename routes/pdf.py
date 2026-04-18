@@ -41,7 +41,6 @@ def assignment_map_pdf():
     data          = request.get_json(silent=True) or {}
     geometry      = data.get("geometry")
     title         = data.get("title", "Assignment Map")
-    details       = data.get("details", "")
     center        = data.get("center")
     zoom          = data.get("zoom")
     show_vertices = bool(data.get("show_vertices", False))
@@ -89,7 +88,7 @@ def assignment_map_pdf():
                 map_img, vertices, x_center, y_center, render_zoom
             )
 
-        pdf_bytes = _make_pdf(title, details, map_img, vertices, bearings, layout, grid_zone)
+        pdf_bytes = _make_pdf(title, map_img, vertices, bearings, layout, grid_zone)
         filename  = title.replace(" ", "_") + ".pdf"
         return send_file(
             io.BytesIO(pdf_bytes),
@@ -303,7 +302,7 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
 
 # ── PDF composition ────────────────────────────────────────────────────────────
 
-def _make_pdf(title, details, map_img, vertices, bearings, layout, grid_zone=""):
+def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone=""):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     pdf.set_margins(0, 0, 0)
@@ -327,15 +326,6 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout, grid_zone="")
     pdf.set_xy(MARGIN + 2, y)
     pdf.cell(_INFO_COL_W - 2, 5, title)
     y += 5.5
-
-    # Split detail string into individual lines and stack vertically
-    detail_lines = [d.strip() for d in details.split("\u00b7")] if details else []
-    pdf.set_font("Helvetica", "", 6.5)
-    pdf.set_text_color(60, 60, 60)
-    for line in detail_lines:
-        pdf.set_xy(MARGIN + 2, y)
-        pdf.cell(_INFO_COL_W - 2, 3.2, line)
-        y += 3.2
 
     if grid_zone:
         pdf.set_font("Helvetica", "", 6.5)
