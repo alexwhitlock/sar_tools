@@ -22,12 +22,12 @@ BOTTOM_H       = 25.4              # 1 inch data strip (inside border)
 # Bottom-strip column layout (x positions are page-absolute)
 _INFO_COL_W    = 70.0              # title / details / timestamp on the left
 _COORD_COL_X   = MARGIN + _INFO_COL_W + 5.0   # 87.7 mm
-_COORD_COL_W   = 80.0
-_BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 5.0   # 172.7 mm
-_BEARING_COL_W = 80.0
+_COORD_COL_W   = 50.0              # compact — fits "5.  18T VR 51590 34197"
+_BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 4.0   # 141.7 mm
+_BEARING_COL_W = 30.0              # compact — fits "10-1: 359.9°T"
 
-# Bottom-strip row metrics
-_VTAB_SEC_H = 4.5
+# Bottom-strip row metrics — HDR_Y=bt+1.5, HDR_H=3.5, DATA_Y=bt+5 → 5 rows fit
+_VTAB_HDR_H = 3.5
 _VTAB_ROW_H = 4.0
 
 PDF_DPI = 150
@@ -223,65 +223,54 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout):
     pdf.image(img_buf, x=MARGIN, y=MARGIN, w=CONTENT_W)
 
     # ── Bottom data strip ──
-    bt = layout["bottom_top"]
+    bt     = layout["bottom_top"]
+    HDR_Y  = bt + 1.5
+    DATA_Y = HDR_Y + _VTAB_HDR_H   # bt + 5.0 — leaves room for 5 rows at 4mm
 
     # ── Left info column: vertical stack ──
-    y = bt + 2.5
+    y = bt + 2.0
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(20, 20, 20)
     pdf.set_xy(MARGIN + 2, y)
     pdf.cell(_INFO_COL_W - 2, 5, title)
     y += 5.5
 
-    if details:
-        pdf.set_font("Helvetica", "", 7)
-        pdf.set_text_color(70, 70, 70)
+    # Split detail string into individual lines and stack vertically
+    detail_lines = [d.strip() for d in details.split("\u00b7")] if details else []
+    pdf.set_font("Helvetica", "", 6.5)
+    pdf.set_text_color(60, 60, 60)
+    for line in detail_lines:
         pdf.set_xy(MARGIN + 2, y)
-        pdf.cell(_INFO_COL_W - 2, 4, details)
-        y += 4.5
+        pdf.cell(_INFO_COL_W - 2, 3.2, line)
+        y += 3.2
 
-    pdf.set_font("Helvetica", "", 6)
-    pdf.set_text_color(140, 140, 140)
+    y = max(y + 1, bt + BOTTOM_H - 4.5)   # push timestamp toward bottom
+    pdf.set_font("Helvetica", "", 5.5)
+    pdf.set_text_color(150, 150, 150)
     pdf.set_xy(MARGIN + 2, y)
     pdf.cell(_INFO_COL_W - 2, 3.5,
              f"SAR Tools  \u00b7  {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-    # ── Table columns ──
-    # Section label at top of strip, thin rule below it, then data rows
-    HDR_H    = 4.5   # column-header row height
-    HDR_Y    = bt + 2.0
-    DATA_Y   = HDR_Y + HDR_H + 0.5   # 0.5 mm gap after rule
-
+    # ── Table columns (compact, no decorative lines) ──
     if vertices:
-        pdf.set_font("Helvetica", "B", 6.5)
-        pdf.set_text_color(90, 90, 90)
+        pdf.set_font("Helvetica", "B", 6)
+        pdf.set_text_color(100, 100, 100)
         pdf.set_xy(_COORD_COL_X, HDR_Y)
-        pdf.cell(_COORD_COL_W, HDR_H, "Vertex Coordinates (MGRS)")
+        pdf.cell(_COORD_COL_W, _VTAB_HDR_H, "Vertex (MGRS)")
 
-        # Thin rule under header
-        rule_y = HDR_Y + HDR_H
-        pdf.set_draw_color(180, 180, 180)
-        pdf.set_line_width(0.2)
-        pdf.line(_COORD_COL_X, rule_y, _COORD_COL_X + _COORD_COL_W, rule_y)
-
-        pdf.set_font("Helvetica", "", 7)
+        pdf.set_font("Helvetica", "", 6.5)
         pdf.set_text_color(20, 20, 20)
         for idx, (lon, lat) in enumerate(vertices):
             pdf.set_xy(_COORD_COL_X, DATA_Y + idx * _VTAB_ROW_H)
             pdf.cell(_COORD_COL_W, _VTAB_ROW_H, f"{idx + 1}.  {_to_mgrs(lat, lon)}")
 
     if bearings:
-        pdf.set_font("Helvetica", "B", 6.5)
-        pdf.set_text_color(90, 90, 90)
+        pdf.set_font("Helvetica", "B", 6)
+        pdf.set_text_color(100, 100, 100)
         pdf.set_xy(_BEARING_COL_X, HDR_Y)
-        pdf.cell(_BEARING_COL_W, HDR_H, "Side Bearings")
+        pdf.cell(_BEARING_COL_W, _VTAB_HDR_H, "Bearings")
 
-        rule_y = HDR_Y + HDR_H
-        pdf.set_draw_color(180, 180, 180)
-        pdf.set_line_width(0.2)
-        pdf.line(_BEARING_COL_X, rule_y, _BEARING_COL_X + _BEARING_COL_W, rule_y)
-
-        pdf.set_font("Helvetica", "", 7)
+        pdf.set_font("Helvetica", "", 6.5)
         pdf.set_text_color(20, 20, 20)
         for idx, b_str in enumerate(bearings):
             pdf.set_xy(_BEARING_COL_X, DATA_Y + idx * _VTAB_ROW_H)
