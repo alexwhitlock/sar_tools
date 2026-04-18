@@ -8,23 +8,12 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #666; }
+    html, body { height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #888; }
 
-    /* Map sits in the letterbox area to the left of the panel */
-    #mapArea {
-      position: fixed;
-      top: 0; left: 0; bottom: 0;
-      right: 230px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #666;
-    }
-
-    /* Sized dynamically by JS to match the PDF map aspect ratio */
+    /* Sized by JS: fills full width left of panel, height from PDF aspect ratio */
     #map {
-      position: relative;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      position: fixed;
+      top: 0; left: 0;
     }
 
     #panel {
@@ -84,7 +73,7 @@
   </style>
 </head>
 <body>
-  <div id="mapArea"><div id="map"></div></div>
+  <div id="map"></div>
   <div id="panel">
     <div id="panelTitle"   class="panel-title">Loading…</div>
     <div id="panelDetails"></div>
@@ -109,21 +98,18 @@
     const PDF_VTAB_SEC = 6,   PDF_VTAB_ROW  = 5;
 
     function _pdfAspectRatio() {
-      // Mirrors _calc_layout() in pdf.py
+      // Mirrors _calc_layout() in pdf.py — always uses actual ring size,
+      // independent of checkbox state, so map height never changes.
       let mapTop = PDF_MARGIN + PDF_TITLE_H;
       if (_detailStr) mapTop += PDF_DETAILS_H;
       mapTop += PDF_DIV_PAD;
 
-      const footerY = PDF_PAGE_H - PDF_MARGIN - PDF_FOOTER_H - PDF_FOOTER_PAD; // 193
-
-      const nVerts = (document.getElementById("showVertices")?.checked) ? _vertices.length : 0;
-      const nBears = (document.getElementById("showBearings")?.checked) ? _vertices.length : 0;
-      const hasTable = nVerts > 0 || nBears > 0;
+      const footerY = PDF_PAGE_H - PDF_MARGIN - PDF_FOOTER_H - PDF_FOOTER_PAD;
+      const nRing   = _vertices.length;
 
       let mapBottom;
-      if (hasTable) {
-        const nRows  = Math.max(nVerts, nBears);
-        const tableH = PDF_VTAB_SEC + nRows * PDF_VTAB_ROW;
+      if (nRing > 0) {
+        const tableH = PDF_VTAB_SEC + nRing * PDF_VTAB_ROW;
         mapBottom    = footerY - tableH - 2 - 2;
       } else {
         mapBottom = footerY - 2;
@@ -134,14 +120,11 @@
 
     function _resizeMap() {
       if (!_map) return;
-      const area  = document.getElementById("mapArea");
-      const mapEl = document.getElementById("map");
-      const availW = area.clientWidth  - 20;   // 10px breathing room each side
-      const availH = area.clientHeight - 20;
-      const ratio  = _pdfAspectRatio();
-
-      let w = availW, h = w / ratio;
-      if (h > availH) { h = availH; w = h * ratio; }
+      const panelW = 230;
+      const availW = window.innerWidth - panelW;
+      const mapEl  = document.getElementById("map");
+      const w      = availW;
+      const h      = w / _pdfAspectRatio();
 
       mapEl.style.width  = w + "px";
       mapEl.style.height = h + "px";
@@ -200,8 +183,7 @@
       // Vertex markers layer
       _vertexLayer = L.layerGroup().addTo(_map);
       const checkbox = document.getElementById("showVertices");
-      checkbox.addEventListener("change", () => { _setVertexMarkers(checkbox.checked); _resizeMap(); });
-      document.getElementById("showBearings").addEventListener("change", _resizeMap);
+      checkbox.addEventListener("change", () => _setVertexMarkers(checkbox.checked));
 
       // Wire generate button
       const btn = document.getElementById("generateBtn");

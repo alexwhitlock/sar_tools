@@ -56,14 +56,14 @@ def assignment_map_pdf():
     if not coordinates:
         return jsonify(error="invalid geometry"), 400
 
-    vertices = []
-    if show_vertices and geom_type == "Polygon":
-        vertices = coordinates[0][:-1]
+    # Ring size drives the reserved table space regardless of checkbox state
+    ring = coordinates[0][:-1] if geom_type == "Polygon" else []
+
+    vertices = ring if show_vertices else []
 
     bearings = []
-    if show_bearings and geom_type == "Polygon":
-        ring = coordinates[0][:-1]
-        n    = len(ring)
+    if show_bearings and ring:
+        n = len(ring)
         for i in range(n):
             lon1, lat1 = ring[i]
             lon2, lat2 = ring[(i + 1) % n]
@@ -71,7 +71,8 @@ def assignment_map_pdf():
             bearings.append(f"{i + 1}-{(i + 1) % n + 1}: {b:05.1f}\u00b0T")
 
     try:
-        layout  = _calc_layout(bool(details), len(vertices), len(bearings))
+        # Always reserve table rows for the full ring so map height is constant
+        layout  = _calc_layout(bool(details), len(ring))
         map_img, x_center, y_center, render_zoom = _render_map(
             geom_type, coordinates, center, zoom,
             img_w=_mm_to_px(CONTENT_W),
@@ -97,7 +98,12 @@ def assignment_map_pdf():
 
 # ── Layout calculation ─────────────────────────────────────────────────────────
 
-def _calc_layout(has_details, n_verts, n_bearings):
+def _calc_layout(has_details, n_ring):
+    """Layout for a polygon with n_ring vertices.
+
+    Table space is always reserved so the map height is constant for a given
+    assignment regardless of which checkboxes are enabled.
+    """
     map_top = MARGIN + _TITLE_H
     if has_details:
         map_top += _DETAILS_H
@@ -105,14 +111,10 @@ def _calc_layout(has_details, n_verts, n_bearings):
 
     footer_line_y = PAGE_H - MARGIN - _FOOTER_H - _FOOTER_PAD
 
-    has_table = n_verts > 0 or n_bearings > 0
-    if has_table:
-        coord_rows   = n_verts
-        bearing_rows = n_bearings
-        n_rows       = max(coord_rows, bearing_rows)
-        table_h      = _VTAB_SEC_H + n_rows * _VTAB_ROW_H
-        table_top    = footer_line_y - table_h - 2
-        map_bottom   = table_top - 2
+    if n_ring > 0:
+        table_h   = _VTAB_SEC_H + n_ring * _VTAB_ROW_H
+        table_top = footer_line_y - table_h - 2
+        map_bottom = table_top - 2
     else:
         table_top  = None
         map_bottom = footer_line_y - 2
