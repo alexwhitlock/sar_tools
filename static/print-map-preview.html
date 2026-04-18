@@ -104,11 +104,23 @@
     }
 
     function _sizeMapContainer() {
-      const w = window.innerWidth - 230;
-      const h = w / _pdfAspectRatio();
-      const mapEl = document.getElementById("map");
-      mapEl.style.width  = w + "px";
-      mapEl.style.height = h + "px";
+      const ratio    = _pdfAspectRatio();
+      const minPanel = 230;
+
+      // Ideal: map fills available width, height from aspect ratio
+      let w = window.innerWidth - minPanel;
+      let h = w / ratio;
+
+      // If map would exceed window height, clamp height and shrink map width;
+      // the panel expands to fill the remaining horizontal space.
+      if (h > window.innerHeight) {
+        h = window.innerHeight;
+        w = h * ratio;
+      }
+
+      document.getElementById("map").style.width   = w + "px";
+      document.getElementById("map").style.height  = h + "px";
+      document.getElementById("panel").style.width = (window.innerWidth - w) + "px";
       return h;
     }
 
