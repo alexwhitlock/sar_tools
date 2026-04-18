@@ -174,7 +174,7 @@
       document.getElementById("panelDetails").innerHTML =
         detailParts.map(d => '<div class="detail-row">' + d + "</div>").join("");
 
-      if (isArea) document.getElementById("vertexSection").style.display = "";
+      if (isArea && _vertices.length <= 4) document.getElementById("vertexSection").style.display = "";
 
       // Size the container to the PDF aspect ratio BEFORE Leaflet init
       // so fitBounds sees the correct dimensions when computing zoom.
