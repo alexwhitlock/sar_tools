@@ -79,12 +79,14 @@
     <div id="panelDetails"></div>
     <div id="vertexSection" class="section" style="display:none">
       <div class="section-title">Options</div>
-      <label class="option-label">
-        <input type="checkbox" id="showVertices"> Vertex coordinates
-      </label>
-      <label class="option-label">
-        <input type="checkbox" id="showBearings"> Side bearings
-      </label>
+      <div id="vertexOptions">
+        <label class="option-label">
+          <input type="checkbox" id="showVertices"> Vertex coordinates
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="showBearings"> Side bearings
+        </label>
+      </div>
       <label class="option-label">
         <input type="checkbox" id="showGrid"> MGRS 100m grid
       </label>
@@ -171,10 +173,13 @@
       // Update panel text
       document.title = "Map: " + _title;
       document.getElementById("panelTitle").textContent = _title;
-      document.getElementById("panelDetails").innerHTML =
-        detailParts.map(d => '<div class="detail-row">' + d + "</div>").join("");
+      document.getElementById("panelDetails").innerHTML = "";
 
-      if (isArea && _vertices.length <= 4) document.getElementById("vertexSection").style.display = "";
+      if (isArea) {
+        document.getElementById("vertexSection").style.display = "";
+        if (_vertices.length > 4)
+          document.getElementById("vertexOptions").style.display = "none";
+      }
 
       // Size the container to the PDF aspect ratio BEFORE Leaflet init
       // so fitBounds sees the correct dimensions when computing zoom.
