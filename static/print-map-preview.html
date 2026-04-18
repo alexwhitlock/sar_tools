@@ -162,11 +162,8 @@
       _title = "Assignment " + (asgn.number ?? "?");
 
       const detailParts = [
-        asgn.team          ? "Team: "      + asgn.team          : null,
-        asgn.assignmentType? "Type: "      + asgn.assignmentType: null,
-        asgn.resourceType  ? "Resource: "  + asgn.resourceType  : null,
-        asgn.op            ? "Op Period: " + asgn.op            : null,
-        asgn.status        ? "Status: "    + asgn.status        : null,
+        asgn.team ? "Team: "      + asgn.team : null,
+        asgn.op   ? "Op Period: " + asgn.op   : null,
       ].filter(Boolean);
       _detailStr = detailParts.join("  \u00b7  ");
       _vertices  = isArea ? _geometry.coordinates[0].slice(0, -1) : [];

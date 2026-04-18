@@ -338,18 +338,39 @@ def _make_pdf(title, details, map_img, vertices, bearings, layout, grid_zone="")
         y += 3.2
 
     if grid_zone:
-        pdf.set_font("Helvetica", "I", 6.0)
-        pdf.set_text_color(80, 80, 140)
+        pdf.set_font("Helvetica", "", 6.5)
+        pdf.set_text_color(60, 60, 60)
         pdf.set_xy(MARGIN + 2, y)
         pdf.cell(_INFO_COL_W - 2, 3.2, f"Grid zone: {grid_zone}")
         y += 3.2
 
-    y = max(y + 1, bt + BOTTOM_H - 4.5)   # push timestamp toward bottom
-    pdf.set_font("Helvetica", "", 5.5)
-    pdf.set_text_color(150, 150, 150)
+    y = max(y + 1, bt + BOTTOM_H - 7.5)   # push timestamp block toward bottom
+    now = datetime.now()
+    pdf.set_font("Helvetica", "", 6.5)
+    pdf.set_text_color(60, 60, 60)
     pdf.set_xy(MARGIN + 2, y)
-    pdf.cell(_INFO_COL_W - 2, 3.5,
-             f"Printed from SAR Tools {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    pdf.cell(_INFO_COL_W - 2, 3.2, "Printed from SAR Tools")
+    y += 3.2
+    pdf.set_xy(MARGIN + 2, y)
+    pdf.cell(_INFO_COL_W - 2, 3.2, now.strftime("%Y-%m-%d %H:%M"))
+
+    # ── North arrow (right side of bottom strip) ──
+    ax   = PAGE_W - MARGIN - 12    # centre x
+    atop = bt + 1.0                # top of "N" label
+    tip  = atop + 3.5              # arrowhead tip
+    base = tip  + 5.5              # arrowhead base / shaft top
+    bot  = bt + BOTTOM_H - 2.5    # shaft bottom
+
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.set_text_color(30, 30, 30)
+    pdf.set_xy(ax - 2.5, atop)
+    pdf.cell(5, 3.2, "N", align="C")
+
+    pdf.set_draw_color(30, 30, 30)
+    pdf.set_line_width(0.5)
+    pdf.line(ax, tip,  ax - 3.5, base)   # left side of head
+    pdf.line(ax, tip,  ax + 3.5, base)   # right side of head
+    pdf.line(ax, base, ax,       bot  )  # shaft
 
     # ── Table columns (compact, no decorative lines) ──
     if vertices:
