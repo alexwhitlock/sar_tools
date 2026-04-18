@@ -10,12 +10,5 @@ export function printAssignmentMap(asgn) {
   }
 
   const params = new URLSearchParams({ asgn: JSON.stringify(asgn) });
-  const popup  = window.open(
-    `/static/print-map-preview.html?${params}`,
-    "_blank",
-    "width=1100,height=720"
-  );
-  if (!popup) {
-    alert("Pop-up blocked. Please allow pop-ups for this site.");
-  }
+  window.open(`/static/print-map-preview.html?${params}`, "_blank");
 }

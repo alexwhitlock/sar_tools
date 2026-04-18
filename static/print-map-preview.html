@@ -114,10 +114,12 @@
 
     function _fitWindowToMap() {
       // Snap the popup height to the map so no gray shows below.
-      // Only called on initial load; manual resizes are left alone.
-      const mapH   = _sizeMapContainer();
-      const chrome = window.outerHeight - window.innerHeight;
-      window.resizeTo(window.outerWidth, mapH + chrome);
+      // Only called on initial load; tabs ignore resizeTo, that's fine.
+      const mapH = _sizeMapContainer();
+      try {
+        const chrome = window.outerHeight - window.innerHeight;
+        window.resizeTo(window.outerWidth, mapH + chrome);
+      } catch (_) { /* tabs block resize */ }
     }
 
     function _resizeMap() {
@@ -179,6 +181,12 @@
       }).addTo(_map);
       _map.fitBounds(layer.getBounds(), { padding: [40, 40] });
 
+      // Snap preview zoom to match what the PDF will render
+      const _previewW = parseInt(document.getElementById("map").style.width);
+      const _pdfW_px  = (PDF_PAGE_W - 2 * PDF_MARGIN) / 25.4 * 150;
+      const _pdfZoom  = Math.round(_map.getZoom() + Math.log2(_pdfW_px / _previewW)) - 1;
+      _map.setZoom(_pdfZoom, { animate: false });
+
       // Vertex markers layer
       _vertexLayer = L.layerGroup().addTo(_map);
       const checkbox = document.getElementById("showVertices");
@@ -234,11 +242,8 @@
       const showVertices = document.getElementById("showVertices")?.checked ?? false;
       const showBearings = document.getElementById("showBearings")?.checked ?? false;
 
-      // The PDF canvas is larger than the preview container (150dpi vs screen pixels).
-      // Compensate zoom so the PDF shows the same geographic extent as the preview.
-      const previewW   = parseInt(document.getElementById("map").style.width);
-      const pdfW_px    = (PDF_PAGE_W - 2 * PDF_MARGIN) / 25.4 * 150;  // ~1603px
-      const zoom       = Math.round(_map.getZoom() + Math.log2(pdfW_px / previewW)) - 1;
+      // Preview is already at the PDF zoom — just send what Leaflet shows.
+      const zoom = Math.round(_map.getZoom());
 
       try {
         const resp = await fetch("/api/assignment/map-pdf", {
