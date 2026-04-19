@@ -572,10 +572,13 @@
   vertical-align: top;
 }
 
+.viewlog-table th:last-child,
 .viewlog-table td:last-child {
   white-space: normal;
   overflow: visible;
   word-break: break-word;
+  width: 100%;
+  max-width: none;
 }
 
 .log-col-time {
