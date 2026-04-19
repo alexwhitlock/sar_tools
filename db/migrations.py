@@ -50,6 +50,8 @@ def run_migrations(conn):
         (5, migration_005_teams_leader_and_status),
         (6, migration_006_incident_log),
         (7, migration_007_sync_state),
+        (8, migration_008_add_notes),
+        (9, migration_009_assignment_notes),
     ]
 
     for version, migration in migrations:
@@ -181,6 +183,23 @@ def migration_006_incident_log(conn):
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_log_timestamp ON incident_log(timestamp);")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_log_type     ON incident_log(type);")
+
+
+def migration_009_assignment_notes(conn):
+    """Local notes for CalTopo assignments, keyed by CalTopo feature ID."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS assignment_notes (
+            feature_id  TEXT PRIMARY KEY,
+            notes       TEXT,
+            updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+    """)
+
+
+def migration_008_add_notes(conn):
+    """Add optional free-text notes field to personnel and teams."""
+    conn.execute("ALTER TABLE personnel ADD COLUMN notes TEXT")
+    conn.execute("ALTER TABLE teams ADD COLUMN notes TEXT")
 
 
 def migration_007_sync_state(conn):

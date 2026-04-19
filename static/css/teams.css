@@ -157,6 +157,9 @@
 .show-members .col-members { display: table-cell; }
 .col-members { line-height: 1.5; white-space: nowrap; }
 
+.hide-notes .col-notes { display: none; }
+.col-notes { width: 100%; min-width: 120px; }
+
 .actions-col {
   width: 44px;
 }
@@ -429,9 +432,17 @@ body.kanban-grabbing * {
 }
 
 .team-modal-body select,
-.team-modal-body input[type="text"] {
+.team-modal-body input[type="text"],
+.team-modal-body textarea {
   font-size: 0.8rem;
   padding: 3px 6px;
+  font-family: inherit;
+}
+
+.team-modal-body textarea {
+  resize: vertical;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 

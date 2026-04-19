@@ -23,6 +23,7 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
                 t.name,
                 t.status,
                 t.team_leader_id,
+                t.notes,
                 t.updated_at,
                 leader.name AS leader_name,
                 COUNT(tm.personnel_id) AS member_count,
@@ -42,6 +43,7 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
         "teamLeaderName": r["leader_name"],
         "memberCount": r["member_count"],
         "memberData": r["member_data"] or "",
+        "notes": r["notes"],
         "updatedAt": r["updated_at"],
     } for r in rows]
 
@@ -81,6 +83,9 @@ def update_team(incident_name: str, *, team_id: int, expected_updated_at: str | 
     if "status" in kwargs:
         sets.append("status = ?")
         params.append(kwargs["status"])
+    if "notes" in kwargs:
+        sets.append("notes = ?")
+        params.append(kwargs["notes"] or None)
 
     if not sets:
         return False

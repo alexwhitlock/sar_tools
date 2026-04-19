@@ -63,6 +63,13 @@
         <input type="text" id="filter-op" placeholder="e.g. 1" />
       </div>
 
+      <div class="filter-group filter-group-check">
+        <label class="check-label">
+          <input type="checkbox" id="toggle-notes-assignments" checked />
+          Notes
+        </label>
+      </div>
+
     </div>
 
     <!-- Table view -->
@@ -77,6 +84,7 @@
             <th data-key="status">Status</th>
             <th data-key="teamStatus" class="col-team-status">Team Status</th>
             <th data-key="op" class="col-op-period">Op Period</th>
+            <th data-key="notes" class="col-notes">Notes</th>
             <th class="actions-col"></th>
           </tr>
         </thead>
@@ -118,6 +126,9 @@
             <select id="asgnTeam">
               <option value="">— No Team —</option>
             </select>
+          </label>
+          <label>Notes
+            <textarea id="asgnNotes" rows="3" placeholder="Optional notes"></textarea>
           </label>
         </div>
         <div id="asgnModalError" class="modal-error hidden"></div>

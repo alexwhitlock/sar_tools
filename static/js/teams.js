@@ -270,6 +270,7 @@ function renderTeamRow(t) {
     <td title="${memberTooltip(t)}" style="cursor:help">${t.memberCount ?? 0}</td>
     <td class="col-members">${memberListHtml(t)}</td>
     <td>${assignmentHtml}</td>
+    <td class="col-notes">${escapeHtml(t.notes ?? "")}</td>
     <td class="actions-cell">
       <button
         type="button"
@@ -1151,6 +1152,15 @@ function wireFilters() {
     });
   }
 
+  // Notes column toggle
+  const notesToggle = document.getElementById("toggle-notes-teams");
+  if (notesToggle) {
+    const tableEl = document.querySelector(".teams-data-table");
+    notesToggle.addEventListener("change", () => {
+      tableEl?.classList.toggle("hide-notes", !notesToggle.checked);
+    });
+  }
+
   // Status pills (table only — hidden in kanban)
   const teamsPanel = document.getElementById("teams");
   const statusPillGroup = teamsPanel?.querySelector(".teams-pill-group[data-filter-key='status']");
@@ -1266,6 +1276,8 @@ async function openTeamModal(mode, team = null) {
   titleEl.textContent = mode === "create" ? "Create Team" : "Edit Team";
   nameInput.value = team?.name ?? "";
   statusSelect.value = team?.status ?? "Out of Service";
+  const notesInput = document.getElementById("teamNotes");
+  if (notesInput) notesInput.value = team?.notes ?? "";
 
   const incidentName = getCurrentIncidentName();
 
@@ -1315,6 +1327,7 @@ async function saveTeamModal() {
   const name = (document.getElementById("teamName")?.value || "").trim();
   const status = document.getElementById("teamStatus")?.value || "Out of Service";
   const teamLeaderId = document.getElementById("teamLeader")?.value || null;
+  const notes = (document.getElementById("teamNotes")?.value || "").trim();
 
   if (!name) {
     window.alert("Team name is required.");
@@ -1350,6 +1363,7 @@ async function saveTeamModal() {
         teamId,
         name,
         status,
+        notes,
         teamLeaderId: teamLeaderId ? parseInt(teamLeaderId) : null,
         expectedUpdatedAt: currentTeam?.updatedAt,
       });
@@ -1378,6 +1392,7 @@ async function saveTeamModal() {
         incidentName,
         teamId,
         status,
+        notes,
         teamLeaderId: teamLeaderId ? parseInt(teamLeaderId) : null,
       });
     }
@@ -1407,6 +1422,7 @@ async function saveTeamModal() {
         changes.push(`added member ${_modalMembers.find(m => String(m.id) === id)?.name || id}`);
       for (const id of [..._originalMemberIds].filter(id => !_currentMemberIds.has(id)))
         changes.push(`removed member ${_allPersonnel.find(p => String(p.id) === id)?.name || id}`);
+      if ((currentTeam.notes || "") !== notes) changes.push(`notes changed from "${currentTeam.notes || "(none)"}" to "${notes || "(none)"}"`);
       if (changes.length) logUserEvent(incidentName, `Team ${name} updated: ${changes.join("; ")}`);
     }
     teamsMessage.show(_mode === "create" ? "Team created." : "Changes saved.", "info");

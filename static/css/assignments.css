@@ -8,6 +8,9 @@
 .col-team-status { display: none; }
 .show-team-status .col-team-status { display: table-cell; }
 
+.hide-notes .col-notes { display: none; }
+.col-notes { width: 100%; min-width: 120px; }
+
 /* ===============================
    Assignments tab layout
    =============================== */
@@ -189,9 +192,17 @@
 }
 
 .asgn-modal-body select,
-.asgn-modal-body input[type="text"] {
+.asgn-modal-body input[type="text"],
+.asgn-modal-body textarea {
   font-size: 0.8rem;
   padding: 3px 6px;
+  font-family: inherit;
+}
+
+.asgn-modal-body textarea {
+  resize: vertical;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .asgn-modal-info {

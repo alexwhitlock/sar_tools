@@ -107,6 +107,7 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
                 p.d4h_ref AS d4hRef,
                 p.status AS status,
                 p.previous_status AS previousStatus,
+                p.notes AS notes,
                 p.updated_at AS updatedAt
             FROM personnel p
             LEFT JOIN team_members tm ON tm.personnel_id = p.id
@@ -122,6 +123,7 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
         "d4hRef": r["d4hRef"],
         "status": r["status"],
         "previousStatus": r["previousStatus"],
+        "notes": r["notes"],
         "updatedAt": r["updatedAt"],
     } for r in rows]
 
@@ -154,23 +156,23 @@ def update_person_status(incident_name: str, *, person_id: int, status: str, exp
         return cur.rowcount > 0
 
 
-def add_person(incident_name: str, *, name: str) -> int:
+def add_person(incident_name: str, *, name: str, notes: str | None = None) -> int:
     with get_connection(incident_name) as conn:
         cur = conn.execute(
-            "INSERT INTO personnel (name) VALUES (?)",
-            (name,)
+            "INSERT INTO personnel (name, notes) VALUES (?, ?)",
+            (name, notes or None)
         )
         conn.commit()
         return cur.lastrowid
 
-def update_person(incident_name: str, *, person_id: int, name: str, expected_updated_at: str | None = None) -> bool:
-    """Update a person's name. Returns True if a row was updated.
+def update_person(incident_name: str, *, person_id: int, name: str, notes: str | None = None, expected_updated_at: str | None = None) -> bool:
+    """Update a person's name and notes. Returns True if a row was updated.
     If expected_updated_at is provided, raises ConflictError if the record has been modified."""
     with get_connection(incident_name) as conn:
         if expected_updated_at:
             cur = conn.execute(
-                "UPDATE personnel SET name = ?, updated_at = datetime('now') WHERE id = ? AND updated_at = ?",
-                (name, person_id, expected_updated_at),
+                "UPDATE personnel SET name = ?, notes = ?, updated_at = datetime('now') WHERE id = ? AND updated_at = ?",
+                (name, notes or None, person_id, expected_updated_at),
             )
             conn.commit()
             if cur.rowcount == 0:
@@ -180,8 +182,8 @@ def update_person(incident_name: str, *, person_id: int, name: str, expected_upd
                 return False
         else:
             cur = conn.execute(
-                "UPDATE personnel SET name = ?, updated_at = datetime('now') WHERE id = ?",
-                (name, person_id),
+                "UPDATE personnel SET name = ?, notes = ?, updated_at = datetime('now') WHERE id = ?",
+                (name, notes or None, person_id),
             )
             conn.commit()
         return cur.rowcount > 0

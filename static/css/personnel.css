@@ -75,6 +75,9 @@
 .col-d4href { display: none; }
 .show-d4href .col-d4href { display: table-cell; }
 
+.hide-notes .col-notes { display: none; }
+.col-notes { width: 100%; min-width: 120px; }
+
 /* ===============================
    Filters (same row)
    =============================== */
@@ -252,6 +255,15 @@
   display: block;
   font-size: 0.8rem;
   margin-bottom: 6px;
+}
+
+.modal-body textarea {
+  width: 100%;
+  font-size: 0.8rem;
+  padding: 3px 6px;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 /* Footer */

@@ -61,6 +61,13 @@
         </label>
       </div>
 
+      <div class="filter-group filter-group-check">
+        <label class="check-label">
+          <input type="checkbox" id="toggle-notes-personnel" checked />
+          Notes
+        </label>
+      </div>
+
       <div id="personnel-stats" class="personnel-stats hidden">
         <span id="stat-total"></span>
         <span id="stat-checkedin"></span>
@@ -79,6 +86,7 @@
             <th data-key="status">Status</th>
             <th data-key="source">Source</th>
             <th data-key="d4hRef" class="col-d4href">D4H Ref</th>
+            <th data-key="notes" class="col-notes">Notes</th>
             <th data-key="actions" class="actions-col"></th>
           </tr>
         </thead>
@@ -127,6 +135,9 @@
             <select id="personTeam">
               <option value="">— No Team —</option>
             </select>
+          </label>
+          <label>Notes
+            <textarea id="personNotes" rows="3" placeholder="Optional notes"></textarea>
           </label>
         </div>
 

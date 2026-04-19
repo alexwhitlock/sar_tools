@@ -1,6 +1,7 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
 import { printAssignmentMap } from "./print-map.js";
+import { logUserEvent } from "./logging.js";
 
 let assignmentsTable = null;
 let assignmentsMessage = null;
@@ -115,24 +116,35 @@ function escapeHtml(s) {
    CalTopo write
    =============================== */
 
-async function writeToCalTopo({ featureId, status, team }) {
+async function writeToCalTopo({ featureId, status, team, notes }) {
   const mapId       = getCurrentMapId();
   const incidentName = getCurrentIncidentName();
   if (!mapId || !featureId) throw new Error("Map ID or feature ID missing");
 
   const body = { mapId, featureId, incidentName };
-  if (status  !== undefined) body.status = status;
-  if (team    !== undefined) body.team   = team;
+  if (status !== undefined) body.status = status;
+  if (team   !== undefined) body.team   = team;
 
-  assignmentsMessage.show("Writing to CalTopo…", "info");
+  // Notes are stored locally, not in CalTopo
+  if (notes !== undefined) {
+    await fetch("/api/assignments/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ incidentName, featureId, notes: notes || null }),
+    });
+  }
 
-  const resp = await fetch("/api/caltopo/assignment/update", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(body),
-  });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
+  // Only hit CalTopo if status or team changed
+  if (body.status !== undefined || body.team !== undefined) {
+    assignmentsMessage.show("Writing to CalTopo…", "info");
+    const resp = await fetch("/api/caltopo/assignment/update", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(body),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
+  }
 }
 
 /* ===============================
@@ -162,6 +174,7 @@ function renderAssignmentRow(a) {
     <td><span class="asgn-badge ${ASGN_STATUS_BADGE[(a.status || "").toUpperCase()] ?? ""}">${escapeHtml(STATUS_LABEL[(a.status || "").toUpperCase()] ?? a.status ?? "")}</span></td>
     <td class="col-team-status">${(a.status || "").toUpperCase() === "INPROGRESS" ? teamStatusBadge(a.team ?? "") : ""}</td>
     <td class="col-op-period">${escapeHtml(a.op ?? "")}</td>
+    <td class="col-notes">${escapeHtml(a.notes ?? "")}</td>
     <td class="actions-cell">
       <button type="button" class="asgn-menu-btn"
         data-feature-id="${escapeHtml(a.id ?? "")}"
@@ -197,7 +210,8 @@ export async function loadAssignments() {
   assignmentsMessage.show("Loading assignments…", "info");
 
   try {
-    const resp = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}`);
+    const incidentName = getCurrentIncidentName();
+    const resp = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}&incidentName=${encodeURIComponent(incidentName)}`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
 
@@ -667,6 +681,7 @@ function openEditModal(asgn) {
   const infoEl   = document.getElementById("asgnModalInfo");
   const statusEl = document.getElementById("asgnStatus");
   const teamEl   = document.getElementById("asgnTeam");
+  const notesEl  = document.getElementById("asgnNotes");
   const errEl    = document.getElementById("asgnModalError");
 
   infoEl.textContent = `Assignment ${asgn.number ?? "?"}  ·  ${asgn.assignmentType ?? ""}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
@@ -693,6 +708,7 @@ function openEditModal(asgn) {
     teamEl.appendChild(opt);
   }
   teamEl.value = currentTeam;
+  if (notesEl) notesEl.value = asgn.notes ?? "";
 
   errEl.classList.add("hidden");
   errEl.textContent  = "";
@@ -718,15 +734,18 @@ async function saveEditModal() {
 
   const statusEl  = document.getElementById("asgnStatus");
   const teamEl    = document.getElementById("asgnTeam");
+  const notesEl   = document.getElementById("asgnNotes");
   const errEl     = document.getElementById("asgnModalError");
   const saveBtn   = document.getElementById("asgnModalSave");
   const cancelBtn = document.getElementById("asgnModalCancel");
 
   const newStatus = statusEl.value;
   const newTeam   = teamEl.value.trim();
+  const newNotes  = notesEl?.value.trim() ?? "";
 
   const changed = newStatus !== (_modalAsgn.status || "").toUpperCase() ||
-                  newTeam   !== (_modalAsgn.team   || "");
+                  newTeam   !== (_modalAsgn.team   || "") ||
+                  newNotes  !== (_modalAsgn.notes  || "");
   if (!changed) { closeEditModal(); return; }
 
   // Validate team required for INPROGRESS / COMPLETED
@@ -743,11 +762,22 @@ async function saveEditModal() {
   errEl.classList.add("hidden");
 
   try {
+    const prevStatus = (_modalAsgn.status || "").toUpperCase();
+    const prevTeam   = _modalAsgn.team   || "";
+    const prevNotes  = _modalAsgn.notes  || "";
     await writeToCalTopo({
       featureId: _modalAsgn.id,
       status:    newStatus,
       team:      newTeam,
+      notes:     newNotes,
     });
+    const incidentName = getCurrentIncidentName();
+    const aLabel = `Assignment ${_modalAsgn.number ?? _modalAsgn.id}`;
+    const changes = [];
+    if (newStatus !== prevStatus) changes.push(`status changed from "${prevStatus}" to "${newStatus}"`);
+    if (newTeam   !== prevTeam)   changes.push(`team changed from "${prevTeam || "none"}" to "${newTeam || "none"}"`);
+    if (newNotes  !== prevNotes)  changes.push(`notes changed from "${prevNotes || "(none)"}" to "${newNotes || "(none)"}"`);
+    if (changes.length) logUserEvent(incidentName, `${aLabel} updated: ${changes.join("; ")}`);
     closeEditModal();
     await loadAssignments();
     if (newStatus === "COMPLETED")  await maybeStageTeam(newTeam || _modalAsgn.team);
@@ -822,6 +852,14 @@ function wireFilters(table) {
       if (tableEl) tableEl.classList.toggle("show-op-period", on);
       if (opGroup) opGroup.classList.toggle("op-expanded", on);
       if (!on && opInput) { opInput.value = ""; table.setFilter("op", ""); }
+    });
+  }
+
+  const notesToggle = document.getElementById("toggle-notes-assignments");
+  if (notesToggle) {
+    const tableEl = document.querySelector(".assignments-data-table");
+    notesToggle.addEventListener("change", () => {
+      tableEl?.classList.toggle("hide-notes", !notesToggle.checked);
     });
   }
 

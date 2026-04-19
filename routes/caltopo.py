@@ -54,15 +54,40 @@ def _get_acct_features(team_id):
 
 @bp.get("/api/assignments")
 def api_assignments():
-    map_id = (request.args.get("mapId") or "").strip()
+    map_id       = (request.args.get("mapId")       or "").strip()
+    incident_name = (request.args.get("incidentName") or "").strip()
     if not map_id:
         return jsonify(error="mapId required"), 400
 
     try:
         assignments = get_assignments_for_map(map_id)
+        if incident_name:
+            from db.assignment_notes_repo import get_notes
+            notes_map = get_notes(incident_name)
+            for a in assignments:
+                a["notes"] = notes_map.get(a["id"]) or None
         return jsonify(assignments)
     except Exception as e:
         return jsonify(error=str(e)), 500
+
+
+@bp.post("/api/assignments/notes")
+def api_assignment_notes_update():
+    """Save or clear local notes for a CalTopo assignment."""
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    feature_id    = (data.get("featureId")    or "").strip()
+    notes         = (data.get("notes")        or "").strip() or None
+
+    if not incident_name or not feature_id:
+        return jsonify(ok=False, error="incidentName and featureId required"), 400
+
+    try:
+        from db.assignment_notes_repo import upsert_notes
+        upsert_notes(incident_name, feature_id, notes)
+        return jsonify(ok=True)
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500
 
 
 @bp.post("/upload")

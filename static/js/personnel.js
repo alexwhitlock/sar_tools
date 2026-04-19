@@ -91,6 +91,7 @@ function renderPersonnelRow(p) {
     <td>${escapeHtml(status)}</td>
     <td>${escapeHtml(p.source)}</td>
     <td class="col-d4href">${escapeHtml(p.d4hRef)}</td>
+    <td class="col-notes">${escapeHtml(p.notes ?? "")}</td>
     <td class="actions-cell">
       <button
         type="button"
@@ -186,6 +187,7 @@ function getUiEls() {
     saveBtn: document.getElementById("personModalSave"),
     nameInput: document.getElementById("personName"),
     teamSelect: document.getElementById("personTeam"),
+    notesInput: document.getElementById("personNotes"),
   };
 }
 
@@ -251,7 +253,7 @@ function closeMenu() {
 }
 
 async function openPersonModal(mode, person = null) {
-  const { backdrop, titleEl, nameInput, teamSelect } = getUiEls();
+  const { backdrop, titleEl, nameInput, teamSelect, notesInput } = getUiEls();
   if (!backdrop || !titleEl || !nameInput) return;
 
   modalMode = mode;
@@ -259,6 +261,7 @@ async function openPersonModal(mode, person = null) {
   if (errEl) errEl.classList.add("hidden");
   titleEl.textContent = mode === "add" ? "Add Person" : "Edit Person";
   nameInput.value = person?.name ?? "";
+  if (notesInput) notesInput.value = person?.notes ?? "";
 
   // Populate team dropdown
   if (teamSelect) {
@@ -324,11 +327,11 @@ async function apiAddPerson({ incidentName, name }) {
   return data;
 }
 
-async function apiUpdatePerson({ incidentName, personKey, name, expectedUpdatedAt }) {
+async function apiUpdatePerson({ incidentName, personKey, name, notes, expectedUpdatedAt }) {
   const resp = await fetch("/api/personnel/update", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ incidentName, personKey, name, expectedUpdatedAt }),
+    body: JSON.stringify({ incidentName, personKey, name, notes, expectedUpdatedAt }),
   });
 
   const data = await resp.json().catch(() => ({}));
@@ -610,6 +613,14 @@ function wireFilters(table) {
       if (tableEl) tableEl.classList.toggle("show-d4href", d4hRefToggle.checked);
     });
   }
+
+  const notesToggle = document.getElementById("toggle-notes-personnel");
+  if (notesToggle) {
+    const tableEl = document.querySelector(".personnel-data-table");
+    notesToggle.addEventListener("change", () => {
+      if (tableEl) tableEl.classList.toggle("hide-notes", !notesToggle.checked);
+    });
+  }
 }
 
 /* ===============================
@@ -772,7 +783,8 @@ function wireMenuAndModal() {
     if (!incidentName) return;
 
     const name = nameInput.value.trim();
-    const { teamSelect } = getUiEls();
+    const { teamSelect, notesInput } = getUiEls();
+    const notes = notesInput?.value.trim() ?? "";
     const selectedTeamId = teamSelect?.value ? parseInt(teamSelect.value) : null;
 
     if (!name) {
@@ -812,7 +824,7 @@ function wireMenuAndModal() {
         savedPersonKey = result.id;
       } else {
         const person = findPersonInCache(activePersonKey);
-        await apiUpdatePerson({ incidentName, personKey: activePersonKey, name, expectedUpdatedAt: person?.updatedAt });
+        await apiUpdatePerson({ incidentName, personKey: activePersonKey, name, notes, expectedUpdatedAt: person?.updatedAt });
       }
 
       // Apply team assignment change
@@ -855,6 +867,7 @@ function wireMenuAndModal() {
         if ((personBefore.team || null) !== (newTeamName || null)) {
           changes.push(`team changed from "${personBefore.team || "none"}" to "${newTeamName || "none"}"`);
         }
+        if ((personBefore.notes || "") !== notes) changes.push(`notes changed from "${personBefore.notes || "(none)"}" to "${notes || "(none)"}"`);
         if (changes.length) logUserEvent(incidentName, `Personnel ${name} updated: ${changes.join("; ")}`);
       }
       personnelMessage.show(

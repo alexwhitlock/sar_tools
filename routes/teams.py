@@ -76,6 +76,8 @@ def api_teams_update():
         if status not in TEAM_STATUSES:
             return jsonify({"ok": False, "error": f"invalid status: {status}"}), 400
         kwargs["status"] = status
+    if "notes" in data:
+        kwargs["notes"] = (data.get("notes") or "").strip() or None
 
     expected_updated_at = (data.get("expectedUpdatedAt") or "").strip() or None
 

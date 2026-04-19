@@ -40,6 +40,10 @@
           <input type="checkbox" id="toggle-members" />
           Show All Team Members
         </label>
+        <label class="check-label">
+          <input type="checkbox" id="toggle-notes-teams" checked />
+          Notes
+        </label>
       </div>
     </div>
 
@@ -54,6 +58,7 @@
             <th data-key="memberCount">Members</th>
             <th data-key="memberNames" class="col-members">Member Names</th>
             <th data-key="assignment">Assignment</th>
+            <th data-key="notes" class="col-notes">Notes</th>
             <th data-key="actions" class="actions-col"></th>
           </tr>
         </thead>
@@ -113,6 +118,10 @@
             <select id="teamLeader">
               <option value="">— None —</option>
             </select>
+          </label>
+
+          <label>Notes
+            <textarea id="teamNotes" rows="3" placeholder="Optional notes"></textarea>
           </label>
 
           <div class="team-members-section">

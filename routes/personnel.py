@@ -54,8 +54,9 @@ def api_personnel_add():
     if not name:
         return jsonify({"ok": False, "error": "name is required"}), 400
 
+    notes = (data.get("notes") or "").strip() or None
     try:
-        new_id = add_person(incident_name, name=name)
+        new_id = add_person(incident_name, name=name, notes=notes)
         return jsonify({"ok": True, "id": new_id})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -66,6 +67,7 @@ def api_personnel_update():
     incident_name = (data.get("incidentName") or "").strip()
     person_key = data.get("personKey")
     name = (data.get("name") or "").strip()
+    notes = (data.get("notes") or "").strip() or None
     expected_updated_at = (data.get("expectedUpdatedAt") or "").strip() or None
 
     if not incident_name:
@@ -77,7 +79,7 @@ def api_personnel_update():
 
     try:
         ok = update_person(incident_name, person_id=int(person_key), name=name,
-                           expected_updated_at=expected_updated_at)
+                           notes=notes, expected_updated_at=expected_updated_at)
         if not ok:
             return jsonify({"ok": False, "error": "person not found"}), 404
         return jsonify({"ok": True})
