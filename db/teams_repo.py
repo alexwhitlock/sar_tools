@@ -116,6 +116,22 @@ def update_team(incident_name: str, *, team_id: int, expected_updated_at: str | 
         return cur.rowcount > 0
 
 
+def get_team_name(incident_name: str, team_id: int) -> str | None:
+    with get_connection(incident_name) as conn:
+        row = conn.execute("SELECT name FROM teams WHERE id = ?", (team_id,)).fetchone()
+        return row["name"] if row else None
+
+
+def get_person_team_name(incident_name: str, person_id: int) -> str | None:
+    with get_connection(incident_name) as conn:
+        row = conn.execute("""
+            SELECT t.name FROM team_members tm
+            JOIN teams t ON t.id = tm.team_id
+            WHERE tm.personnel_id = ?
+        """, (person_id,)).fetchone()
+        return row["name"] if row else None
+
+
 def delete_team(incident_name: str, *, team_id: int) -> bool:
     with get_connection(incident_name) as conn:
         cur = conn.execute("DELETE FROM teams WHERE id = ?", (team_id,))

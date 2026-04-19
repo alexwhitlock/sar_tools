@@ -6,8 +6,18 @@ import json
 import time
 import requests
 from flask import Blueprint, jsonify, request, current_app
+from db.log_repo import insert_log
 
 bp = Blueprint("caltopo", __name__)
+
+
+def _log(incident_name, message):
+    if not incident_name:
+        return
+    try:
+        insert_log(incident_name, "SYSTEM", "user_event", message)
+    except Exception:
+        pass
 
 caltopo_base_url = "https://caltopo.com"
 
@@ -85,6 +95,7 @@ def api_assignment_notes_update():
     try:
         from db.assignment_notes_repo import upsert_notes
         upsert_notes(incident_name, feature_id, notes)
+        _log(incident_name, f'Assignment {feature_id} notes: "{notes or "(none)"}"')
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
@@ -350,6 +361,12 @@ def api_update_assignment():
                     conn.commit()
             except Exception:
                 pass  # non-fatal
+
+        parts = []
+        if new_status is not None: parts.append(f'status="{props["status"]}"')
+        if new_team   is not None: parts.append(f'team="{team or "(none)"}"')
+        if parts:
+            _log(incident_name, f'Assignment {number or feature_id} updated: {", ".join(parts)}')
 
         return jsonify(ok=True)
 

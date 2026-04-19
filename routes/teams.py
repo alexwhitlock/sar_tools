@@ -10,9 +10,20 @@ from db.teams_repo import (
     delete_team,
     assign_person_to_team,
     remove_person_from_team,
+    get_team_name,
+    get_person_team_name,
     TEAM_STATUSES,
 )
 from db.errors import ConflictError
+from db.personnel_repo import get_person_name
+from db.log_repo import insert_log
+
+
+def _log(incident_name, message):
+    try:
+        insert_log(incident_name, "SYSTEM", "user_event", message)
+    except Exception:
+        pass
 
 bp = Blueprint("teams", __name__)
 
@@ -51,6 +62,7 @@ def api_teams_create():
         return jsonify({"ok": False, "error": "name is required"}), 400
     try:
         team_id = create_team(incident_name, name=name)
+        _log(incident_name, f'Team "{name}" created')
         return jsonify({"ok": True, "id": team_id})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -86,6 +98,18 @@ def api_teams_update():
                          expected_updated_at=expected_updated_at, **kwargs)
         if not ok:
             return jsonify({"ok": False, "error": "team not found"}), 404
+        if kwargs:
+            team_label = kwargs.get("name") or get_team_name(incident_name, int(team_id)) or str(team_id)
+            parts = []
+            if "name"           in kwargs: parts.append(f'name="{kwargs["name"]}"')
+            if "status"         in kwargs: parts.append(f'status="{kwargs["status"]}"')
+            if "notes"          in kwargs: parts.append(f'notes="{kwargs["notes"] or "(none)"}"')
+            if "team_leader_id" in kwargs:
+                ldr_id = kwargs["team_leader_id"]
+                ldr = get_person_name(incident_name, ldr_id) if ldr_id else None
+                parts.append(f'leader="{ldr or "(none)"}"')
+            if parts:
+                _log(incident_name, f'Team "{team_label}" updated: {", ".join(parts)}')
         return jsonify({"ok": True})
     except ConflictError:
         return jsonify({"ok": False, "error": "conflict"}), 409
@@ -103,9 +127,11 @@ def api_teams_delete():
     if team_id in (None, ""):
         return jsonify({"ok": False, "error": "teamId is required"}), 400
     try:
+        name = get_team_name(incident_name, int(team_id)) or str(team_id)
         ok = delete_team(incident_name, team_id=int(team_id))
         if not ok:
             return jsonify({"ok": False, "error": "team not found"}), 404
+        _log(incident_name, f'Team "{name}" deleted')
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -122,7 +148,10 @@ def api_teams_assign_person():
     if team_id in (None, "") or person_id in (None, ""):
         return jsonify({"ok": False, "error": "teamId and personId are required"}), 400
     try:
+        person_label = get_person_name(incident_name, int(person_id)) or str(person_id)
+        team_label   = get_team_name(incident_name, int(team_id))     or str(team_id)
         assign_person_to_team(incident_name, team_id=int(team_id), person_id=int(person_id))
+        _log(incident_name, f'"{person_label}" assigned to Team "{team_label}"')
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -138,7 +167,10 @@ def api_teams_remove_person():
     if person_id in (None, ""):
         return jsonify({"ok": False, "error": "personId is required"}), 400
     try:
+        person_label = get_person_name(incident_name, int(person_id))       or str(person_id)
+        team_label   = get_person_team_name(incident_name, int(person_id))  or "unknown team"
         remove_person_from_team(incident_name, person_id=int(person_id))
+        _log(incident_name, f'"{person_label}" removed from Team "{team_label}"')
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

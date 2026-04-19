@@ -1,6 +1,5 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
-import { logUserEvent } from "./logging.js";
 
 let personnelTable = null;
 let personnelMessage = null;
@@ -715,7 +714,6 @@ function wireMenuAndModal() {
         const person = findPersonInCache(activePersonKey);
         await apiUpdatePersonStatus({ incidentName, personKey: activePersonKey, status: newStatus, expectedUpdatedAt: person?.updatedAt });
         await loadPersonnel();
-        logUserEvent(incidentName, `Personnel ${person?.name || activePersonKey} status changed from "${person?.status || "unknown"}" to "${newStatus}"`);
         personnelMessage.show(`Status updated to ${newStatus}.`, "info");
       } catch (err) {
         if (err instanceof ConflictError) {
@@ -747,7 +745,6 @@ function wireMenuAndModal() {
         personnelMessage.show("Deleting person…", "info");
         await apiDeletePerson({ incidentName, personKey: activePersonKey });
         personnelMessage.show("Person deleted.", "info");
-        logUserEvent(incidentName, `Personnel ${person?.name || activePersonKey} deleted`);
         await loadPersonnel();
       } catch (err) {
         logMessage("ERROR", "Failed to delete person", err.message);
@@ -856,20 +853,6 @@ function wireMenuAndModal() {
 
       closePersonModal();
       await loadPersonnel();
-      if (modalMode === "add") {
-        logUserEvent(incidentName, `Personnel ${name} added`);
-      } else if (personBefore) {
-        const changes = [];
-        if (personBefore.name !== name) changes.push(`name changed from "${personBefore.name}" to "${name}"`);
-        const newTeamName = selectedTeamId
-          ? (teamSelect ? Array.from(teamSelect.options).find(o => o.value === String(selectedTeamId))?.textContent : null) || String(selectedTeamId)
-          : null;
-        if ((personBefore.team || null) !== (newTeamName || null)) {
-          changes.push(`team changed from "${personBefore.team || "none"}" to "${newTeamName || "none"}"`);
-        }
-        if ((personBefore.notes || "") !== notes) changes.push(`notes changed from "${personBefore.notes || "(none)"}" to "${notes || "(none)"}"`);
-        if (changes.length) logUserEvent(incidentName, `Personnel ${name} updated: ${changes.join("; ")}`);
-      }
       personnelMessage.show(
         modalMode === "add" ? "Person added." : "Changes saved.",
         "info"

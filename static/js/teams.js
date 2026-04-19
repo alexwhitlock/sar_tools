@@ -1,6 +1,5 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
-import { logUserEvent } from "./logging.js";
 
 const TEAM_STATUSES = [
   "Out of Service",
@@ -490,7 +489,6 @@ function wireMouseDnd(card, team) {
     try {
       const oldStatus = team.status;
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(team.id), status: newStatus, expectedUpdatedAt: team.updatedAt });
-      logUserEvent(incidentName, `Team ${team.name} status changed from "${oldStatus}" to "${newStatus}"`);
       team.status = newStatus;
       renderKanban(teamsCache);
     } catch (err) {
@@ -632,7 +630,6 @@ function wireTouchDnd(card, teamId) {
     try {
       const oldStatus = team.status;
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(tId), status: newStatus, expectedUpdatedAt: team.updatedAt });
-      logUserEvent(incidentName, `Team ${team.name} status changed from "${oldStatus}" to "${newStatus}"`);
       team.status = newStatus;
       renderKanban(teamsCache);
     } catch (err) {
@@ -1406,25 +1403,6 @@ async function saveTeamModal() {
 
     closeTeamModal();
     await loadTeams();
-    if (_mode === "create") {
-      logUserEvent(incidentName, `Team ${name} created (status: ${status})`);
-    } else if (currentTeam) {
-      const changes = [];
-      if (currentTeam.name !== name) changes.push(`name changed from "${currentTeam.name}" to "${name}"`);
-      if (currentTeam.status !== status) changes.push(`status changed from "${currentTeam.status}" to "${status}"`);
-      const oldLeaderId = currentTeam.teamLeaderId ? String(currentTeam.teamLeaderId) : null;
-      if (oldLeaderId !== (teamLeaderId || null)) {
-        const oldLdr = _allPersonnel.find(p => String(p.id) === oldLeaderId)?.name || "none";
-        const newLdr = _allPersonnel.find(p => String(p.id) === teamLeaderId)?.name || "none";
-        changes.push(`leader changed from "${oldLdr}" to "${newLdr}"`);
-      }
-      for (const id of [..._currentMemberIds].filter(id => !_originalMemberIds.has(id)))
-        changes.push(`added member ${_modalMembers.find(m => String(m.id) === id)?.name || id}`);
-      for (const id of [..._originalMemberIds].filter(id => !_currentMemberIds.has(id)))
-        changes.push(`removed member ${_allPersonnel.find(p => String(p.id) === id)?.name || id}`);
-      if ((currentTeam.notes || "") !== notes) changes.push(`notes changed from "${currentTeam.notes || "(none)"}" to "${notes || "(none)"}"`);
-      if (changes.length) logUserEvent(incidentName, `Team ${name} updated: ${changes.join("; ")}`);
-    }
     teamsMessage.show(_mode === "create" ? "Team created." : "Changes saved.", "info");
   } catch (err) {
     const errEl = document.getElementById("teamModalError");
@@ -1545,7 +1523,6 @@ function wireMenuAndKebab() {
         teamsMessage.show("Deleting team…", "info");
         await apiPost("/api/teams/delete", { incidentName, teamId: parseInt(teamId) });
         teamsMessage.show("Team deleted.", "info");
-        logUserEvent(incidentName, `Team ${team?.name || teamId} deleted`);
         await loadTeams();
       } catch (err) {
         teamsMessage.show(`Failed to delete: ${err.message}`, "error");

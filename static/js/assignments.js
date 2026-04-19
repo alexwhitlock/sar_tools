@@ -1,7 +1,6 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
 import { printAssignmentMap } from "./print-map.js";
-import { logUserEvent } from "./logging.js";
 
 let assignmentsTable = null;
 let assignmentsMessage = null;
@@ -762,22 +761,12 @@ async function saveEditModal() {
   errEl.classList.add("hidden");
 
   try {
-    const prevStatus = (_modalAsgn.status || "").toUpperCase();
-    const prevTeam   = _modalAsgn.team   || "";
-    const prevNotes  = _modalAsgn.notes  || "";
     await writeToCalTopo({
       featureId: _modalAsgn.id,
       status:    newStatus,
       team:      newTeam,
       notes:     newNotes,
     });
-    const incidentName = getCurrentIncidentName();
-    const aLabel = `Assignment ${_modalAsgn.number ?? _modalAsgn.id}`;
-    const changes = [];
-    if (newStatus !== prevStatus) changes.push(`status changed from "${prevStatus}" to "${newStatus}"`);
-    if (newTeam   !== prevTeam)   changes.push(`team changed from "${prevTeam || "none"}" to "${newTeam || "none"}"`);
-    if (newNotes  !== prevNotes)  changes.push(`notes changed from "${prevNotes || "(none)"}" to "${newNotes || "(none)"}"`);
-    if (changes.length) logUserEvent(incidentName, `${aLabel} updated: ${changes.join("; ")}`);
     closeEditModal();
     await loadAssignments();
     if (newStatus === "COMPLETED")  await maybeStageTeam(newTeam || _modalAsgn.team);

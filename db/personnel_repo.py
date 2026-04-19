@@ -156,6 +156,12 @@ def update_person_status(incident_name: str, *, person_id: int, status: str, exp
         return cur.rowcount > 0
 
 
+def get_person_name(incident_name: str, person_id: int) -> str | None:
+    with get_connection(incident_name) as conn:
+        row = conn.execute("SELECT name FROM personnel WHERE id = ?", (person_id,)).fetchone()
+        return row["name"] if row else None
+
+
 def add_person(incident_name: str, *, name: str, notes: str | None = None) -> int:
     with get_connection(incident_name) as conn:
         cur = conn.execute(

@@ -11,12 +11,21 @@ from db.personnel_repo import (
     update_person,
     update_person_status,
     delete_person,
+    get_person_name,
     upsert_people_from_d4h,
     find_name_matches,
     find_name_matches_batch,
     link_d4h_to_person,
     VALID_STATUSES,
 )
+from db.log_repo import insert_log
+
+
+def _log(incident_name, message):
+    try:
+        insert_log(incident_name, "SYSTEM", "user_event", message)
+    except Exception:
+        pass
 
 from routes.d4h import (
     _get_d4h_config,
@@ -57,6 +66,7 @@ def api_personnel_add():
     notes = (data.get("notes") or "").strip() or None
     try:
         new_id = add_person(incident_name, name=name, notes=notes)
+        _log(incident_name, f'Personnel "{name}" added')
         return jsonify({"ok": True, "id": new_id})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -82,6 +92,10 @@ def api_personnel_update():
                            notes=notes, expected_updated_at=expected_updated_at)
         if not ok:
             return jsonify({"ok": False, "error": "person not found"}), 404
+        parts = [f'name="{name}"']
+        if "notes" in data:
+            parts.append(f'notes="{notes or "(none)"}"')
+        _log(incident_name, f'Personnel "{name}" updated: {", ".join(parts)}')
         return jsonify({"ok": True})
     except ConflictError:
         return jsonify({"ok": False, "error": "conflict"}), 409
@@ -101,9 +115,11 @@ def api_personnel_delete():
         return jsonify({"ok": False, "error": "personKey is required"}), 400
 
     try:
+        name = get_person_name(incident_name, int(person_key)) or person_key
         ok = delete_person(incident_name, person_id=int(person_key))
         if not ok:
             return jsonify({"ok": False, "error": "person not found"}), 404
+        _log(incident_name, f'Personnel "{name}" deleted')
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -167,6 +183,8 @@ def api_personnel_link_d4h():
         ok = link_d4h_to_person(incident_name, person_id=int(person_id), d4h_ref=d4h_ref, new_name=new_name)
         if not ok:
             return jsonify({"ok": False, "error": "Person not found"}), 404
+        name = get_person_name(incident_name, int(person_id)) or str(person_id)
+        _log(incident_name, f'Personnel "{name}" linked to D4H ref {d4h_ref}')
         return jsonify({"ok": True})
     except sqlite3.IntegrityError:
         return jsonify({"ok": False, "error": "That D4H ref is already linked to another person."}), 409
@@ -190,10 +208,12 @@ def api_personnel_status():
         return jsonify({"ok": False, "error": f"invalid status: {status}"}), 400
 
     try:
+        name = get_person_name(incident_name, int(person_key)) or person_key
         ok = update_person_status(incident_name, person_id=int(person_key), status=status,
                                   expected_updated_at=expected_updated_at)
         if not ok:
             return jsonify({"ok": False, "error": "person not found"}), 404
+        _log(incident_name, f'Personnel "{name}" status set to "{status}"')
         return jsonify({"ok": True})
     except ConflictError:
         return jsonify({"ok": False, "error": "conflict"}), 409
@@ -226,6 +246,7 @@ def api_personnel_import_d4h():
                 if m.get("name") and m.get("d4hRef")
             ]
             stats = upsert_people_from_d4h(incident_name, people)
+            _log(incident_name, f'D4H import: {stats.get("imported", 0)} added, {stats.get("updated", 0)} updated, {stats.get("skipped", 0)} skipped')
             return jsonify({"ok": True, "incidentName": incident_name, **stats})
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
