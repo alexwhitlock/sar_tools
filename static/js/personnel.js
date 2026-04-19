@@ -89,7 +89,7 @@ function renderPersonnelRow(p) {
     <td>${escapeHtml(p.team)}</td>
     <td>${escapeHtml(status)}</td>
     <td>${escapeHtml(p.source)}</td>
-    <td class="col-d4href">${escapeHtml(p.d4hMemberRef || p.d4hRef)}</td>
+    <td class="col-d4href">${escapeHtml(p.d4hMemberRef)}</td>
     <td class="col-notes">${escapeHtml(p.notes ?? "")}</td>
     <td class="actions-cell">
       <button
