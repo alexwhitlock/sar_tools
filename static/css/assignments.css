@@ -27,18 +27,18 @@
 }
 
 .asgn-type-options {
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-content: start;
-  gap: 4px 16px;
+  display: flex;
+  flex-wrap: wrap;
 }
 
 .radio-option {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   cursor: pointer;
   white-space: nowrap;
+  width: 50%;
+  padding: 2px 0;
 }
 
 .radio-option input[type="radio"] {
