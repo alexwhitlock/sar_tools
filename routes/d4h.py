@@ -86,7 +86,7 @@ def get_d4h_attending_members(activity_id):
             out.append({
                 "name": name or None,
                 "d4hRef": str(mid),
-                "memberRef": m.get("id"),
+                "memberRef": m.get("ref"),
             })
 
         return jsonify({
