@@ -36,6 +36,7 @@
 /* Notes column expands to fill remaining table width */
 .data-table .col-notes {
   width: 100%;
+  min-width: 8rem;
 }
 
 .data-table .col-notes .cell-wrap {
