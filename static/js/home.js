@@ -108,6 +108,7 @@ async function createIncident() {
     incidentMsg.show(`Active: ${data.incidentId}`, "info");
     updateLinkCheckboxVisibility();
     await loadIncidentSettings(data.incidentId);
+    window.dispatchEvent(new CustomEvent("sar:incident-selected"));
   } catch (e) {
     console.error(e);
     incidentMsg.show(e.message, "error");

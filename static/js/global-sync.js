@@ -94,5 +94,10 @@ document.addEventListener("DOMContentLoaded", () => {
     syncAll();
   });
 
+  window.addEventListener("sar:incident-selected", () => {
+    stopSSE();
+    if (hasIncident()) { syncAll(); startSSE(); }
+  });
+
   if (hasIncident()) { syncAll(); startSSE(); }
 });
