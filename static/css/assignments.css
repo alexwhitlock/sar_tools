@@ -44,6 +44,8 @@
 .radio-option input[type="radio"] {
   cursor: pointer;
   margin: 0;
+  width: auto;
+  flex-shrink: 0;
 }
 
 #asgnTypeOther {
