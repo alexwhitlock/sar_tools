@@ -129,9 +129,17 @@
               <option value="">— No Team —</option>
             </select>
           </label>
-          <label>Type
-            <input type="text" id="asgnType" placeholder="e.g. Hasty, Grid Search" />
-          </label>
+          <div class="asgn-type-field">
+            <span class="asgn-type-label">Type</span>
+            <div class="asgn-type-options">
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Hasty"> Hasty</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Contour"> Contour</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Open Grid"> Open Grid</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Closed Grid"> Closed Grid</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Other"> Other</label>
+            </div>
+            <input type="text" id="asgnTypeOther" class="hidden" placeholder="Specify type…" />
+          </div>
           <label>Description
             <textarea id="asgnDescription" rows="2" placeholder="Optional description"></textarea>
           </label>

@@ -683,14 +683,13 @@ let _modalAsgn = null;
 function openEditModal(asgn) {
   _modalAsgn = asgn;
 
-  const backdrop     = document.getElementById("asgnModalBackdrop");
-  const infoEl       = document.getElementById("asgnModalInfo");
-  const statusEl     = document.getElementById("asgnStatus");
-  const teamEl       = document.getElementById("asgnTeam");
-  const asgnTypeEl   = document.getElementById("asgnType");
+  const backdrop      = document.getElementById("asgnModalBackdrop");
+  const infoEl        = document.getElementById("asgnModalInfo");
+  const statusEl      = document.getElementById("asgnStatus");
+  const teamEl        = document.getElementById("asgnTeam");
   const descriptionEl = document.getElementById("asgnDescription");
-  const notesEl      = document.getElementById("asgnNotes");
-  const errEl        = document.getElementById("asgnModalError");
+  const notesEl       = document.getElementById("asgnNotes");
+  const errEl         = document.getElementById("asgnModalError");
 
   infoEl.textContent = `Assignment ${asgn.number ?? "?"}  ·  ${asgn.assignmentType ?? ""}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
   statusEl.value     = (asgn.status || "DRAFT").toUpperCase();
@@ -716,7 +715,23 @@ function openEditModal(asgn) {
     teamEl.appendChild(opt);
   }
   teamEl.value = currentTeam;
-  if (asgnTypeEl)    asgnTypeEl.value    = asgn.asgnType    ?? "";
+  // Populate type radios
+  const ASGN_TYPE_PRESETS = ["Hasty", "Contour", "Open Grid", "Closed Grid"];
+  const typeValue = asgn.asgnType ?? "";
+  document.querySelectorAll('input[name="asgnTypeRadio"]').forEach(r => { r.checked = false; r._wasChecked = false; });
+  const otherInput = document.getElementById("asgnTypeOther");
+  if (ASGN_TYPE_PRESETS.includes(typeValue)) {
+    const r = document.querySelector(`input[name="asgnTypeRadio"][value="${typeValue}"]`);
+    if (r) { r.checked = true; r._wasChecked = true; }
+    if (otherInput) { otherInput.classList.add("hidden"); otherInput.value = ""; }
+  } else if (typeValue) {
+    const r = document.querySelector('input[name="asgnTypeRadio"][value="Other"]');
+    if (r) { r.checked = true; r._wasChecked = true; }
+    if (otherInput) { otherInput.classList.remove("hidden"); otherInput.value = typeValue; }
+  } else {
+    if (otherInput) { otherInput.classList.add("hidden"); otherInput.value = ""; }
+  }
+
   if (descriptionEl) descriptionEl.value = asgn.description ?? "";
   if (notesEl)       notesEl.value       = asgn.notes       ?? "";
 
@@ -744,7 +759,6 @@ async function saveEditModal() {
 
   const statusEl      = document.getElementById("asgnStatus");
   const teamEl        = document.getElementById("asgnTeam");
-  const asgnTypeEl    = document.getElementById("asgnType");
   const descriptionEl = document.getElementById("asgnDescription");
   const notesEl       = document.getElementById("asgnNotes");
   const errEl         = document.getElementById("asgnModalError");
@@ -753,9 +767,16 @@ async function saveEditModal() {
 
   const newStatus      = statusEl.value;
   const newTeam        = teamEl.value.trim();
-  const newAsgnType    = asgnTypeEl?.value.trim()    ?? "";
   const newDescription = descriptionEl?.value.trim() ?? "";
   const newNotes       = notesEl?.value.trim()       ?? "";
+
+  const checkedTypeRadio = document.querySelector('input[name="asgnTypeRadio"]:checked');
+  const newAsgnType = (() => {
+    if (!checkedTypeRadio) return "";
+    if (checkedTypeRadio.value === "Other")
+      return document.getElementById("asgnTypeOther")?.value.trim() ?? "";
+    return checkedTypeRadio.value;
+  })();
 
   const changed = newStatus      !== (_modalAsgn.status      || "").toUpperCase() ||
                   newTeam        !== (_modalAsgn.team        || "") ||
@@ -934,6 +955,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.addEventListener("click", (e) => {
     if (!e.target.closest("#asgnMenu") && !e.target.closest(".asgn-menu-btn")) closeAsgnMenu();
+  });
+
+  // Type radio group: show/hide Other input; click checked radio to deselect
+  document.querySelectorAll('input[name="asgnTypeRadio"]').forEach(radio => {
+    radio.addEventListener("mousedown", () => { radio._wasChecked = radio.checked; });
+    radio.addEventListener("click", () => {
+      const otherInput = document.getElementById("asgnTypeOther");
+      if (radio._wasChecked) {
+        radio.checked = false;
+        radio._wasChecked = false;
+        if (otherInput) { otherInput.classList.add("hidden"); otherInput.value = ""; }
+      } else {
+        document.querySelectorAll('input[name="asgnTypeRadio"]')
+          .forEach(r => { r._wasChecked = false; });
+        radio._wasChecked = true;
+        if (otherInput) {
+          otherInput.classList.toggle("hidden", radio.value !== "Other");
+          if (radio.value !== "Other") otherInput.value = "";
+        }
+      }
+    });
   });
 
   // Edit modal wiring

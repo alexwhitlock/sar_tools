@@ -11,6 +11,50 @@
   max-width: 20rem;
 }
 
+/* ===============================
+   Assignment type radio group (modal)
+   =============================== */
+
+.asgn-type-field {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  gap: 4px;
+}
+
+.asgn-type-label {
+  font-size: 0.8rem;
+}
+
+.asgn-type-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.radio-option input[type="radio"] {
+  cursor: pointer;
+  margin: 0;
+}
+
+#asgnTypeOther {
+  font-size: 0.8rem;
+  padding: 3px 6px;
+  font-family: inherit;
+}
+
+#asgnTypeOther.hidden {
+  display: none;
+}
+
 .col-team-status { display: none; }
 .show-team-status .col-team-status { display: table-cell; }
 
