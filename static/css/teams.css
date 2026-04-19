@@ -61,9 +61,17 @@
 #view-kanban-btn { border-radius: 0; }
 #view-card-btn   { border-radius: 0 3px 3px 0; }
 
+.view-toggle-btn:hover {
+  background-color: #e8e8e8;
+}
+
 .view-toggle-btn.active {
   background: #333;
   color: #fff;
+}
+
+.view-toggle-btn.active:hover {
+  background-color: #333;
 }
 
 
@@ -522,7 +530,7 @@ body.kanban-grabbing * {
 /* ── Unassigned column ── */
 
 .cv-unassigned-col {
-  flex: 0 0 160px;
+  flex: 0 0 240px;
   display: flex;
   flex-direction: column;
   background: #f0f0f0;
@@ -586,7 +594,7 @@ body.kanban-grabbing * {
 
 .cv-team-card {
   flex: 0 0 auto;
-  width: 175px;
+  width: 262px;
   display: flex;
   flex-direction: column;
   background: #f0f0f0;
@@ -648,9 +656,7 @@ body.kanban-grabbing * {
   user-select: none;
   touch-action: pan-x pan-y;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .cv-person.cv-hidden {
