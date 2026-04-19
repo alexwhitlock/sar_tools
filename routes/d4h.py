@@ -85,7 +85,8 @@ def get_d4h_attending_members(activity_id):
             name = (m.get("name") or m.get("fullName") or m.get("displayName") or "").strip()
             out.append({
                 "name": name or None,
-                "d4hRef": str(mid),  # your rule: d4h_ref == member id
+                "d4hRef": str(mid),
+                "memberRef": m.get("ref") or None,
             })
 
         return jsonify({

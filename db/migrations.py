@@ -52,6 +52,7 @@ def run_migrations(conn):
         (7, migration_007_sync_state),
         (8, migration_008_add_notes),
         (9, migration_009_assignment_notes),
+        (10, migration_010_d4h_member_ref),
     ]
 
     for version, migration in migrations:
@@ -194,6 +195,11 @@ def migration_009_assignment_notes(conn):
             updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
         );
     """)
+
+
+def migration_010_d4h_member_ref(conn):
+    """Add d4h_member_ref to store the human-readable D4H membership ref (e.g. '19-871')."""
+    conn.execute("ALTER TABLE personnel ADD COLUMN d4h_member_ref TEXT")
 
 
 def migration_008_add_notes(conn):

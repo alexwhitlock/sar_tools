@@ -105,6 +105,7 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
                 t.name AS team,
                 p.source AS source,
                 p.d4h_ref AS d4hRef,
+                p.d4h_member_ref AS d4hMemberRef,
                 p.status AS status,
                 p.previous_status AS previousStatus,
                 p.notes AS notes,
@@ -121,6 +122,7 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
         "team": r["team"],
         "source": r["source"],
         "d4hRef": r["d4hRef"],
+        "d4hMemberRef": r["d4hMemberRef"],
         "status": r["status"],
         "previousStatus": r["previousStatus"],
         "notes": r["notes"],
@@ -209,12 +211,13 @@ def delete_person(incident_name: str, *, person_id: int) -> bool:
 
 def upsert_people_from_d4h(
     incident_name: str,
-    people: Iterable[Tuple[str, str]],
+    people: Iterable[Tuple],
 ) -> Dict[str, int]:
     """
     Upsert a batch of people from D4H.
 
-    people: iterable of (name, d4h_ref) where d4h_ref is the D4H member id (string/int).
+    people: iterable of (name, d4h_ref[, member_ref]) where d4h_ref is the D4H numeric member
+    id and member_ref is the human-readable membership ref (e.g. '19-871').
     """
     imported = 0
     updated = 0
@@ -224,9 +227,10 @@ def upsert_people_from_d4h(
         # Ensure migrations ran (safe even if already created)
         run_migrations(conn)
 
-        for name, d4h_ref in people:
-            name = (name or "").strip()
-            d4h_ref = str(d4h_ref or "").strip()
+        for row in people:
+            name = (row[0] or "").strip()
+            d4h_ref = str(row[1] or "").strip()
+            member_ref = str(row[2] or "").strip() if len(row) > 2 else None
 
             if not name or not d4h_ref:
                 skipped += 1
@@ -238,13 +242,14 @@ def upsert_people_from_d4h(
             ).fetchone() is not None
 
             conn.execute("""
-                INSERT INTO personnel (name, d4h_ref, source, updated_at)
-                VALUES (?, ?, 'D4H', datetime('now'))
+                INSERT INTO personnel (name, d4h_ref, d4h_member_ref, source, updated_at)
+                VALUES (?, ?, ?, 'D4H', datetime('now'))
                 ON CONFLICT(d4h_ref) DO UPDATE SET
                     name = excluded.name,
+                    d4h_member_ref = excluded.d4h_member_ref,
                     source = 'D4H',
                     updated_at = datetime('now')
-            """, (name, d4h_ref))
+            """, (name, d4h_ref, member_ref or None))
 
             if existed:
                 updated += 1

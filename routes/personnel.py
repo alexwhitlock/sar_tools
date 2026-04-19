@@ -241,7 +241,7 @@ def api_personnel_import_d4h():
     if isinstance(members_from_body, list):
         try:
             people = [
-                (m.get("name", "").strip(), str(m.get("d4hRef", "")).strip())
+                (m.get("name", "").strip(), str(m.get("d4hRef", "")).strip(), m.get("memberRef") or None)
                 for m in members_from_body
                 if m.get("name") and m.get("d4hRef")
             ]
@@ -278,7 +278,7 @@ def api_personnel_import_d4h():
             m = members_by_id.get(mid, {})
             name = (m.get("name") or m.get("fullName") or m.get("displayName") or "").strip()
             if name:
-                people.append((name, str(mid)))  # d4h_ref == member id
+                people.append((name, str(mid), m.get("ref") or None))
 
         stats = upsert_people_from_d4h(incident_name, people)
 
