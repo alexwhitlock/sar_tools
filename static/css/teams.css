@@ -597,11 +597,14 @@ body.kanban-grabbing * {
 }
 
 .cv-team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.35rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 700;
   color: #fff;
-  background: #607d8b;
+  background: #757575;
   flex-shrink: 0;
   user-select: none;
 }
@@ -612,7 +615,7 @@ body.kanban-grabbing * {
   background: #fff8e1;
   border-bottom: 1px solid #ffe082;
   padding: 0.3rem 0.35rem;
-  min-height: 2.4rem;
+  min-height: 1.6rem;
 }
 
 .cv-tl-zone.drag-over {
