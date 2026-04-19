@@ -27,16 +27,18 @@
   border: 1px solid #ccc;
   padding: 0.35rem 0.5rem;
   text-align: left;
-  white-space: normal;
-  word-break: break-word;
-  max-width: 20rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   vertical-align: middle;
 }
 
 /* Notes column expands to fill remaining table width */
 .data-table .col-notes {
   width: 100%;
-  max-width: none;
+  white-space: normal;
+  word-break: break-word;
+  overflow: visible;
 }
 
 /* ===============================
