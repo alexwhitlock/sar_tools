@@ -36,9 +36,11 @@
 /* Notes column expands to fill remaining table width */
 .data-table .col-notes {
   width: 100%;
+}
+
+.data-table .col-notes .cell-wrap {
   white-space: normal;
   word-break: break-word;
-  overflow: visible;
 }
 
 /* ===============================

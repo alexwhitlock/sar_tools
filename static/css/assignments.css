@@ -5,11 +5,10 @@
 .col-op-period { display: none; }
 .show-op-period .col-op-period { display: table-cell; }
 
-.col-asgn-description {
+.col-asgn-description .cell-wrap {
+  max-width: 20rem;
   white-space: normal;
   word-break: break-word;
-  max-width: 20rem;
-  overflow: visible;
 }
 
 /* ===============================
