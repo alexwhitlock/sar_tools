@@ -659,7 +659,7 @@ function makePersonChip(person, fromTeamId, isTl) {
   chip.dataset.personId   = person.id;
   chip.dataset.fromTeamId = fromTeamId != null ? String(fromTeamId) : "";
   chip.dataset.isTl       = isTl ? "1" : "0";
-  chip.textContent        = person.name;
+  chip.textContent        = isTl ? `${person.name} (TL)` : person.name;
   return chip;
 }
 
@@ -929,17 +929,13 @@ function renderCardView(teams, personnel) {
 
     const hdr = document.createElement("div");
     hdr.className = "cv-team-header";
-    hdr.textContent = `Team ${team.name}`;
+    hdr.innerHTML = `Team ${escapeHtml(team.name)} <span class="cv-col-count">${members.length}</span>`;
 
     // TL zone
     const tlZone = document.createElement("div");
     tlZone.className = "cv-tl-zone";
     tlZone.dataset.teamId = team.id;
     tlZone.dataset.zone   = "tl";
-    const tlLabel = document.createElement("div");
-    tlLabel.className = "cv-zone-label";
-    tlLabel.textContent = "Team Leader";
-    tlZone.appendChild(tlLabel);
     if (tl) {
       const chip = makePersonChip(tl, team.id, true);
       if (searchVal && !tl.name.toLowerCase().includes(searchVal)) chip.classList.add("cv-hidden");
@@ -953,10 +949,6 @@ function renderCardView(teams, personnel) {
     membersZone.className = "cv-members-zone";
     membersZone.dataset.teamId = team.id;
     membersZone.dataset.zone   = "members";
-    const membersLabel = document.createElement("div");
-    membersLabel.className = "cv-zone-label";
-    membersLabel.textContent = "Members";
-    membersZone.appendChild(membersLabel);
     rest.forEach(m => {
       const chip = makePersonChip(m, team.id, false);
       if (searchVal && !m.name.toLowerCase().includes(searchVal)) chip.classList.add("cv-hidden");
@@ -1142,8 +1134,9 @@ function wireFilters() {
       } else {
         const lower = val.toLowerCase();
         document.querySelectorAll("#teams-card-view .cv-person").forEach(chip => {
-          const match = !lower || chip.textContent.toLowerCase().includes(lower);
-          chip.classList.toggle("cv-hidden", !match);
+          // Match on name only (strip trailing " (TL)" if present)
+          const name = chip.textContent.replace(/ \(TL\)$/, "").toLowerCase();
+          chip.classList.toggle("cv-hidden", !!lower && !name.includes(lower));
         });
       }
     });

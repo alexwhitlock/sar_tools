@@ -601,20 +601,10 @@ body.kanban-grabbing * {
   font-size: 0.75rem;
   font-weight: 700;
   color: #fff;
-  background: #455a64;
+  background: #607d8b;
   flex-shrink: 0;
   user-select: none;
 }
-
-/* Status-coloured team card header — mirrors kanban column colours */
-.cv-team-card[data-status="Out of Service"]             .cv-team-header { background: #757575; }
-.cv-team-card[data-status="Staged"]                     .cv-team-header { background: #1565c0; }
-.cv-team-card[data-status="Briefed"]                    .cv-team-header { background: #00838f; }
-.cv-team-card[data-status="Travelling to Assignment"]   .cv-team-header { background: #e65100; }
-.cv-team-card[data-status="On Assignment"]              .cv-team-header { background: #2e7d32; }
-.cv-team-card[data-status="Returning from Assignment"]  .cv-team-header { background: #6a1b9a; }
-.cv-team-card[data-status="Awaiting Debrief"]           .cv-team-header { background: #f57f17; }
-.cv-team-card[data-status="Retired"]                    .cv-team-header { background: #37474f; }
 
 /* ── TL zone ── */
 
@@ -641,18 +631,6 @@ body.kanban-grabbing * {
 .cv-members-zone.drag-over {
   background: #e3f2fd;
   outline: 2px dashed #1565c0;
-}
-
-/* ── Zone label ── */
-
-.cv-zone-label {
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #999;
-  margin-bottom: 0.2rem;
-  user-select: none;
 }
 
 /* ── Person chip ── */
