@@ -76,7 +76,6 @@
 .show-d4href .col-d4href { display: table-cell; }
 
 .hide-notes .col-notes { display: none; }
-.col-notes { width: 100%; min-width: 120px; }
 
 /* ===============================
    Filters (same row)

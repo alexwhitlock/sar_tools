@@ -9,7 +9,6 @@
 .show-team-status .col-team-status { display: table-cell; }
 
 .hide-notes .col-notes { display: none; }
-.col-notes { width: 100%; min-width: 120px; }
 
 /* ===============================
    Assignments tab layout

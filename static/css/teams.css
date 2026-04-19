@@ -158,7 +158,6 @@
 .col-members { line-height: 1.5; white-space: nowrap; }
 
 .hide-notes .col-notes { display: none; }
-.col-notes { width: 100%; min-width: 120px; }
 
 .actions-col {
   width: 44px;
