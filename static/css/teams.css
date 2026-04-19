@@ -530,7 +530,7 @@ body.kanban-grabbing * {
 /* ── Unassigned column ── */
 
 .cv-unassigned-col {
-  flex: 0 0 240px;
+  flex: 0 0 175px;
   display: flex;
   flex-direction: column;
   background: #f0f0f0;
@@ -594,7 +594,7 @@ body.kanban-grabbing * {
 
 .cv-team-card {
   flex: 0 0 auto;
-  width: 262px;
+  width: 175px;
   display: flex;
   flex-direction: column;
   background: #f0f0f0;
