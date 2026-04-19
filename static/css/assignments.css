@@ -6,12 +6,12 @@
 .show-op-period .col-op-period { display: table-cell; }
 
 .col-asgn-description {
-  width: 20rem;
+  width: 40rem;
   min-width: 8rem;
 }
 
 .col-asgn-description .cell-wrap {
-  max-width: 20rem;
+  max-width: 40rem;
   white-space: normal;
   word-break: break-word;
 }
