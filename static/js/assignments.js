@@ -357,7 +357,7 @@ function renderKanban(assignments) {
           <span>Team: ${escapeHtml(a.team || "—")}</span>
           ${status === "INPROGRESS" && a.team ? `<span class="asgn-card-team-status">${escapeHtml(getTeamStatus(a.team))}</span>` : ""}
         </div>
-        <div class="asgn-card-meta">${escapeHtml(a.assignmentType ?? "")}${a.resourceType ? " · " + escapeHtml(a.resourceType) : ""}</div>
+        <div class="asgn-card-meta">${escapeHtml(a.asgnType ?? "")}${a.resourceType ? " · " + escapeHtml(a.resourceType) : ""}</div>
       `;
 
       wireMouseDnd(card, a);
