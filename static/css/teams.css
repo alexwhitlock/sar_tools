@@ -540,9 +540,8 @@ body.kanban-grabbing * {
 }
 
 .cv-unassigned-col.drag-over {
-  background: #e8f5e9;
-  border-color: #388e3c;
-  outline: 2px solid #388e3c;
+  background: #e3f2fd;
+  border-color: #1565c0;
 }
 
 .cv-col-header {
@@ -627,21 +626,22 @@ body.kanban-grabbing * {
 }
 
 .cv-tl-zone.drag-over {
-  background: #ffe082;
-  outline: 2px solid #f9a825;
+  background: #e3f2fd;
+  border-bottom-color: #1565c0;
 }
 
 /* ── Members zone ── */
 
 .cv-members-zone {
   background: #fff;
+  border: 1px solid transparent;
   padding: 0.3rem 0.35rem;
   min-height: 2rem;
 }
 
 .cv-members-zone.drag-over {
   background: #e3f2fd;
-  outline: 2px dashed #1565c0;
+  border-color: #1565c0;
 }
 
 /* ── Person chip ── */
