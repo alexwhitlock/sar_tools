@@ -27,8 +27,8 @@
 }
 
 .asgn-type-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 4px 12px;
 }
 
