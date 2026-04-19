@@ -464,9 +464,13 @@ async function addFromD4h() {
     const checkData = await apiCheckNames({ incidentName, members });
     const results   = checkData.results || [];
 
+    // Build a lookup so memberRef survives the check-names round-trip
+    const memberRefByD4hRef = Object.fromEntries(members.map(m => [m.d4hRef, m.memberRef ?? null]));
+    const withRef = r => ({ ...r, memberRef: memberRefByD4hRef[r.d4hRef] ?? null });
+
     const linked    = results.filter(r => r.status === "linked");
-    const newOnes   = results.filter(r => r.status === "new");
-    const conflicts = results.filter(r => r.status === "name_conflict");
+    const newOnes   = results.filter(r => r.status === "new").map(withRef);
+    const conflicts = results.filter(r => r.status === "name_conflict").map(withRef);
 
     if (!conflicts.length) {
       // No conflicts — import all new ones directly
@@ -504,7 +508,7 @@ async function addFromD4h() {
             toLink.push({ d4hRef, personId: choice.personId, name: orig?.name });
           } else if (choice.action === "add") {
             const orig = conflicts.find(c => c.d4hRef === d4hRef);
-            if (orig) toAdd.push({ name: orig.name, d4hRef });
+            if (orig) toAdd.push({ name: orig.name, d4hRef, memberRef: orig.memberRef ?? null });
           }
           // "skip" → no-op
         }
