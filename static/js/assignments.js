@@ -224,14 +224,14 @@ export async function loadAssignments() {
 
       const numCounts = new Map();
       for (const a of assignmentsCache) {
-        const n = a.number ?? null;
+        const n = a.number != null ? String(a.number) : null;
         if (n !== null) numCounts.set(n, (numCounts.get(n) ?? 0) + 1);
       }
       const dupNums = [...numCounts.entries()].filter(([, c]) => c > 1).map(([n]) => n)
         .sort((a, b) => Number(a) - Number(b));
       if (dupNums.length > 0) {
         for (const a of assignmentsCache) {
-          if (dupNums.includes(a.number)) a.duplicateNumber = true;
+          if (a.number != null && dupNums.includes(String(a.number))) a.duplicateNumber = true;
         }
         warnings.push(`Duplicate assignment number${dupNums.length > 1 ? "s" : ""}: ${dupNums.join(", ")}`);
       }
