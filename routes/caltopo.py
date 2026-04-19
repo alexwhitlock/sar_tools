@@ -93,6 +93,7 @@ def api_assignment_data_update():
     asgn_type     = (data.get("type")         or "").strip() or None
     description   = (data.get("description")  or "").strip() or None
     notes         = (data.get("notes")        or "").strip() or None
+    number        = data.get("number")
 
     if not incident_name or not feature_id:
         return jsonify(ok=False, error="incidentName and featureId required"), 400
@@ -101,6 +102,12 @@ def api_assignment_data_update():
         from db.assignments_repo import upsert_assignment_data
         upsert_assignment_data(incident_name, feature_id,
                                asgn_type=asgn_type, description=description, notes=notes)
+        label = f"Assignment {number}" if number is not None else f"Assignment ({feature_id[:8]}…)"
+        parts = []
+        if asgn_type:   parts.append(f'type="{asgn_type}"')
+        if description: parts.append(f'description="{description}"')
+        if notes:       parts.append(f'notes="{notes}"')
+        _log(incident_name, f'{label} updated: {", ".join(parts)}' if parts else f'{label} data cleared')
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500

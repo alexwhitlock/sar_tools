@@ -28,8 +28,9 @@
 
 .asgn-type-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 12px;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  gap: 4px 16px;
 }
 
 .radio-option {

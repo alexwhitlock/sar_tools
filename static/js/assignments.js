@@ -115,7 +115,7 @@ function escapeHtml(s) {
    CalTopo write
    =============================== */
 
-async function writeToCalTopo({ featureId, status, team, notes, asgnType, description }) {
+async function writeToCalTopo({ featureId, status, team, notes, asgnType, description, number }) {
   const mapId       = getCurrentMapId();
   const incidentName = getCurrentIncidentName();
   if (!mapId || !featureId) throw new Error("Map ID or feature ID missing");
@@ -131,6 +131,7 @@ async function writeToCalTopo({ featureId, status, team, notes, asgnType, descri
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         incidentName, featureId,
+        number:      number       ?? null,
         type:        asgnType     ?? null,
         description: description  ?? null,
         notes:       notes        ?? null,
@@ -801,6 +802,7 @@ async function saveEditModal() {
   try {
     await writeToCalTopo({
       featureId:   _modalAsgn.id,
+      number:      _modalAsgn.number,
       status:      newStatus,
       team:        newTeam,
       asgnType:    newAsgnType    || null,
