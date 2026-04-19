@@ -115,7 +115,7 @@ function escapeHtml(s) {
    CalTopo write
    =============================== */
 
-async function writeToCalTopo({ featureId, status, team, notes }) {
+async function writeToCalTopo({ featureId, status, team, notes, asgnType, description }) {
   const mapId       = getCurrentMapId();
   const incidentName = getCurrentIncidentName();
   if (!mapId || !featureId) throw new Error("Map ID or feature ID missing");
@@ -124,12 +124,17 @@ async function writeToCalTopo({ featureId, status, team, notes }) {
   if (status !== undefined) body.status = status;
   if (team   !== undefined) body.team   = team;
 
-  // Notes are stored locally, not in CalTopo
-  if (notes !== undefined) {
-    await fetch("/api/assignments/notes", {
+  // DB-only fields (type, description, notes) — not written to CalTopo
+  if (notes !== undefined || asgnType !== undefined || description !== undefined) {
+    await fetch("/api/assignments/data", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ incidentName, featureId, notes: notes || null }),
+      body: JSON.stringify({
+        incidentName, featureId,
+        type:        asgnType     ?? null,
+        description: description  ?? null,
+        notes:       notes        ?? null,
+      }),
     });
   }
 
@@ -170,6 +175,8 @@ function renderAssignmentRow(a) {
     <td>${escapeHtml(a.team ?? "")}</td>
     <td>${escapeHtml(a.assignmentType ?? "")}</td>
     <td>${escapeHtml(a.resourceType ?? "")}</td>
+    <td>${escapeHtml(a.asgnType ?? "")}</td>
+    <td class="col-asgn-description">${escapeHtml(a.description ?? "")}</td>
     <td><span class="asgn-badge ${ASGN_STATUS_BADGE[(a.status || "").toUpperCase()] ?? ""}">${escapeHtml(STATUS_LABEL[(a.status || "").toUpperCase()] ?? a.status ?? "")}</span></td>
     <td class="col-team-status">${(a.status || "").toUpperCase() === "INPROGRESS" ? teamStatusBadge(a.team ?? "") : ""}</td>
     <td class="col-op-period">${escapeHtml(a.op ?? "")}</td>
@@ -676,12 +683,14 @@ let _modalAsgn = null;
 function openEditModal(asgn) {
   _modalAsgn = asgn;
 
-  const backdrop = document.getElementById("asgnModalBackdrop");
-  const infoEl   = document.getElementById("asgnModalInfo");
-  const statusEl = document.getElementById("asgnStatus");
-  const teamEl   = document.getElementById("asgnTeam");
-  const notesEl  = document.getElementById("asgnNotes");
-  const errEl    = document.getElementById("asgnModalError");
+  const backdrop     = document.getElementById("asgnModalBackdrop");
+  const infoEl       = document.getElementById("asgnModalInfo");
+  const statusEl     = document.getElementById("asgnStatus");
+  const teamEl       = document.getElementById("asgnTeam");
+  const asgnTypeEl   = document.getElementById("asgnType");
+  const descriptionEl = document.getElementById("asgnDescription");
+  const notesEl      = document.getElementById("asgnNotes");
+  const errEl        = document.getElementById("asgnModalError");
 
   infoEl.textContent = `Assignment ${asgn.number ?? "?"}  ·  ${asgn.assignmentType ?? ""}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
   statusEl.value     = (asgn.status || "DRAFT").toUpperCase();
@@ -707,7 +716,9 @@ function openEditModal(asgn) {
     teamEl.appendChild(opt);
   }
   teamEl.value = currentTeam;
-  if (notesEl) notesEl.value = asgn.notes ?? "";
+  if (asgnTypeEl)    asgnTypeEl.value    = asgn.asgnType    ?? "";
+  if (descriptionEl) descriptionEl.value = asgn.description ?? "";
+  if (notesEl)       notesEl.value       = asgn.notes       ?? "";
 
   errEl.classList.add("hidden");
   errEl.textContent  = "";
@@ -731,20 +742,26 @@ function closeEditModal() {
 async function saveEditModal() {
   if (!_modalAsgn) return;
 
-  const statusEl  = document.getElementById("asgnStatus");
-  const teamEl    = document.getElementById("asgnTeam");
-  const notesEl   = document.getElementById("asgnNotes");
-  const errEl     = document.getElementById("asgnModalError");
-  const saveBtn   = document.getElementById("asgnModalSave");
-  const cancelBtn = document.getElementById("asgnModalCancel");
+  const statusEl      = document.getElementById("asgnStatus");
+  const teamEl        = document.getElementById("asgnTeam");
+  const asgnTypeEl    = document.getElementById("asgnType");
+  const descriptionEl = document.getElementById("asgnDescription");
+  const notesEl       = document.getElementById("asgnNotes");
+  const errEl         = document.getElementById("asgnModalError");
+  const saveBtn       = document.getElementById("asgnModalSave");
+  const cancelBtn     = document.getElementById("asgnModalCancel");
 
-  const newStatus = statusEl.value;
-  const newTeam   = teamEl.value.trim();
-  const newNotes  = notesEl?.value.trim() ?? "";
+  const newStatus      = statusEl.value;
+  const newTeam        = teamEl.value.trim();
+  const newAsgnType    = asgnTypeEl?.value.trim()    ?? "";
+  const newDescription = descriptionEl?.value.trim() ?? "";
+  const newNotes       = notesEl?.value.trim()       ?? "";
 
-  const changed = newStatus !== (_modalAsgn.status || "").toUpperCase() ||
-                  newTeam   !== (_modalAsgn.team   || "") ||
-                  newNotes  !== (_modalAsgn.notes  || "");
+  const changed = newStatus      !== (_modalAsgn.status      || "").toUpperCase() ||
+                  newTeam        !== (_modalAsgn.team        || "") ||
+                  newAsgnType    !== (_modalAsgn.asgnType    || "") ||
+                  newDescription !== (_modalAsgn.description || "") ||
+                  newNotes       !== (_modalAsgn.notes       || "");
   if (!changed) { closeEditModal(); return; }
 
   // Validate team required for INPROGRESS / COMPLETED
@@ -762,10 +779,12 @@ async function saveEditModal() {
 
   try {
     await writeToCalTopo({
-      featureId: _modalAsgn.id,
-      status:    newStatus,
-      team:      newTeam,
-      notes:     newNotes,
+      featureId:   _modalAsgn.id,
+      status:      newStatus,
+      team:        newTeam,
+      asgnType:    newAsgnType    || null,
+      description: newDescription || null,
+      notes:       newNotes       || null,
     });
     closeEditModal();
     await loadAssignments();
