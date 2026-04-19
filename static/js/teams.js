@@ -49,11 +49,14 @@ let originalMemberIds = new Set();
 let allPersonnel = [];      // full incident personnel list (for add-member dropdown)
 
 // View state
-let currentView = "table";        // "table" | "kanban"
+let currentView = "table";        // "table" | "kanban" | "card"
 let kanbanAssignments = [];       // CalTopo assignment data (optional)
 const collapsedStatuses = new Set(); // statuses whose kanban column is collapsed
 
-// Touch drag-and-drop state
+// Card view personnel cache
+let cardPersonnel = [];
+
+// Touch drag-and-drop state (kanban)
 let _touchTeamId         = null;
 let _touchGhost          = null;
 let _touchTargetCol      = null;
@@ -62,6 +65,18 @@ let _touchOffsetY        = 0;
 let _dragActive          = false;
 let _touchScrolled       = false;
 let _touchLongPressTimer = null;
+
+// Touch drag-and-drop state (card view)
+let _cvPersonId     = null;
+let _cvFromTeamId   = null;
+let _cvIsTl         = false;
+let _cvGhost        = null;
+let _cvTargetZone   = null;
+let _cvOffsetX      = 0;
+let _cvOffsetY      = 0;
+let _cvDragActive   = false;
+let _cvScrolled     = false;
+let _cvLongPress    = null;
 
 /* ===============================
    Helpers
@@ -330,8 +345,16 @@ export async function loadTeams() {
 
     if (currentView === "table") {
       teamsTable.setData(teams);
-    } else {
+    } else if (currentView === "kanban") {
       renderKanban(teams);
+    } else {
+      // card view — also need personnel
+      try {
+        cardPersonnel = await apiLoadPersonnel(incidentName);
+      } catch (_) {
+        cardPersonnel = [];
+      }
+      renderCardView(teams, cardPersonnel);
     }
   } catch (err) {
     logMessage("ERROR", "Failed to load teams", err.message);
@@ -626,6 +649,332 @@ function wireTouchDnd(card, teamId) {
 }
 
 
+/* ===============================
+   Card view
+   =============================== */
+
+function makePersonChip(person, fromTeamId, isTl) {
+  const chip = document.createElement("div");
+  chip.className = "cv-person";
+  chip.dataset.personId   = person.id;
+  chip.dataset.fromTeamId = fromTeamId != null ? String(fromTeamId) : "";
+  chip.dataset.isTl       = isTl ? "1" : "0";
+  chip.textContent        = person.name;
+  return chip;
+}
+
+function _cvDropTarget(el) {
+  return el?.closest(".cv-tl-zone, .cv-members-zone, .cv-unassigned-col") ?? null;
+}
+
+function _cvClearDragOver() {
+  document.querySelectorAll(".cv-tl-zone.drag-over, .cv-members-zone.drag-over, .cv-unassigned-col.drag-over")
+    .forEach(z => z.classList.remove("drag-over"));
+}
+
+async function applyPersonDrop(personId, fromTeamId, isTl, toTeamId, toZone) {
+  const incidentName = getCurrentIncidentName();
+  if (!incidentName) return;
+
+  // No-op checks
+  if (fromTeamId === null && toTeamId === null) return;  // unassigned → unassigned
+  if (fromTeamId != null && fromTeamId === toTeamId) {
+    if (toZone === "tl"      &&  isTl) return;
+    if (toZone === "members" && !isTl) return;
+    // Same team: just change role
+    if (toZone === "members" && isTl) {
+      await apiPost("/api/teams/update", { incidentName, teamId: fromTeamId, teamLeaderId: null });
+    } else {
+      await apiPost("/api/teams/update", { incidentName, teamId: fromTeamId, teamLeaderId: personId });
+    }
+    await loadTeams();
+    return;
+  }
+
+  // Moving between teams or to/from unassigned
+  // Step 1: clear TL if was TL
+  if (fromTeamId != null && isTl) {
+    await apiPost("/api/teams/update", { incidentName, teamId: fromTeamId, teamLeaderId: null });
+  }
+  // Step 2: remove from current team
+  if (fromTeamId != null) {
+    await apiPost("/api/teams/remove-person", { incidentName, personId });
+  }
+  // Step 3: add to target team
+  if (toTeamId != null) {
+    await apiPost("/api/teams/assign-person", { incidentName, teamId: toTeamId, personId });
+    if (toZone === "tl") {
+      await apiPost("/api/teams/update", { incidentName, teamId: toTeamId, teamLeaderId: personId });
+    }
+  }
+
+  await loadTeams();
+}
+
+function wirePersonMouseDnd(chip, personId, fromTeamId, isTl) {
+  let timer = null, active = false, scrolled = false;
+  let ghost = null, targetZone = null;
+  let offX = 0, offY = 0;
+
+  function cleanup() {
+    clearTimeout(timer); timer = null;
+    active = false; scrolled = false;
+    if (ghost) { ghost.remove(); ghost = null; }
+    chip.style.opacity = "";
+    document.body.classList.remove("kanban-grabbing");
+    _cvClearDragOver();
+    targetZone = null;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup",   onUp);
+  }
+
+  function onMove(e) {
+    if (!active) { clearTimeout(timer); timer = null; scrolled = true; return; }
+    ghost.style.left = `${e.clientX - offX}px`;
+    ghost.style.top  = `${e.clientY - offY}px`;
+    ghost.style.visibility = "hidden";
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    ghost.style.visibility = "";
+    const zone = _cvDropTarget(el);
+    _cvClearDragOver();
+    if (zone) { zone.classList.add("drag-over"); targetZone = zone; }
+    else       { targetZone = null; }
+  }
+
+  async function onUp() {
+    const zone   = targetZone;
+    const wasDrag = active;
+    cleanup();
+    if (!wasDrag || !zone) return;
+    const toTeamId = zone.dataset.teamId ? parseInt(zone.dataset.teamId) : null;
+    const toZone   = zone.dataset.zone || "unassigned";
+    try {
+      await applyPersonDrop(
+        parseInt(personId),
+        fromTeamId != null ? parseInt(fromTeamId) : null,
+        isTl, toTeamId, toZone
+      );
+    } catch (err) {
+      teamsMessage.show(`Failed to move person: ${err.message}`, "error");
+    }
+  }
+
+  chip.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const rect = chip.getBoundingClientRect();
+    offX = e.clientX - rect.left;
+    offY = e.clientY - rect.top;
+    active = false; scrolled = false;
+
+    timer = setTimeout(() => {
+      active = true;
+      document.body.classList.add("kanban-grabbing");
+      ghost = chip.cloneNode(true);
+      Object.assign(ghost.style, {
+        position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+        width: `${rect.width}px`, margin: "0", pointerEvents: "none",
+        opacity: "0.85", zIndex: "9999",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
+      });
+      document.body.appendChild(ghost);
+      chip.style.opacity = "0.3";
+    }, 400);
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup",   onUp);
+  });
+}
+
+function wirePersonTouchDnd(chip, personId, fromTeamId, isTl) {
+  chip.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const rect  = chip.getBoundingClientRect();
+    _cvPersonId   = personId;
+    _cvFromTeamId = fromTeamId;
+    _cvIsTl       = isTl;
+    _cvOffsetX    = touch.clientX - rect.left;
+    _cvOffsetY    = touch.clientY - rect.top;
+    _cvDragActive = false;
+    _cvScrolled   = false;
+
+    _cvLongPress = setTimeout(() => {
+      _cvDragActive = true;
+      chip.style.touchAction = "none";
+      _cvGhost = chip.cloneNode(true);
+      Object.assign(_cvGhost.style, {
+        position: "fixed", left: `${rect.left}px`, top: `${rect.top}px`,
+        width: `${rect.width}px`, margin: "0", pointerEvents: "none",
+        opacity: "0.85", zIndex: "9999",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.25)", transform: "rotate(2deg)",
+      });
+      document.body.appendChild(_cvGhost);
+      chip.style.opacity = "0.3";
+    }, 400);
+  }, { passive: true });
+
+  chip.addEventListener("touchmove", (e) => {
+    if (_cvDragActive) {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      _cvGhost.style.left = `${touch.clientX - _cvOffsetX}px`;
+      _cvGhost.style.top  = `${touch.clientY - _cvOffsetY}px`;
+      _cvGhost.style.visibility = "hidden";
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      _cvGhost.style.visibility = "";
+      const zone = _cvDropTarget(el);
+      _cvClearDragOver();
+      if (zone) { zone.classList.add("drag-over"); _cvTargetZone = zone; }
+      else       { _cvTargetZone = null; }
+      e.preventDefault();
+    } else {
+      const touch = e.touches[0];
+      const rect  = chip.getBoundingClientRect();
+      const moved = Math.abs(touch.clientX - (rect.left + _cvOffsetX)) > 8
+                 || Math.abs(touch.clientY - (rect.top  + _cvOffsetY)) > 8;
+      if (moved) { clearTimeout(_cvLongPress); _cvLongPress = null; _cvScrolled = true; }
+    }
+  }, { passive: false });
+
+  chip.addEventListener("touchend", async (e) => {
+    const zone    = _cvTargetZone;
+    const pId     = _cvPersonId;
+    const ftId    = _cvFromTeamId;
+    const tl      = _cvIsTl;
+    const wasDrag = _cvDragActive;
+    // cleanup
+    clearTimeout(_cvLongPress); _cvLongPress = null;
+    _cvDragActive = false; _cvScrolled = false;
+    if (_cvGhost) { _cvGhost.remove(); _cvGhost = null; }
+    chip.style.opacity = ""; chip.style.touchAction = "";
+    _cvClearDragOver(); _cvTargetZone = null;
+
+    if (!wasDrag || !zone) return;
+    e.preventDefault();
+    const toTeamId = zone.dataset.teamId ? parseInt(zone.dataset.teamId) : null;
+    const toZone   = zone.dataset.zone || "unassigned";
+    try {
+      await applyPersonDrop(
+        parseInt(pId),
+        ftId != null ? parseInt(ftId) : null,
+        tl, toTeamId, toZone
+      );
+    } catch (err) {
+      teamsMessage.show(`Failed to move person: ${err.message}`, "error");
+    }
+  });
+
+  chip.addEventListener("touchcancel", () => {
+    clearTimeout(_cvLongPress); _cvLongPress = null;
+    _cvDragActive = false;
+    if (_cvGhost) { _cvGhost.remove(); _cvGhost = null; }
+    chip.style.opacity = ""; chip.style.touchAction = "";
+    _cvClearDragOver(); _cvTargetZone = null;
+  });
+  chip.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+
+function renderCardView(teams, personnel) {
+  const container = document.getElementById("teams-card-view");
+  if (!container) return;
+
+  const searchVal = (document.getElementById("teams-search")?.value || "").toLowerCase();
+  container.innerHTML = "";
+
+  // Unassigned column
+  const unassigned = personnel
+    .filter(p => !p.team)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const unassignedCol = document.createElement("div");
+  unassignedCol.className  = "cv-unassigned-col";
+  unassignedCol.dataset.zone = "unassigned";
+
+  const unassignedHdr = document.createElement("div");
+  unassignedHdr.className = "cv-col-header";
+  unassignedHdr.innerHTML = `Unassigned <span class="cv-col-count">${unassigned.length}</span>`;
+  unassignedCol.appendChild(unassignedHdr);
+
+  const unassignedList = document.createElement("div");
+  unassignedList.className = "cv-col-persons";
+  unassigned.forEach(p => {
+    const chip = makePersonChip(p, null, false);
+    if (searchVal && !p.name.toLowerCase().includes(searchVal)) chip.classList.add("cv-hidden");
+    wirePersonMouseDnd(chip, p.id, null, false);
+    wirePersonTouchDnd(chip, p.id, null, false);
+    unassignedList.appendChild(chip);
+  });
+  unassignedCol.appendChild(unassignedList);
+  container.appendChild(unassignedCol);
+
+  // Teams grid
+  const grid = document.createElement("div");
+  grid.className = "cv-teams-grid";
+
+  const sorted = [...teams].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+  for (const team of sorted) {
+    const members = parseMemberData(team.memberData);
+    const tlId    = team.teamLeaderId ? String(team.teamLeaderId) : null;
+    const tl      = tlId ? members.find(m => String(m.id) === tlId) : null;
+    const rest    = members
+      .filter(m => String(m.id) !== tlId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const card = document.createElement("div");
+    card.className = "cv-team-card";
+    card.dataset.teamId = team.id;
+    card.dataset.status = team.status;
+
+    const hdr = document.createElement("div");
+    hdr.className = "cv-team-header";
+    hdr.textContent = `Team ${team.name}`;
+
+    // TL zone
+    const tlZone = document.createElement("div");
+    tlZone.className = "cv-tl-zone";
+    tlZone.dataset.teamId = team.id;
+    tlZone.dataset.zone   = "tl";
+    const tlLabel = document.createElement("div");
+    tlLabel.className = "cv-zone-label";
+    tlLabel.textContent = "Team Leader";
+    tlZone.appendChild(tlLabel);
+    if (tl) {
+      const chip = makePersonChip(tl, team.id, true);
+      if (searchVal && !tl.name.toLowerCase().includes(searchVal)) chip.classList.add("cv-hidden");
+      wirePersonMouseDnd(chip, tl.id, team.id, true);
+      wirePersonTouchDnd(chip, tl.id, team.id, true);
+      tlZone.appendChild(chip);
+    }
+
+    // Members zone
+    const membersZone = document.createElement("div");
+    membersZone.className = "cv-members-zone";
+    membersZone.dataset.teamId = team.id;
+    membersZone.dataset.zone   = "members";
+    const membersLabel = document.createElement("div");
+    membersLabel.className = "cv-zone-label";
+    membersLabel.textContent = "Members";
+    membersZone.appendChild(membersLabel);
+    rest.forEach(m => {
+      const chip = makePersonChip(m, team.id, false);
+      if (searchVal && !m.name.toLowerCase().includes(searchVal)) chip.classList.add("cv-hidden");
+      wirePersonMouseDnd(chip, m.id, team.id, false);
+      wirePersonTouchDnd(chip, m.id, team.id, false);
+      membersZone.appendChild(chip);
+    });
+
+    card.appendChild(hdr);
+    card.appendChild(tlZone);
+    card.appendChild(membersZone);
+    grid.appendChild(card);
+  }
+
+  container.appendChild(grid);
+}
+
+
 function renderKanban(teams) {
   const container = document.getElementById("teams-kanban-view");
   if (!container) return;
@@ -713,46 +1062,60 @@ function renderKanban(teams) {
 function switchView(view) {
   currentView = view;
 
-  const tableView        = document.getElementById("teams-table-view");
-  const kanbanView       = document.getElementById("teams-kanban-view");
+  const tableView          = document.getElementById("teams-table-view");
+  const kanbanView         = document.getElementById("teams-kanban-view");
+  const cardView           = document.getElementById("teams-card-view");
   const statusFilterGroup  = document.getElementById("teams-status-filter-group");
   const colTogglesGroup    = document.getElementById("teams-col-toggles");
   const tableBtn           = document.getElementById("view-table-btn");
   const kanbanBtn          = document.getElementById("view-kanban-btn");
+  const cardBtn            = document.getElementById("view-card-btn");
   const addBtn             = document.getElementById("team-add");
   const toolbar            = document.querySelector(".teams-toolbar");
   const filtersRow         = document.querySelector(".teams-filters");
   const searchGroup        = document.getElementById("teams-search-group");
 
+  // Reset all active states
+  tableBtn?.classList.remove("active");
+  kanbanBtn?.classList.remove("active");
+  cardBtn?.classList.remove("active");
+  tableView?.classList.add("hidden");
+  kanbanView?.classList.add("hidden");
+  cardView?.classList.add("hidden");
+
   if (view === "table") {
     tableView?.classList.remove("hidden");
-    kanbanView?.classList.add("hidden");
     if (statusFilterGroup) statusFilterGroup.style.display = "";
     if (colTogglesGroup)   colTogglesGroup.style.display   = "";
     if (addBtn) addBtn.style.display = "";
     if (filtersRow) filtersRow.style.display = "";
     tableBtn?.classList.add("active");
-    kanbanBtn?.classList.remove("active");
     // Move search back into filters row
     if (searchGroup && filtersRow && searchGroup.parentElement !== filtersRow) {
       filtersRow.prepend(searchGroup);
     }
     teamsTable.setData(teamsCache);
   } else {
-    tableView?.classList.add("hidden");
-    kanbanView?.classList.remove("hidden");
+    // kanban and card share the same chrome: no filters row, search in toolbar
     if (statusFilterGroup) statusFilterGroup.style.display = "none";
     if (colTogglesGroup)   colTogglesGroup.style.display   = "none";
     if (addBtn) addBtn.style.display = "none";
     if (filtersRow) filtersRow.style.display = "none";
-    tableBtn?.classList.remove("active");
-    kanbanBtn?.classList.add("active");
     // Move search into toolbar (before the view toggle)
     if (searchGroup && toolbar) {
       const toggle = toolbar.querySelector(".view-toggle");
       toolbar.insertBefore(searchGroup, toggle);
     }
-    renderKanban(teamsCache);
+
+    if (view === "kanban") {
+      kanbanView?.classList.remove("hidden");
+      kanbanBtn?.classList.add("active");
+      renderKanban(teamsCache);
+    } else {
+      cardView?.classList.remove("hidden");
+      cardBtn?.classList.add("active");
+      loadTeams();
+    }
   }
 }
 
@@ -768,13 +1131,19 @@ function wireFilters() {
       const val = e.target.value;
       if (currentView === "table") {
         teamsTable.setFilter("searchText", val);
-      } else {
+      } else if (currentView === "kanban") {
         const lower = val.toLowerCase();
         const cards = document.querySelectorAll("#teams-kanban-view .kanban-card");
         cards.forEach(card => {
           const team = findTeamInCache(card.dataset.teamId);
           const match = !lower || (team?.searchText || "").includes(lower);
           card.classList.toggle("search-hidden", !match);
+        });
+      } else {
+        const lower = val.toLowerCase();
+        document.querySelectorAll("#teams-card-view .cv-person").forEach(chip => {
+          const match = !lower || chip.textContent.toLowerCase().includes(lower);
+          chip.classList.toggle("cv-hidden", !match);
         });
       }
     });
@@ -1235,8 +1604,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // View toggle
-  document.getElementById("view-table-btn")?.addEventListener("click", () => switchView("table"));
+  document.getElementById("view-table-btn")?.addEventListener("click",  () => switchView("table"));
   document.getElementById("view-kanban-btn")?.addEventListener("click", () => switchView("kanban"));
+  document.getElementById("view-card-btn")?.addEventListener("click",   () => switchView("card"));
 
   // Incident change
   document.getElementById("incidentSelect")?.addEventListener("change", () => {
@@ -1264,6 +1634,8 @@ window.addEventListener("sar:offline", () => {
   if (teamsMessage) teamsMessage.show("Offline.", "error");
   const kanban = document.getElementById("teams-kanban-view");
   if (kanban) kanban.innerHTML = "";
+  const card = document.getElementById("teams-card-view");
+  if (card) card.innerHTML = "";
 });
 
 window.addEventListener("sar:online", loadTeams);
