@@ -162,9 +162,10 @@ function setD4hLinked(linked) {
 
 async function fetchCaltopoMapName(mapId) {
   if (!mapId) { caltopoMsg.clear(); return; }
+  const mode = document.querySelector('input[name="caltopoMode"]:checked')?.value ?? "online";
   caltopoMsg.show("Looking up map…", "info");
   try {
-    const res = await fetch(`/api/caltopo/map/${encodeURIComponent(mapId)}`);
+    const res = await fetch(`/api/caltopo/map/${encodeURIComponent(mapId)}?mode=${encodeURIComponent(mode)}`);
     const data = await res.json();
     if (!res.ok || data.error) {
       caltopoMsg.show(data.error || "Map not found.", "error");
@@ -371,6 +372,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!incident) return;
       await saveSetting("caltopo_mode", radio.value);
       logUserEvent(incident, `CalTopo mode set to ${radio.value}`);
+      const mapId = ($("mapId")?.value || "").trim();
+      if (mapId) fetchCaltopoMapName(mapId);
     });
   });
 

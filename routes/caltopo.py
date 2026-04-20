@@ -38,18 +38,25 @@ _ACCT_CACHE_TTL = 300  # seconds
 def api_caltopo_map_info(map_id):
     """
     Returns the title of a CalTopo map by ID.
-    Looks up the map in the team account's feature list (cached 5 min).
+    Online: looks up in team account feature list (cached 5 min).
+    Offline: fetches the map directly from localhost:8080 and reads the title.
     { "mapId": "APC1GE5", "title": "Gatineau Park SAR" }
     """
+    mode = (request.args.get("mode") or "online").strip()
     try:
+        if mode == "offline":
+            data = get_from_caltopo(f"/api/v1/map/{map_id}/since/0", mode="offline")
+            # Local server has no map-level title — just confirm it's reachable
+            if not data:
+                return jsonify({"error": f"Map {map_id} not found on local server"}), 404
+            return jsonify({"mapId": map_id, "title": None})
+
         team_id = _cfg("CALTOPO_TEAM_ID")
         features = _get_acct_features(team_id)
-
         for feat in features:
             if feat.get("id") == map_id:
                 title = (feat.get("properties") or {}).get("title", "").strip()
                 return jsonify({"mapId": map_id, "title": title or None})
-
         return jsonify({"error": f"Map {map_id} not found in team account"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
