@@ -207,7 +207,7 @@ async function saveSetting(key, value) {
 }
 
 async function loadIncidentSettings(incidentName) {
-  // No incident: unlock everything, clear hints
+  // No incident: unlock everything, clear hints, reset mode to online
   if (!incidentName) {
     $("mapId").value = "";
     $("d4h_activity").value = "";
@@ -215,6 +215,8 @@ async function loadIncidentSettings(incidentName) {
     setD4hLinked(false);
     caltopoMsg.clear();
     d4hMsg.clear();
+    const onlineRadio = document.querySelector('input[name="caltopoMode"][value="online"]');
+    if (onlineRadio) onlineRadio.checked = true;
     return;
   }
 
@@ -225,6 +227,11 @@ async function loadIncidentSettings(incidentName) {
 
     const caltopoMapId    = data.caltopoMapId;
     const d4hActivityId   = data.d4hActivityId;
+    const caltopoMode     = data.caltopoMode || "online";
+
+    // Restore mode radio
+    const modeRadio = document.querySelector(`input[name="caltopoMode"][value="${caltopoMode}"]`);
+    if (modeRadio) modeRadio.checked = true;
 
     if (caltopoMapId) {
       $("mapId").value = caltopoMapId;
@@ -355,6 +362,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       d4hMsg.clear();
       $("d4hLookupBtn").disabled = false;
     }
+  });
+
+  // CalTopo mode radios
+  document.querySelectorAll('input[name="caltopoMode"]').forEach(radio => {
+    radio.addEventListener("change", async () => {
+      const incident = getCurrentIncident();
+      if (!incident) return;
+      await saveSetting("caltopo_mode", radio.value);
+      logUserEvent(incident, `CalTopo mode set to ${radio.value}`);
+    });
   });
 
   // CalTopo link checkbox

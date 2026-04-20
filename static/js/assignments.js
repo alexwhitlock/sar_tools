@@ -40,6 +40,11 @@ function getCurrentIncidentName() {
   return sel ? sel.value.trim() : "";
 }
 
+function getCurrentCaltopoMode() {
+  const r = document.querySelector('input[name="caltopoMode"]:checked');
+  return r ? r.value : "online";
+}
+
 function findMissingTeams(assignments, dbLetters) {
   const missing = new Set();
   for (const a of (assignments || [])) {
@@ -116,11 +121,12 @@ function escapeHtml(s) {
    =============================== */
 
 async function writeToCalTopo({ featureId, status, team, notes, asgnType, description, number }) {
-  const mapId       = getCurrentMapId();
+  const mapId        = getCurrentMapId();
   const incidentName = getCurrentIncidentName();
+  const mode         = getCurrentCaltopoMode();
   if (!mapId || !featureId) throw new Error("Map ID or feature ID missing");
 
-  const body = { mapId, featureId, incidentName };
+  const body = { mapId, featureId, incidentName, mode };
   if (status !== undefined) body.status = status;
   if (team   !== undefined) body.team   = team;
 
@@ -218,7 +224,8 @@ export async function loadAssignments() {
 
   try {
     const incidentName = getCurrentIncidentName();
-    const resp = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}&incidentName=${encodeURIComponent(incidentName)}`);
+    const mode = getCurrentCaltopoMode();
+    const resp = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}&incidentName=${encodeURIComponent(incidentName)}&mode=${encodeURIComponent(mode)}`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
 

@@ -199,10 +199,11 @@ uploadBtn.onclick = async () => {
   try {
     rectangleMessage.show("Uploading…","info");
 
+    const mode = document.querySelector('input[name="caltopoMode"]:checked')?.value ?? "online";
     const r = await fetch("/upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mapId, shapes: previewShapes })
+      body: JSON.stringify({ mapId, shapes: previewShapes, mode })
     });
 
     const d = await r.json();

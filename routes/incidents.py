@@ -72,7 +72,7 @@ def api_get_incidents():
     return jsonify({"ok": True, "incidents": incidents})
 
 
-_ALLOWED_SETTINGS_KEYS = {"linked_d4h_activity_id", "linked_caltopo_map_id"}
+_ALLOWED_SETTINGS_KEYS = {"linked_d4h_activity_id", "linked_caltopo_map_id", "caltopo_mode"}
 
 
 @bp.get("/api/incident/settings")
@@ -87,8 +87,9 @@ def api_incident_get_settings():
     s = {row[0]: row[1] for row in rows}
     return jsonify({
         "ok": True,
-        "d4hActivityId": s.get("linked_d4h_activity_id"),
-        "caltopoMapId": s.get("linked_caltopo_map_id"),
+        "d4hActivityId":  s.get("linked_d4h_activity_id"),
+        "caltopoMapId":   s.get("linked_caltopo_map_id"),
+        "caltopoMode":    s.get("caltopo_mode", "online"),
     })
 
 
