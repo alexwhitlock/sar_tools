@@ -171,7 +171,7 @@ async function fetchCaltopoMapName(mapId) {
       caltopoMsg.show(data.error || "Map not found.", "error");
       return;
     }
-    caltopoMsg.show(data.title ? `Current Map: ${data.title}` : "Map found (no title).", "info");
+    caltopoMsg.show(data.title ? `Current Map: ${data.title}` : "Map found.", "info");
   } catch (e) {
     caltopoMsg.show("Error looking up map.", "error");
   }
