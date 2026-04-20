@@ -4,5 +4,6 @@
   "CALTOPO_TEAM_ID": "<your CalTopo team ID>",
   "D4H_API_TOKEN": "<your D4H personal access token>",
   "D4H_TEAM_ID": "<your D4H team ID>",
-  "D4H_BASE_URL": "https://api.team-manager.ca.d4h.com"
+  "D4H_BASE_URL": "https://api.team-manager.ca.d4h.com",
+  "CALTOPO_OFFLINE_URL": "http://localhost:8080"
 }

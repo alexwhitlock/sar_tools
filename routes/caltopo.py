@@ -19,12 +19,13 @@ def _log(incident_name, message):
     except Exception:
         pass
 
-CALTOPO_ONLINE_URL  = "https://caltopo.com"
-CALTOPO_OFFLINE_URL = "http://localhost:8080"
+CALTOPO_ONLINE_URL = "https://caltopo.com"
 
 
 def _caltopo_base(mode: str) -> str:
-    return CALTOPO_OFFLINE_URL if mode == "offline" else CALTOPO_ONLINE_URL
+    if mode == "offline":
+        return (current_app.config.get("CALTOPO_OFFLINE_URL") or "http://localhost:8080").rstrip("/")
+    return CALTOPO_ONLINE_URL
 
 # Simple in-memory cache for account feature list (5-minute TTL)
 _acct_cache = {"data": None, "ts": 0}
