@@ -55,6 +55,7 @@ try:
         D4H_API_TOKEN = config.get("D4H_API_TOKEN", "").strip()
         D4H_TEAM_ID = config.get("D4H_TEAM_ID", "").strip()
         D4H_BASE_URL = config.get("D4H_BASE_URL", "").strip()
+        CALTOPO_OFFLINE_URL = config.get("CALTOPO_OFFLINE_URL", "http://localhost:8080").strip()
         if not CRED_ID or not CRED_SECRET_B64 or not D4H_API_TOKEN or not D4H_TEAM_ID or not D4H_BASE_URL:
             raise ValueError("Missing config parameter")
 except Exception as e:
@@ -66,6 +67,7 @@ app.config["CALTOPO_TEAM_ID"] = CALTOPO_TEAM_ID
 app.config["D4H_API_TOKEN"] = D4H_API_TOKEN
 app.config["D4H_TEAM_ID"] = D4H_TEAM_ID
 app.config["D4H_BASE_URL"] = D4H_BASE_URL
+app.config["CALTOPO_OFFLINE_URL"] = CALTOPO_OFFLINE_URL
 
 
 # ================= Routes =================

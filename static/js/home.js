@@ -162,15 +162,16 @@ function setD4hLinked(linked) {
 
 async function fetchCaltopoMapName(mapId) {
   if (!mapId) { caltopoMsg.clear(); return; }
+  const mode = document.querySelector('input[name="caltopoMode"]:checked')?.value ?? "online";
   caltopoMsg.show("Looking up map…", "info");
   try {
-    const res = await fetch(`/api/caltopo/map/${encodeURIComponent(mapId)}`);
+    const res = await fetch(`/api/caltopo/map/${encodeURIComponent(mapId)}?mode=${encodeURIComponent(mode)}`);
     const data = await res.json();
     if (!res.ok || data.error) {
       caltopoMsg.show(data.error || "Map not found.", "error");
       return;
     }
-    caltopoMsg.show(data.title ? `Current Map: ${data.title}` : "Map found (no title).", "info");
+    caltopoMsg.show(data.title ? `Current Map: ${data.title}` : "Map found.", "info");
   } catch (e) {
     caltopoMsg.show("Error looking up map.", "error");
   }
@@ -207,7 +208,7 @@ async function saveSetting(key, value) {
 }
 
 async function loadIncidentSettings(incidentName) {
-  // No incident: unlock everything, clear hints
+  // No incident: unlock everything, clear hints, reset mode to online
   if (!incidentName) {
     $("mapId").value = "";
     $("d4h_activity").value = "";
@@ -215,6 +216,8 @@ async function loadIncidentSettings(incidentName) {
     setD4hLinked(false);
     caltopoMsg.clear();
     d4hMsg.clear();
+    const onlineRadio = document.querySelector('input[name="caltopoMode"][value="online"]');
+    if (onlineRadio) onlineRadio.checked = true;
     return;
   }
 
@@ -225,6 +228,11 @@ async function loadIncidentSettings(incidentName) {
 
     const caltopoMapId    = data.caltopoMapId;
     const d4hActivityId   = data.d4hActivityId;
+    const caltopoMode     = data.caltopoMode || "online";
+
+    // Restore mode radio
+    const modeRadio = document.querySelector(`input[name="caltopoMode"][value="${caltopoMode}"]`);
+    if (modeRadio) modeRadio.checked = true;
 
     if (caltopoMapId) {
       $("mapId").value = caltopoMapId;
@@ -355,6 +363,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       d4hMsg.clear();
       $("d4hLookupBtn").disabled = false;
     }
+  });
+
+  // CalTopo mode radios
+  document.querySelectorAll('input[name="caltopoMode"]').forEach(radio => {
+    radio.addEventListener("change", async () => {
+      const incident = getCurrentIncident();
+      if (!incident) return;
+      await saveSetting("caltopo_mode", radio.value);
+      logUserEvent(incident, `CalTopo mode set to ${radio.value}`);
+      const mapId = ($("mapId")?.value || "").trim();
+      if (mapId) fetchCaltopoMapName(mapId);
+    });
   });
 
   // CalTopo link checkbox

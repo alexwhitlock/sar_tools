@@ -58,12 +58,12 @@
   margin-top: 6px;
 }
 
-.form-row label {
+.form-row > label {
   min-width: 140px;
   font-weight: 600;
 }
 
-.form-row input {
+.form-row > input {
   width: 200px;
 }
 
@@ -74,6 +74,24 @@
 #incidentCreateBtn {
   flex: 0 0 auto;
   width: auto;
+}
+
+.caltopo-mode-options {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.mode-option input[type="radio"] {
+  width: auto;
+  flex-shrink: 0;
 }
 
 .lookup-btn {

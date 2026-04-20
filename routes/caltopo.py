@@ -19,7 +19,13 @@ def _log(incident_name, message):
     except Exception:
         pass
 
-caltopo_base_url = "https://caltopo.com"
+CALTOPO_ONLINE_URL = "https://caltopo.com"
+
+
+def _caltopo_base(mode: str) -> str:
+    if mode == "offline":
+        return (current_app.config.get("CALTOPO_OFFLINE_URL") or "http://localhost:8080").rstrip("/")
+    return CALTOPO_ONLINE_URL
 
 # Simple in-memory cache for account feature list (5-minute TTL)
 _acct_cache = {"data": None, "ts": 0}
@@ -33,18 +39,25 @@ _ACCT_CACHE_TTL = 300  # seconds
 def api_caltopo_map_info(map_id):
     """
     Returns the title of a CalTopo map by ID.
-    Looks up the map in the team account's feature list (cached 5 min).
+    Online: looks up in team account feature list (cached 5 min).
+    Offline: fetches the map directly from localhost:8080 and reads the title.
     { "mapId": "APC1GE5", "title": "Gatineau Park SAR" }
     """
+    mode = (request.args.get("mode") or "online").strip()
     try:
+        if mode == "offline":
+            data = get_from_caltopo(f"/api/v1/map/{map_id}/since/0", mode="offline")
+            # Local server has no map-level title — just confirm it's reachable
+            if not data:
+                return jsonify({"error": f"Map {map_id} not found on local server"}), 404
+            return jsonify({"mapId": map_id, "title": None})
+
         team_id = _cfg("CALTOPO_TEAM_ID")
         features = _get_acct_features(team_id)
-
         for feat in features:
             if feat.get("id") == map_id:
                 title = (feat.get("properties") or {}).get("title", "").strip()
                 return jsonify({"mapId": map_id, "title": title or None})
-
         return jsonify({"error": f"Map {map_id} not found in team account"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -64,13 +77,14 @@ def _get_acct_features(team_id):
 
 @bp.get("/api/assignments")
 def api_assignments():
-    map_id       = (request.args.get("mapId")       or "").strip()
+    map_id        = (request.args.get("mapId")        or "").strip()
     incident_name = (request.args.get("incidentName") or "").strip()
+    mode          = (request.args.get("mode")         or "online").strip()
     if not map_id:
         return jsonify(error="mapId required"), 400
 
     try:
-        assignments = get_assignments_for_map(map_id)
+        assignments = get_assignments_for_map(map_id, mode=mode)
         if incident_name:
             from db.assignments_repo import get_assignment_data
             data_map = get_assignment_data(incident_name)
@@ -117,7 +131,8 @@ def api_assignment_data_update():
 def upload():
     try:
         data = request.get_json(silent=True) or {}
-        map_id = (data.get("mapId") or "").strip()
+        map_id    = (data.get("mapId") or "").strip()
+        mode      = (data.get("mode")  or "online").strip()
         shapes_in = data.get("shapes")
 
         if not map_id:
@@ -132,7 +147,7 @@ def upload():
         failures = 0
 
         for i, shape in enumerate(shapes):
-            status, body = post_shape_to_caltopo(map_id, shape)
+            status, body = post_shape_to_caltopo(map_id, shape, mode=mode)
             ok = (status == 200)
             if not ok:
                 failures += 1
@@ -186,22 +201,24 @@ def sign_request(method, endpoint, expires_ms, payload_str):
     return base64.b64encode(sig).decode("ascii")
 
 
-def post_shape_to_caltopo(map_id, shape):
-    cred_id = _cfg("CRED_ID")
-
+def post_shape_to_caltopo(map_id, shape, mode: str = "online"):
+    base = _caltopo_base(mode)
     endpoint = f"/api/v1/map/{map_id}/Shape"
     payload_str = json.dumps(shape, separators=(",", ":"))
-    expires_ms = int(time.time() * 1000) + 2 * 60 * 1000
-    signature = sign_request("POST", endpoint, expires_ms, payload_str)
+    if mode == "offline":
+        params = {"json": payload_str}
+    else:
+        cred_id = _cfg("CRED_ID")
+        expires_ms = int(time.time() * 1000) + 2 * 60 * 1000
+        signature = sign_request("POST", endpoint, expires_ms, payload_str)
+        params = {
+            "id": cred_id,
+            "expires": str(expires_ms),
+            "signature": signature,
+            "json": payload_str,
+        }
 
-    params = {
-        "id": cred_id,
-        "expires": str(expires_ms),
-        "signature": signature,
-        "json": payload_str,
-    }
-
-    resp = requests.post(caltopo_base_url + endpoint, data=params, timeout=20)
+    resp = requests.post(base + endpoint, data=params, timeout=20)
     try:
         body = resp.json()
     except Exception:
@@ -210,20 +227,23 @@ def post_shape_to_caltopo(map_id, shape):
     return resp.status_code, body
 
 
-def get_from_caltopo(endpoint):
-    cred_id = _cfg("CRED_ID")
+def get_from_caltopo(endpoint, mode: str = "online"):
+    base = _caltopo_base(mode)
+    if mode == "offline":
+        resp = requests.get(base + endpoint, timeout=20)
+        resp.raise_for_status()
+        return resp.json().get("result", {})
 
+    cred_id = _cfg("CRED_ID")
     expires_ms = int(time.time() * 1000) + 2 * 60 * 1000
     payload_str = ""
     signature = sign_request("GET", endpoint, expires_ms, payload_str)
-
     params = {
         "id": cred_id,
         "expires": str(expires_ms),
         "signature": signature,
     }
-
-    resp = requests.get(caltopo_base_url + endpoint, params=params, timeout=20)
+    resp = requests.get(base + endpoint, params=params, timeout=20)
     resp.raise_for_status()
     return resp.json().get("result", {})
 
@@ -296,20 +316,24 @@ def _build_assignment_title(completed_x: bool, number, team: str) -> str:
     return " ".join(parts)
 
 
-def _post_assignment_update(map_id: str, feature_id: str, feature: dict):
+def _post_assignment_update(map_id: str, feature_id: str, feature: dict, mode: str = "online"):
     """POST an updated Assignment feature to CalTopo."""
-    cred_id = _cfg("CRED_ID")
+    base = _caltopo_base(mode)
     endpoint = f"/api/v1/map/{map_id}/Assignment/{feature_id}"
     payload_str = json.dumps(feature, separators=(",", ":"))
-    expires_ms = int(time.time() * 1000) + 2 * 60 * 1000
-    signature = sign_request("POST", endpoint, expires_ms, payload_str)
-    params = {
-        "id": cred_id,
-        "expires": str(expires_ms),
-        "signature": signature,
-        "json": payload_str,
-    }
-    resp = requests.post(caltopo_base_url + endpoint, data=params, timeout=20)
+    if mode == "offline":
+        params = {"json": payload_str}
+    else:
+        cred_id = _cfg("CRED_ID")
+        expires_ms = int(time.time() * 1000) + 2 * 60 * 1000
+        signature = sign_request("POST", endpoint, expires_ms, payload_str)
+        params = {
+            "id": cred_id,
+            "expires": str(expires_ms),
+            "signature": signature,
+            "json": payload_str,
+        }
+    resp = requests.post(base + endpoint, data=params, timeout=20)
     try:
         body = resp.json()
     except Exception:
@@ -325,18 +349,19 @@ def api_update_assignment():
     Bumps sync_state.version so other SSE clients are notified.
     """
     data = request.get_json(silent=True) or {}
-    map_id = (data.get("mapId") or "").strip()
-    feature_id = (data.get("featureId") or "").strip()
+    map_id        = (data.get("mapId")        or "").strip()
+    feature_id    = (data.get("featureId")    or "").strip()
     incident_name = (data.get("incidentName") or "").strip()
+    mode          = (data.get("mode")         or "online").strip()
     new_status = data.get("status")   # None = don't change
-    new_team = data.get("team")       # None = don't change; "" = clear team
+    new_team   = data.get("team")     # None = don't change; "" = clear team
 
     if not map_id or not feature_id:
         return jsonify(ok=False, error="mapId and featureId required"), 400
 
     try:
         # Fetch current feature from CalTopo to preserve all fields
-        map_data = get_from_caltopo(f"/api/v1/map/{map_id}/since/0")
+        map_data = get_from_caltopo(f"/api/v1/map/{map_id}/since/0", mode=mode)
         features = map_data.get("state", {}).get("features", [])
         feature = next((f for f in features if f.get("id") == feature_id), None)
         if not feature:
@@ -355,11 +380,19 @@ def api_update_assignment():
             team = str(new_team).strip()
 
         # Rebuild title keeping X prefix in sync with COMPLETED status
-        props["title"] = _build_assignment_title(completed_x, number, team)
+        new_title = _build_assignment_title(completed_x, number, team)
+        props["title"] = new_title
+        # Offline UI also uses letter field — update it if present
+        # Always clear number in offline mode: data lives in title/letter only
+        if mode == "offline":
+            if "letter" in props:
+                props["letter"] = new_title
+            if "number" in props:
+                props["number"] = ""
 
         # POST full updated feature back to CalTopo
         updated_feature = {**feature, "properties": props}
-        status_code, body = _post_assignment_update(map_id, feature_id, updated_feature)
+        status_code, body = _post_assignment_update(map_id, feature_id, updated_feature, mode=mode)
 
         if status_code != 200:
             return jsonify(ok=False, error=f"CalTopo returned {status_code}: {body}"), 502
@@ -406,9 +439,9 @@ def _parse_assignment_title(title):
     return completed_x, number, team
 
 
-def get_assignments_for_map(map_id):
+def get_assignments_for_map(map_id, mode: str = "online"):
     endpoint = f"/api/v1/map/{map_id}/since/0"
-    data = get_from_caltopo(endpoint)
+    data = get_from_caltopo(endpoint, mode=mode)
 
     features = data.get("state", {}).get("features", [])
 
