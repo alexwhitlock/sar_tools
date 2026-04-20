@@ -380,7 +380,11 @@ def api_update_assignment():
             team = str(new_team).strip()
 
         # Rebuild title keeping X prefix in sync with COMPLETED status
-        props["title"] = _build_assignment_title(completed_x, number, team)
+        new_title = _build_assignment_title(completed_x, number, team)
+        props["title"] = new_title
+        # Offline UI also uses letter field — update it if present
+        if mode == "offline" and "letter" in props:
+            props["letter"] = new_title
 
         # POST full updated feature back to CalTopo
         updated_feature = {**feature, "properties": props}
