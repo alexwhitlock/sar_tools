@@ -53,6 +53,8 @@ def run_migrations(conn):
         (8, migration_008_add_notes),
         (9, migration_009_assignment_notes),
         (10, migration_010_d4h_member_ref),
+        (11, migration_011_assignments_table),
+        (12, migration_012_assignments_sync_triggers),
     ]
 
     for version, migration in migrations:
@@ -200,6 +202,40 @@ def migration_009_assignment_notes(conn):
 def migration_010_d4h_member_ref(conn):
     """Add d4h_member_ref to store the human-readable D4H membership ref (e.g. '19-871')."""
     conn.execute("ALTER TABLE personnel ADD COLUMN d4h_member_ref TEXT")
+
+
+def migration_012_assignments_sync_triggers(conn):
+    """Add sync triggers on assignments so changes bump sync_state.version."""
+    for event in ("INSERT", "UPDATE", "DELETE"):
+        conn.execute(f"""
+            CREATE TRIGGER IF NOT EXISTS trg_sync_assignments_{event.lower()}
+            AFTER {event} ON assignments
+            BEGIN
+                UPDATE sync_state SET version = version + 1 WHERE id = 1;
+            END;
+        """)
+
+
+def migration_011_assignments_table(conn):
+    """Rename assignment_notes to assignments; add type and description columns."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS assignments (
+            feature_id  TEXT PRIMARY KEY,
+            type        TEXT,
+            description TEXT,
+            notes       TEXT,
+            updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+    """)
+    old_exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assignment_notes'"
+    ).fetchone()
+    if old_exists:
+        conn.execute("""
+            INSERT OR IGNORE INTO assignments (feature_id, notes, updated_at)
+            SELECT feature_id, notes, updated_at FROM assignment_notes
+        """)
+        conn.execute("DROP TABLE assignment_notes")
 
 
 def migration_008_add_notes(conn):

@@ -79,8 +79,10 @@
           <tr>
             <th data-key="number">Assignment #</th>
             <th data-key="team">Team</th>
-            <th data-key="assignmentType">Type</th>
+            <th data-key="assignmentType">Shape</th>
             <th data-key="resourceType">Resource</th>
+            <th data-key="asgnType">Type</th>
+            <th data-key="description" class="col-asgn-description">Description</th>
             <th data-key="status">Status</th>
             <th data-key="teamStatus" class="col-team-status">Team Status</th>
             <th data-key="op" class="col-op-period">Op Period</th>
@@ -127,8 +129,22 @@
               <option value="">— No Team —</option>
             </select>
           </label>
+          <div class="asgn-type-field">
+            <span class="asgn-type-label">Type</span>
+            <div class="asgn-type-options">
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Hasty"> Hasty</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Contour"> Contour</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Open Grid"> Open Grid</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Closed Grid"> Closed Grid</label>
+              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Other"> Other</label>
+            </div>
+            <input type="text" id="asgnTypeOther" class="hidden" placeholder="Specify type…" />
+          </div>
+          <label>Description
+            <textarea id="asgnDescription" rows="4" placeholder="Optional description" style="width:100%"></textarea>
+          </label>
           <label>Notes
-            <textarea id="asgnNotes" rows="3" placeholder="Optional notes"></textarea>
+            <textarea id="asgnNotes" rows="2" placeholder="Optional notes"></textarea>
           </label>
         </div>
         <div id="asgnModalError" class="modal-error hidden"></div>

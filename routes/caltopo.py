@@ -72,30 +72,42 @@ def api_assignments():
     try:
         assignments = get_assignments_for_map(map_id)
         if incident_name:
-            from db.assignment_notes_repo import get_notes
-            notes_map = get_notes(incident_name)
+            from db.assignments_repo import get_assignment_data
+            data_map = get_assignment_data(incident_name)
             for a in assignments:
-                a["notes"] = notes_map.get(a["id"]) or None
+                row = data_map.get(a["id"]) or {}
+                a["notes"]       = row.get("notes") or None
+                a["asgnType"]    = row.get("type") or None
+                a["description"] = row.get("description") or None
         return jsonify(assignments)
     except Exception as e:
         return jsonify(error=str(e)), 500
 
 
-@bp.post("/api/assignments/notes")
-def api_assignment_notes_update():
-    """Save or clear local notes for a CalTopo assignment."""
+@bp.post("/api/assignments/data")
+def api_assignment_data_update():
+    """Save or clear local data (type, description, notes) for a CalTopo assignment."""
     data = request.get_json(force=True) or {}
     incident_name = (data.get("incidentName") or "").strip()
     feature_id    = (data.get("featureId")    or "").strip()
+    asgn_type     = (data.get("type")         or "").strip() or None
+    description   = (data.get("description")  or "").strip() or None
     notes         = (data.get("notes")        or "").strip() or None
+    number        = data.get("number")
 
     if not incident_name or not feature_id:
         return jsonify(ok=False, error="incidentName and featureId required"), 400
 
     try:
-        from db.assignment_notes_repo import upsert_notes
-        upsert_notes(incident_name, feature_id, notes)
-        _log(incident_name, f'Assignment {feature_id} notes: "{notes or "(none)"}"')
+        from db.assignments_repo import upsert_assignment_data
+        upsert_assignment_data(incident_name, feature_id,
+                               asgn_type=asgn_type, description=description, notes=notes)
+        label = f"Assignment {number}" if number is not None else f"Assignment ({feature_id[:8]}…)"
+        parts = []
+        if asgn_type:   parts.append(f'type="{asgn_type}"')
+        if description: parts.append(f'description="{description}"')
+        if notes:       parts.append(f'notes="{notes}"')
+        _log(incident_name, f'{label} updated: {", ".join(parts)}' if parts else f'{label} data cleared')
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
