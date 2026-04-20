@@ -383,8 +383,12 @@ def api_update_assignment():
         new_title = _build_assignment_title(completed_x, number, team)
         props["title"] = new_title
         # Offline UI also uses letter field — update it if present
-        if mode == "offline" and "letter" in props:
-            props["letter"] = new_title
+        # Always clear number in offline mode: data lives in title/letter only
+        if mode == "offline":
+            if "letter" in props:
+                props["letter"] = new_title
+            if "number" in props:
+                props["number"] = ""
 
         # POST full updated feature back to CalTopo
         updated_feature = {**feature, "properties": props}
