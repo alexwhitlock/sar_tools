@@ -34,11 +34,13 @@ function updateActionButtons() {
   }
 
   if (uploadBtn) {
-    uploadBtn.disabled = !hasPreview || !online;
+    const caltopoOffline = document.querySelector('input[name="caltopoMode"][value="offline"]')?.checked ?? false;
+    const canUpload = hasPreview && (online || caltopoOffline);
+    uploadBtn.disabled = !canUpload;
 
     if (!hasPreview) {
       uploadBtn.title = "Generate a preview before uploading";
-    } else if (!online) {
+    } else if (!online && !caltopoOffline) {
       uploadBtn.title = "Upload unavailable while offline";
     } else {
       uploadBtn.title = "";
