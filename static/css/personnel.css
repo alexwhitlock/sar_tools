@@ -419,7 +419,7 @@
 
 /* Removed (not-attending) section */
 .removed-summary { margin-top: 16px; border-top: 1px solid #ddd; padding-top: 12px; }
-.removed-row { padding: 6px 8px; }
-.removed-row-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
-.removed-row-label input[type="checkbox"] { flex-shrink: 0; }
-.removed-ref { color: #888; font-weight: 400; }
+.conflict-row-ref { font-weight: 400; color: #888; margin-left: 4px; }
+.removed-check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #b71c1c; }
+.removed-check-label input[type="checkbox"] { flex-shrink: 0; }
+.conflict-row.action-remove { border-color: #b71c1c; background: #fce8e8; }

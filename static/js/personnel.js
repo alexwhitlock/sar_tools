@@ -1013,14 +1013,32 @@ function openConflictModal({ incidentName: _inc, newOnes, linked, conflicts, rem
 
 function _buildRemovedRow(person) {
   const row = document.createElement("div");
-  row.className = "conflict-row removed-row";
+  row.className = "conflict-row";
+
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.className = "removed-checkbox";
+  cb.dataset.personId = String(person.id);
+
   row.innerHTML = `
-    <label class="removed-row-label">
-      <input type="checkbox" class="removed-checkbox" data-person-id="${escapeHtml(String(person.id))}" />
+    <div class="conflict-row-header">
       ${escapeHtml(person.name)}
-      <span class="removed-ref">(D4H ref: ${escapeHtml(person.d4hRef)})</span>
-    </label>
+      <span class="conflict-row-ref">(D4H ref: ${escapeHtml(person.d4hRef)})</span>
+    </div>
+    <div class="conflict-row-match">Not in D4H attending list</div>
+    <div class="conflict-row-actions"></div>
   `;
+
+  const label = document.createElement("label");
+  label.className = "removed-check-label";
+  label.appendChild(cb);
+  label.append(" Remove from database");
+  row.querySelector(".conflict-row-actions").appendChild(label);
+
+  cb.addEventListener("change", () => {
+    row.classList.toggle("action-remove", cb.checked);
+  });
+
   return row;
 }
 
