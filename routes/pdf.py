@@ -23,11 +23,11 @@ BOTTOM_H       = 25.4              # 1 inch data strip (inside border)
 
 # Bottom-strip column layout (x positions are page-absolute)
 _INFO_COL_W    = 70.0              # title / type / timestamp on the left
-_DESC_COL_X    = MARGIN + _INFO_COL_W + 5.0   # 87.7 mm
-_DESC_COL_W    = 60.0              # description text
-_COORD_COL_X   = _DESC_COL_X + _DESC_COL_W + 5.0   # 152.7 mm
+_DESC_COL_X    = MARGIN + _INFO_COL_W + 2.0   # 84.7 mm
+_DESC_COL_W    = 80.0              # description text
+_COORD_COL_X   = _DESC_COL_X + _DESC_COL_W + 5.0   # 172.7 mm
 _COORD_COL_W   = 50.0              # compact — fits "5.  18T VR 51590 34197"
-_BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 4.0   # 206.7 mm
+_BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 4.0   # 226.7 mm
 _BEARING_COL_W = 30.0              # compact — fits "10-1: 359.9°T"
 
 # Bottom-strip row metrics — HDR_Y=bt+1.5, HDR_H=3.5, DATA_Y=bt+5 → 5 rows fit
@@ -320,6 +320,19 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
     return img
 
 
+# ── Text helpers ──────────────────────────────────────────────────────────────
+
+def _truncate(pdf, text, max_w):
+    """Flatten to one line and truncate with ellipsis to fit max_w mm."""
+    text = text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+    if pdf.get_string_width(text) <= max_w:
+        return text
+    ellipsis = "\u2026"
+    while text and pdf.get_string_width(text + ellipsis) > max_w:
+        text = text[:-1]
+    return text + ellipsis
+
+
 # ── PDF composition ────────────────────────────────────────────────────────────
 
 def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None, asgn_type="", description=""):
@@ -402,7 +415,7 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None
         pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(20, 20, 20)
         pdf.set_xy(_DESC_COL_X, DATA_Y)
-        pdf.multi_cell(_DESC_COL_W, _VTAB_ROW_H, description)
+        pdf.cell(_DESC_COL_W, _VTAB_ROW_H, _truncate(pdf, description, _DESC_COL_W))
 
     # ── Table columns (compact, no decorative lines) ──
     if vertices:
