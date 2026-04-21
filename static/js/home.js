@@ -132,6 +132,8 @@ function updateLinkCheckboxVisibility() {
   const d4hLinkRow = $("d4hLinkRow");
   if (caltopoLinkRow) caltopoLinkRow.style.display = hasIncident ? "" : "none";
   if (d4hLinkRow) d4hLinkRow.style.display = hasIncident ? "" : "none";
+  const exportBtn = $("incidentExportBtn");
+  if (exportBtn) exportBtn.disabled = !hasIncident;
 }
 
 // ===============================
@@ -406,6 +408,41 @@ document.addEventListener("DOMContentLoaded", async () => {
       await saveSetting("linked_d4h_activity_id", null);
       setD4hLinked(false);
       logUserEvent(incident, "D4H activity link removed");
+    }
+  });
+
+  // Export DB
+  $("incidentExportBtn")?.addEventListener("click", () => {
+    const incident = getCurrentIncident();
+    if (!incident) return;
+    window.location.href = `/api/incident/export?incidentName=${encodeURIComponent(incident)}`;
+  });
+
+  // Import DB
+  $("incidentImportBtn")?.addEventListener("click", () => {
+    $("incidentImportFile").value = "";
+    $("incidentImportFile").click();
+  });
+
+  $("incidentImportFile")?.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    incidentMsg.show("Importing…", "info");
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await fetch("/api/incident/import", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Import failed");
+      await loadIncidents(data.incidentName);
+      await openIncident(data.incidentName);
+      updateLinkCheckboxVisibility();
+      await loadIncidentSettings(data.incidentName);
+      incidentMsg.show(`Imported: ${data.incidentName}`, "info");
+      window.dispatchEvent(new CustomEvent("sar:incident-selected"));
+    } catch (err) {
+      console.error(err);
+      incidentMsg.show(`Import failed: ${err.message}`, "error");
     }
   });
 

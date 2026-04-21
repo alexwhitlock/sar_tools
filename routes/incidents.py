@@ -2,7 +2,7 @@
 import os
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 
 from db.database import get_connection, get_db_path_for_incident
 from db.migrations import run_migrations
@@ -70,6 +70,38 @@ def api_get_incidents():
     incidents.sort(key=lambda x: x["incidentName"].lower())
 
     return jsonify({"ok": True, "incidents": incidents})
+
+
+@bp.get("/api/incident/export")
+def api_incident_export():
+    incident_name = (request.args.get("incidentName") or "").strip()
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName required"}), 400
+    db_path = get_db_path_for_incident(incident_name)
+    if not Path(db_path).exists():
+        return jsonify({"ok": False, "error": "incident not found"}), 404
+    return send_file(db_path, as_attachment=True, download_name=os.path.basename(db_path))
+
+
+@bp.post("/api/incident/import")
+def api_incident_import():
+    f = request.files.get("file")
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "no file provided"}), 400
+    stem = Path(f.filename).stem
+    if not stem:
+        return jsonify({"ok": False, "error": "invalid filename"}), 400
+    content = f.read()
+    if not content.startswith(b"SQLite format 3\x00"):
+        return jsonify({"ok": False, "error": "not a valid SQLite database file"}), 400
+    db_path = get_db_path_for_incident(stem)
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    with open(db_path, "wb") as out:
+        out.write(content)
+    incident_name = os.path.splitext(os.path.basename(db_path))[0]
+    with get_connection(incident_name) as conn:
+        run_migrations(conn)
+    return jsonify({"ok": True, "incidentName": incident_name})
 
 
 _ALLOWED_SETTINGS_KEYS = {"linked_d4h_activity_id", "linked_caltopo_map_id", "caltopo_mode"}
