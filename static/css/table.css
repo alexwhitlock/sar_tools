@@ -76,7 +76,8 @@
   content: "▼";
 }
 
-/* Actions (kebab) cell */
+/* Actions (kebab) column */
+.data-table .actions-col,
 .data-table .actions-cell {
   width: 2rem;
 }
