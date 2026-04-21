@@ -27,6 +27,7 @@
   border: 1px solid #ccc;
   padding: 0.35rem 0.5rem;
   text-align: left;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   vertical-align: top;
