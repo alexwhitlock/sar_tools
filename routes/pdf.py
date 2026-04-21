@@ -274,7 +274,7 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
     raw_extent = max(max(es) - min(es), max(ns) - min(ns))
     if raw_extent > 20_000:
         spacing, lbl_div, lbl_fmt = 10_000, 10_000, "{:01d}"
-    elif raw_extent > 3_000:
+    elif raw_extent > 2_000:
         spacing, lbl_div, lbl_fmt = 1_000, 1_000, "{:02d}"
     else:
         spacing, lbl_div, lbl_fmt = 100, 100, "{:03d}"
