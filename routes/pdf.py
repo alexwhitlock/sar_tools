@@ -327,7 +327,7 @@ def _truncate(pdf, text, max_w):
     text = text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
     if pdf.get_string_width(text) <= max_w:
         return text
-    ellipsis = "\u2026"
+    ellipsis = "..."
     while text and pdf.get_string_width(text + ellipsis) > max_w:
         text = text[:-1]
     return text + ellipsis
