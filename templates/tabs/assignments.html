@@ -115,36 +115,42 @@
         </div>
         <div class="modal-body asgn-modal-body">
           <div class="asgn-modal-info" id="asgnModalInfo"></div>
-          <label>Status
-            <select id="asgnStatus">
-              <option value="DRAFT">Draft</option>
-              <option value="PREPARED">Prepared</option>
-              <option value="INPROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
-          </label>
-          <label>Team
-            <select id="asgnTeam">
-              <option value="">— No Team —</option>
-            </select>
-          </label>
-          <div class="asgn-type-field">
-            <span class="asgn-type-label">Type</span>
-            <div class="asgn-type-options">
-              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Hasty"> Hasty</label>
-              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Contour"> Contour</label>
-              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Open Grid"> Open Grid</label>
-              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Closed Grid"> Closed Grid</label>
-              <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Other"> Other</label>
+          <div class="asgn-modal-columns">
+            <div class="asgn-modal-col">
+              <label>Status
+                <select id="asgnStatus">
+                  <option value="DRAFT">Draft</option>
+                  <option value="PREPARED">Prepared</option>
+                  <option value="INPROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                </select>
+              </label>
+              <label>Team
+                <select id="asgnTeam">
+                  <option value="">— No Team —</option>
+                </select>
+              </label>
+              <label>Description
+                <textarea id="asgnDescription" rows="5" placeholder="Optional description"></textarea>
+              </label>
             </div>
-            <input type="text" id="asgnTypeOther" class="hidden" placeholder="Specify type…" />
+            <div class="asgn-modal-col">
+              <div class="asgn-type-field">
+                <span class="asgn-type-label">Type</span>
+                <div class="asgn-type-options">
+                  <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Hasty"> Hasty</label>
+                  <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Contour"> Contour</label>
+                  <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Open Grid"> Open Grid</label>
+                  <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Closed Grid"> Closed Grid</label>
+                  <label class="radio-option"><input type="radio" name="asgnTypeRadio" value="Other"> Other</label>
+                </div>
+                <input type="text" id="asgnTypeOther" class="hidden" placeholder="Specify type…" />
+              </div>
+              <label>Notes
+                <textarea id="asgnNotes" rows="5" placeholder="Optional notes"></textarea>
+              </label>
+            </div>
           </div>
-          <label>Description
-            <textarea id="asgnDescription" rows="4" placeholder="Optional description" style="width:100%"></textarea>
-          </label>
-          <label>Notes
-            <textarea id="asgnNotes" rows="2" placeholder="Optional notes"></textarea>
-          </label>
         </div>
         <div id="asgnModalError" class="modal-error hidden"></div>
         <div class="modal-footer">

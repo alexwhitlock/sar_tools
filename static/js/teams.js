@@ -269,7 +269,7 @@ function renderTeamRow(t) {
     <td title="${memberTooltip(t)}" style="cursor:help">${t.memberCount ?? 0}</td>
     <td class="col-members">${memberListHtml(t)}</td>
     <td>${assignmentHtml}</td>
-    <td class="col-notes">${escapeHtml(t.notes ?? "")}</td>
+    <td class="col-notes" title="${escapeHtml(t.notes ?? "")}">${escapeHtml(t.notes ?? "")}</td>
     <td class="actions-cell">
       <button
         type="button"

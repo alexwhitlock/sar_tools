@@ -220,7 +220,7 @@
    =============================== */
 
 .asgn-modal {
-  width: 340px;
+  width: 680px;
   max-width: calc(100vw - 32px);
 }
 
@@ -229,6 +229,18 @@
   flex-direction: column;
   gap: 0.6rem;
   padding: 10px 12px;
+}
+
+.asgn-modal-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem 1.2rem;
+}
+
+.asgn-modal-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .asgn-modal-body label {
