@@ -157,7 +157,7 @@
       imagery: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     };
 
-    let _map, _tileLayer, _vertexLayer, _geometry, _title, _detailStr, _vertices;
+    let _map, _tileLayer, _vertexLayer, _geometry, _title, _detailStr, _vertices, _asgnType, _description;
 
     // Use window load (not DOMContentLoaded) so Leaflet CSS from CDN is
     // fully applied before we measure the map container size.
@@ -172,7 +172,9 @@
     });
 
     function init(asgn) {
-      _geometry = asgn.geometry;
+      _geometry    = asgn.geometry;
+      _asgnType    = asgn.asgnType    ?? "";
+      _description = asgn.description ?? "";
       const isArea = _geometry?.type === "Polygon";
       _title = "Assignment " + (asgn.number ?? "?");
 
@@ -297,6 +299,8 @@
             show_vertices: showVertices,
             show_bearings: showBearings,
             show_grid:     showGrid,
+            asgn_type:     _asgnType,
+            description:   _description,
             tz:            Intl.DateTimeFormat().resolvedOptions().timeZone,
             basemap,
           }),

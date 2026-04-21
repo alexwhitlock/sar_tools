@@ -22,10 +22,12 @@ CONTENT_H      = PAGE_H - 2 * MARGIN   # 184.6 mm
 BOTTOM_H       = 25.4              # 1 inch data strip (inside border)
 
 # Bottom-strip column layout (x positions are page-absolute)
-_INFO_COL_W    = 70.0              # title / details / timestamp on the left
-_COORD_COL_X   = MARGIN + _INFO_COL_W + 5.0   # 87.7 mm
+_INFO_COL_W    = 70.0              # title / type / timestamp on the left
+_DESC_COL_X    = MARGIN + _INFO_COL_W + 5.0   # 87.7 mm
+_DESC_COL_W    = 60.0              # description text
+_COORD_COL_X   = _DESC_COL_X + _DESC_COL_W + 5.0   # 152.7 mm
 _COORD_COL_W   = 50.0              # compact — fits "5.  18T VR 51590 34197"
-_BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 4.0   # 141.7 mm
+_BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 4.0   # 206.7 mm
 _BEARING_COL_W = 30.0              # compact — fits "10-1: 359.9°T"
 
 # Bottom-strip row metrics — HDR_Y=bt+1.5, HDR_H=3.5, DATA_Y=bt+5 → 5 rows fit
@@ -53,6 +55,8 @@ def assignment_map_pdf():
     show_vertices = bool(data.get("show_vertices", False))
     show_bearings = bool(data.get("show_bearings", False))
     show_grid     = bool(data.get("show_grid",     False))
+    asgn_type     = data.get("asgn_type",    "")
+    description   = data.get("description",  "")
     tile_url      = _TILE_URLS.get(data.get("basemap", "osm"), _TILE_URLS["osm"])
     tz_name       = data.get("tz", "")
     try:
@@ -103,7 +107,7 @@ def assignment_map_pdf():
             )
 
         pdf_bytes = _make_pdf(title, map_img, vertices, bearings, layout, grid_zone,
-                              now=datetime.now(tz))
+                              now=datetime.now(tz), asgn_type=asgn_type, description=description)
         filename  = title.replace(" ", "_") + ".pdf"
         return send_file(
             io.BytesIO(pdf_bytes),
@@ -318,7 +322,7 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
 
 # ── PDF composition ────────────────────────────────────────────────────────────
 
-def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None):
+def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None, asgn_type="", description=""):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     pdf.set_margins(0, 0, 0)
@@ -342,6 +346,13 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None
     pdf.set_xy(MARGIN + 2, y)
     pdf.cell(_INFO_COL_W - 2, 5, title)
     y += 5.5
+
+    if asgn_type:
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(60, 60, 60)
+        pdf.set_xy(MARGIN + 2, y)
+        pdf.cell(_INFO_COL_W - 2, 4.5, asgn_type)
+        y += 4.5
 
     if grid_zone:
         pdf.set_font("Helvetica", "", 10)
@@ -380,6 +391,18 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None
     pdf.set_draw_color(30, 30, 30)
     pdf.set_line_width(0.5)
     pdf.line(ax, base, ax, bot)    # shaft
+
+    # ── Description column ──
+    if description:
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_xy(_DESC_COL_X, HDR_Y)
+        pdf.cell(_DESC_COL_W, _VTAB_HDR_H, "Description")
+
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(20, 20, 20)
+        pdf.set_xy(_DESC_COL_X, DATA_Y)
+        pdf.multi_cell(_DESC_COL_W, _VTAB_ROW_H, description)
 
     # ── Table columns (compact, no decorative lines) ──
     if vertices:
