@@ -9,6 +9,12 @@ export function printAssignmentMap(asgn) {
     return;
   }
 
-  const params = new URLSearchParams({ asgn: JSON.stringify(asgn) });
-  window.open(`/static/print-map-preview.html?${params}`, "_blank");
+  const popup = window.open("/static/print-map-preview.html", "_blank");
+  const onReady = (e) => {
+    if (e.source === popup && e.data === "print-map-ready") {
+      window.removeEventListener("message", onReady);
+      popup.postMessage({ type: "asgn", data: asgn }, "*");
+    }
+  };
+  window.addEventListener("message", onReady);
 }

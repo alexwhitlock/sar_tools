@@ -162,13 +162,19 @@
     // Use window load (not DOMContentLoaded) so Leaflet CSS from CDN is
     // fully applied before we measure the map container size.
     window.addEventListener("load", () => {
-      const raw = new URLSearchParams(location.search).get("asgn");
-      if (!raw) {
+      // Signal opener that we're ready to receive assignment data
+      if (window.opener) {
+        window.opener.postMessage("print-map-ready", "*");
+      } else {
         document.getElementById("panelTitle").textContent = "No assignment data.";
-        return;
       }
-      try { init(JSON.parse(raw)); }
-      catch (e) { document.getElementById("panelTitle").textContent = "Error: " + e.message; }
+    });
+
+    window.addEventListener("message", (e) => {
+      if (e.data?.type === "asgn") {
+        try { init(e.data.data); }
+        catch (err) { document.getElementById("panelTitle").textContent = "Error: " + err.message; }
+      }
     });
 
     function init(asgn) {
