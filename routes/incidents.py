@@ -72,6 +72,28 @@ def api_get_incidents():
     return jsonify({"ok": True, "incidents": incidents})
 
 
+@bp.post("/api/incident/rename")
+def api_incident_rename():
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    new_name      = (data.get("newName")      or "").strip()
+
+    if not incident_name or not new_name:
+        return jsonify({"ok": False, "error": "incidentName and newName required"}), 400
+
+    old_path = get_db_path_for_incident(incident_name)
+    new_path = get_db_path_for_incident(new_name)
+
+    if not Path(old_path).exists():
+        return jsonify({"ok": False, "error": "incident not found"}), 404
+    if Path(new_path).exists():
+        return jsonify({"ok": False, "error": "an incident with that name already exists"}), 409
+
+    os.rename(old_path, new_path)
+    new_incident_id = os.path.splitext(os.path.basename(new_path))[0]
+    return jsonify({"ok": True, "incidentName": new_incident_id})
+
+
 @bp.get("/api/incident/export")
 def api_incident_export():
     incident_name = (request.args.get("incidentName") or "").strip()

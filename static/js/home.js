@@ -134,6 +134,10 @@ function updateLinkCheckboxVisibility() {
   if (d4hLinkRow) d4hLinkRow.style.display = hasIncident ? "" : "none";
   const exportBtn = $("incidentExportBtn");
   if (exportBtn) exportBtn.disabled = !hasIncident;
+  const renameRow = $("incidentRenameRow");
+  if (renameRow) renameRow.style.display = hasIncident ? "" : "none";
+  const renameInput = $("incidentRenameInput");
+  if (renameInput && hasIncident) renameInput.value = getCurrentIncident();
 }
 
 // ===============================
@@ -410,6 +414,34 @@ document.addEventListener("DOMContentLoaded", async () => {
       logUserEvent(incident, "D4H activity link removed");
     }
   });
+
+  // Rename incident
+  async function doRename() {
+    const incident = getCurrentIncident();
+    const newName = ($("incidentRenameInput")?.value || "").trim();
+    if (!incident || !newName || newName === incident) return;
+    incidentMsg.show("Renaming…", "info");
+    try {
+      const res = await fetch("/api/incident/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ incidentName: incident, newName }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Rename failed");
+      await loadIncidents(data.incidentName);
+      const sel = $("incidentSelect");
+      if (sel) sel.dataset.prev = data.incidentName;
+      updateLinkCheckboxVisibility();
+      incidentMsg.show(`Renamed to: ${data.incidentName}`, "info");
+      window.dispatchEvent(new CustomEvent("sar:incident-selected"));
+    } catch (err) {
+      console.error(err);
+      incidentMsg.show(`Rename failed: ${err.message}`, "error");
+    }
+  }
+  $("incidentRenameBtn")?.addEventListener("click", doRename);
+  $("incidentRenameInput")?.addEventListener("keydown", (e) => { if (e.key === "Enter") doRename(); });
 
   // Export DB
   $("incidentExportBtn")?.addEventListener("click", () => {
