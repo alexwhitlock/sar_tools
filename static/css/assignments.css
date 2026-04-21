@@ -220,7 +220,7 @@
    =============================== */
 
 .modal.asgn-modal {
-  width: 880px;
+  width: 800px;
   max-width: calc(100vw - 32px);
 }
 
