@@ -210,7 +210,7 @@ function renderAssignmentRow(a) {
    =============================== */
 
 export async function loadAssignments() {
-  if (!navigator.onLine) {
+  if (!navigator.onLine && getCurrentCaltopoMode() !== "offline") {
     assignmentsMessage.show("Offline.", "error");
     assignmentsTable.setData([]);
     return;
@@ -1010,6 +1010,7 @@ document.addEventListener("DOMContentLoaded", () => {
 window.addEventListener("sar:online", loadAssignments);
 
 window.addEventListener("sar:offline", () => {
+  if (getCurrentCaltopoMode() === "offline") return;
   assignmentsMessage.show("Offline.", "error");
   assignmentsTable.setData([]);
 });
