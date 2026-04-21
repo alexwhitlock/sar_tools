@@ -159,7 +159,8 @@ def api_personnel_check_names():
         return jsonify({"ok": False, "error": "incidentName is required"}), 400
 
     try:
-        return jsonify({"results": find_name_matches_batch(incident_name, members)})
+        results, removed = find_name_matches_batch(incident_name, members)
+        return jsonify({"results": results, "removed": removed})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

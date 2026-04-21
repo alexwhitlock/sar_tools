@@ -477,9 +477,10 @@ async function addFromD4h() {
     const linked    = results.filter(r => r.status === "linked");
     const newOnes   = results.filter(r => r.status === "new").map(withRef);
     const conflicts = results.filter(r => r.status === "name_conflict").map(withRef);
+    const removed   = checkData.removed || [];
 
-    if (!conflicts.length) {
-      // No conflicts — import all new ones directly
+    if (!conflicts.length && !removed.length) {
+      // No conflicts, no removed — import all new ones directly
       if (!newOnes.length) {
         personnelMessage.show(
           `Nothing new to import. ${linked.length} already linked.`,
@@ -498,13 +499,14 @@ async function addFromD4h() {
       return;
     }
 
-    // Conflicts found — open resolution modal
+    // Conflicts or removed people — open resolution modal
     openConflictModal({
       incidentName,
       newOnes,
       linked,
       conflicts,
-      onImport: async (resolutions) => {
+      removed,
+      onImport: async (resolutions, toRemoveIds) => {
         const toLink = [];
         const toAdd  = [];
 
@@ -536,18 +538,30 @@ async function addFromD4h() {
           importStats = await _doImport(incidentName, toImport);
         }
 
+        // Delete removed people that the user checked
+        const deleteErrors = [];
+        for (const personKey of toRemoveIds) {
+          try {
+            await apiDeletePerson({ incidentName, personKey });
+          } catch (err) {
+            deleteErrors.push(err.message);
+          }
+        }
+
         await loadPersonnel();
 
         const totalLinked  = toLink.length - linkErrors.length;
         const totalSkipped = [...resolutions.values()].filter(r => r.action === "skip").length;
         let msg = `Imported ${importStats.imported}`;
-        if (totalLinked)      msg += `, linked ${totalLinked}`;
-        if (totalSkipped)     msg += `, skipped ${totalSkipped}`;
-        if (linked.length)    msg += `, ${linked.length} already linked`;
+        if (totalLinked)        msg += `, linked ${totalLinked}`;
+        if (totalSkipped)       msg += `, skipped ${totalSkipped}`;
+        if (linked.length)      msg += `, ${linked.length} already linked`;
+        if (toRemoveIds.length) msg += `, removed ${toRemoveIds.length}`;
         msg += ".";
 
-        if (linkErrors.length) {
-          personnelMessage.show(`${msg} Errors: ${linkErrors.join("; ")}`, "error");
+        const allErrors = [...linkErrors, ...deleteErrors];
+        if (allErrors.length) {
+          personnelMessage.show(`${msg} Errors: ${allErrors.join("; ")}`, "error");
         } else {
           personnelMessage.show(msg, "info");
         }
@@ -956,30 +970,58 @@ function _buildConflictRow(result) {
   return row;
 }
 
-function openConflictModal({ incidentName: _inc, newOnes, linked, conflicts, onImport }) {
+function openConflictModal({ incidentName: _inc, newOnes, linked, conflicts, removed = [], onImport }) {
   _conflictResolutions = new Map();
   _conflictOnImport = onImport;
 
-  const backdrop  = document.getElementById("conflictModalBackdrop");
-  const summaryEl = document.getElementById("conflictSummary");
-  const listEl    = document.getElementById("conflictList");
+  const backdrop     = document.getElementById("conflictModalBackdrop");
+  const summaryEl    = document.getElementById("conflictSummary");
+  const listEl       = document.getElementById("conflictList");
+  const removedSec   = document.getElementById("removedSection");
+  const removedListEl = document.getElementById("removedList");
   if (!backdrop || !summaryEl || !listEl) {
     logMessage("ERROR", "Conflict modal HTML elements missing.");
     return;
   }
 
-  summaryEl.textContent =
-    `${conflicts.length} name conflict(s) need your review. ` +
-    `${newOnes.length} will import automatically. ` +
-    `${linked.length} already linked.`;
+  const parts = [];
+  if (conflicts.length) parts.push(`${conflicts.length} name conflict(s) need your review.`);
+  if (newOnes.length)   parts.push(`${newOnes.length} will import automatically.`);
+  if (linked.length)    parts.push(`${linked.length} already linked.`);
+  summaryEl.textContent = parts.join(" ");
 
   listEl.innerHTML = "";
   for (const result of conflicts) {
     listEl.appendChild(_buildConflictRow(result));
   }
 
+  if (removedSec && removedListEl) {
+    removedListEl.innerHTML = "";
+    if (removed.length) {
+      for (const person of removed) {
+        removedListEl.appendChild(_buildRemovedRow(person));
+      }
+      removedSec.classList.remove("hidden");
+    } else {
+      removedSec.classList.add("hidden");
+    }
+  }
+
   backdrop.classList.remove("hidden");
   backdrop.setAttribute("aria-hidden", "false");
+}
+
+function _buildRemovedRow(person) {
+  const row = document.createElement("div");
+  row.className = "conflict-row removed-row";
+  row.innerHTML = `
+    <label class="removed-row-label">
+      <input type="checkbox" class="removed-checkbox" data-person-id="${escapeHtml(String(person.id))}" />
+      ${escapeHtml(person.name)}
+      <span class="removed-ref">(D4H ref: ${escapeHtml(person.d4hRef)})</span>
+    </label>
+  `;
+  return row;
 }
 
 function wireConflictModal() {
@@ -1001,10 +1043,13 @@ function wireConflictModal() {
     if (!_conflictOnImport) return;
     const cb = _conflictOnImport;
     const resolutions = new Map(_conflictResolutions); // snapshot before close clears it
+    const toRemoveIds = Array.from(
+      document.querySelectorAll(".removed-checkbox:checked")
+    ).map(cb => parseInt(cb.dataset.personId));
     closeConflictModal();
     try {
       personnelMessage.show("Applying resolutions…", "info");
-      await cb(resolutions);
+      await cb(resolutions, toRemoveIds);
     } catch (err) {
       logMessage("ERROR", "Conflict resolution import failed", err.message);
       personnelMessage.show(`Import error: ${err.message}`, "error");

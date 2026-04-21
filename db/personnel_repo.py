@@ -34,20 +34,27 @@ def find_name_matches(incident_name: str, name: str, exclude_d4h_ref=None) -> di
     return _match_rows(name, rows, exclude_d4h_ref)
 
 
-def find_name_matches_batch(incident_name: str, members: list) -> list:
+def find_name_matches_batch(incident_name: str, members: list) -> tuple:
     """
     Check a list of {name, d4hRef} members against existing personnel.
 
-    Returns a list of result dicts, each with:
-      status: "linked"        - d4h_ref already in DB (no action needed)
-              "new"           - no d4h_ref match, no name match (safe to import)
-              "name_conflict" - no d4h_ref match but name match found (needs resolution)
-      matches: list of matching existing personnel (for name_conflict only)
-      similarity: "exact" | "similar" (for name_conflict only)
+    Returns (results, removed) where:
+      results: list of dicts with status:
+        "linked"        - d4h_ref already in DB (no action needed)
+        "new"           - no d4h_ref match, no name match (safe to import)
+        "name_conflict" - no d4h_ref match, name matches a manually-added person
+      removed: list of DB personnel with a d4h_ref not present in the incoming set
+        (were previously D4H-imported but are absent from this attending list)
     """
     with get_connection(incident_name) as conn:
         rows = conn.execute("SELECT id, name, source, d4h_ref FROM personnel").fetchall()
-    known_refs = {str(r["d4h_ref"]) for r in rows if r["d4h_ref"]}
+
+    known_refs    = {str(r["d4h_ref"]) for r in rows if r["d4h_ref"]}
+    incoming_refs = {str(m.get("d4hRef") or "") for m in members if m.get("d4hRef")}
+
+    # Only check name similarity against rows with no D4H ref (manually added people).
+    # D4H-sourced rows are uniquely identified by their ref; a different ref = a different person.
+    rows_for_name_check = [r for r in rows if not r["d4h_ref"]]
 
     results = []
     for m in members:
@@ -59,7 +66,7 @@ def find_name_matches_batch(incident_name: str, members: list) -> list:
             results.append({"name": name, "d4hRef": d4h_ref, "status": "linked",
                              "matches": None, "similarity": None})
             continue
-        found = _match_rows(name, rows)
+        found = _match_rows(name, rows_for_name_check)
         if found["exact"] or found["similar"]:
             all_matches = found["exact"] + found["similar"]
             results.append({"name": name, "d4hRef": d4h_ref, "status": "name_conflict",
@@ -68,7 +75,14 @@ def find_name_matches_batch(incident_name: str, members: list) -> list:
         else:
             results.append({"name": name, "d4hRef": d4h_ref, "status": "new",
                              "matches": None, "similarity": None})
-    return results
+
+    removed = [
+        {"id": r["id"], "name": r["name"], "d4hRef": str(r["d4h_ref"])}
+        for r in rows
+        if r["d4h_ref"] and str(r["d4h_ref"]) not in incoming_refs
+    ]
+
+    return results, removed
 
 
 def link_d4h_to_person(incident_name: str, *, person_id: int, d4h_ref: str, new_name: str | None = None) -> bool:
