@@ -22,10 +22,10 @@ CONTENT_H      = PAGE_H - 2 * MARGIN   # 184.6 mm
 BOTTOM_H       = 25.4              # 1 inch data strip (inside border)
 
 # Bottom-strip column layout (x positions are page-absolute)
-_INFO_COL_W    = 70.0              # title / type / timestamp on the left
-_DESC_COL_X    = MARGIN + _INFO_COL_W + 2.0   # 84.7 mm
-_DESC_COL_W    = 80.0              # description text
-_COORD_COL_X   = _DESC_COL_X + _DESC_COL_W + 5.0   # 172.7 mm
+_INFO_COL_W    = 55.0              # title / type / timestamp on the left
+_DESC_COL_X    = MARGIN + _INFO_COL_W + 2.0   # 69.7 mm
+_DESC_COL_W    = 95.0              # description text
+_COORD_COL_X   = _DESC_COL_X + _DESC_COL_W + 5.0   # 169.7 mm
 _COORD_COL_W   = 50.0              # compact — fits "5.  18T VR 51590 34197"
 _BEARING_COL_X = _COORD_COL_X + _COORD_COL_W + 4.0   # 226.7 mm
 _BEARING_COL_W = 30.0              # compact — fits "10-1: 359.9°T"
@@ -322,15 +322,36 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
 
 # ── Text helpers ──────────────────────────────────────────────────────────────
 
-def _truncate(pdf, text, max_w):
-    """Flatten to one line and truncate with ellipsis to fit max_w mm."""
-    text = text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
-    if pdf.get_string_width(text) <= max_w:
-        return text
-    ellipsis = "..."
-    while text and pdf.get_string_width(text + ellipsis) > max_w:
-        text = text[:-1]
-    return text + ellipsis
+def _wrap_to_lines(pdf, text, max_w, max_lines):
+    """Word-wrap text (respecting existing newlines) into lines fitting max_w mm.
+    If more lines than max_lines, truncate the last with '...'."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = []
+    for para in text.split("\n"):
+        words = para.split()
+        if not words:
+            lines.append("")
+            continue
+        current = ""
+        for word in words:
+            test = (current + " " + word).strip() if current else word
+            if pdf.get_string_width(test) <= max_w:
+                current = test
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+    if len(lines) <= max_lines:
+        return lines
+    lines = lines[:max_lines]
+    last = lines[-1]
+    suffix = "..."
+    while last and pdf.get_string_width(last + suffix) > max_w:
+        last = last[:-1]
+    lines[-1] = last + suffix
+    return lines
 
 
 # ── PDF composition ────────────────────────────────────────────────────────────
@@ -407,6 +428,7 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None
 
     # ── Description column ──
     if description:
+        max_desc_lines = int((BOTTOM_H - (DATA_Y - bt)) / _VTAB_ROW_H)
         pdf.set_font("Helvetica", "B", 10)
         pdf.set_text_color(100, 100, 100)
         pdf.set_xy(_DESC_COL_X, HDR_Y)
@@ -414,8 +436,9 @@ def _make_pdf(title, map_img, vertices, bearings, layout, grid_zone="", now=None
 
         pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(20, 20, 20)
-        pdf.set_xy(_DESC_COL_X, DATA_Y)
-        pdf.cell(_DESC_COL_W, _VTAB_ROW_H, _truncate(pdf, description, _DESC_COL_W))
+        for i, line in enumerate(_wrap_to_lines(pdf, description, _DESC_COL_W, max_desc_lines)):
+            pdf.set_xy(_DESC_COL_X, DATA_Y + i * _VTAB_ROW_H)
+            pdf.cell(_DESC_COL_W, _VTAB_ROW_H, line)
 
     # ── Table columns (compact, no decorative lines) ──
     if vertices:
