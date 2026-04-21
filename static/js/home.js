@@ -134,10 +134,8 @@ function updateLinkCheckboxVisibility() {
   if (d4hLinkRow) d4hLinkRow.style.display = hasIncident ? "" : "none";
   const exportBtn = $("incidentExportBtn");
   if (exportBtn) exportBtn.disabled = !hasIncident;
-  const renameRow = $("incidentRenameRow");
-  if (renameRow) renameRow.style.display = hasIncident ? "" : "none";
-  const renameInput = $("incidentRenameInput");
-  if (renameInput && hasIncident) renameInput.value = getCurrentIncident();
+  const renameBtn = $("incidentRenameBtn");
+  if (renameBtn) renameBtn.disabled = !hasIncident;
 }
 
 // ===============================
@@ -416,10 +414,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Rename incident
-  async function doRename() {
+  $("incidentRenameBtn")?.addEventListener("click", async () => {
     const incident = getCurrentIncident();
-    const newName = ($("incidentRenameInput")?.value || "").trim();
-    if (!incident || !newName || newName === incident) return;
+    if (!incident) return;
+    const newName = (window.prompt("New incident name:", incident) || "").trim();
+    if (!newName || newName === incident) return;
     incidentMsg.show("Renaming…", "info");
     try {
       const res = await fetch("/api/incident/rename", {
@@ -439,9 +438,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error(err);
       incidentMsg.show(`Rename failed: ${err.message}`, "error");
     }
-  }
-  $("incidentRenameBtn")?.addEventListener("click", doRename);
-  $("incidentRenameInput")?.addEventListener("keydown", (e) => { if (e.key === "Enter") doRename(); });
+  });
 
   // Export DB
   $("incidentExportBtn")?.addEventListener("click", () => {

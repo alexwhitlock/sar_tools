@@ -76,6 +76,19 @@
   width: auto;
 }
 
+.incident-db-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.incident-db-row button {
+  flex: 0 0 auto;
+  width: auto;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .caltopo-mode-options {
   display: flex;
   gap: 1.2rem;
