@@ -270,10 +270,19 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
         e, n, _, _ = _utm_lib.from_latlon(lat, lon, force_zone_number=zn)
         es.append(e);  ns.append(n)
 
-    min_e = math.floor(min(es) / 100) * 100
-    max_e = math.ceil (max(es) / 100) * 100
-    min_n = math.floor(min(ns) / 100) * 100
-    max_n = math.ceil (max(ns) / 100) * 100
+    # Choose grid spacing based on map extent
+    raw_extent = max(max(es) - min(es), max(ns) - min(ns))
+    if raw_extent > 20_000:
+        spacing, lbl_div, lbl_fmt = 10_000, 10_000, "{:01d}"
+    elif raw_extent > 3_000:
+        spacing, lbl_div, lbl_fmt = 1_000, 1_000, "{:02d}"
+    else:
+        spacing, lbl_div, lbl_fmt = 100, 100, "{:03d}"
+
+    min_e = math.floor(min(es) / spacing) * spacing
+    max_e = math.ceil (max(es) / spacing) * spacing
+    min_n = math.floor(min(ns) / spacing) * spacing
+    max_n = math.ceil (max(ns) / spacing) * spacing
 
     lbl_sz = max(14, img_w // 90)
     try:
@@ -282,7 +291,7 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
         font = ImageFont.load_default()
 
     # ── Vertical lines (constant easting) ──────────────────────────────────
-    for e_int in range(int(min_e), int(max_e) + 1, 100):
+    for e_int in range(int(min_e), int(max_e) + 1, spacing):
         e_val = float(e_int)
         pts = []
         for n_sample in (min_n, (min_n + max_n) / 2, max_n):
@@ -293,14 +302,13 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
                 pass
         if len(pts) >= 2:
             draw.line(pts, fill=BLUE, width=1)
-        # Label every line at bottom edge — drop trailing "00" (all multiples of 100)
         if pts:
             draw.text((pts[0][0] + 2, img_h - lbl_sz - 3),
-                      f"{(e_int % 100_000) // 100:03d}",
+                      lbl_fmt.format((e_int % 100_000) // lbl_div),
                       fill=BLUE, font=font, stroke_width=2, stroke_fill="white")
 
     # ── Horizontal lines (constant northing) ───────────────────────────────
-    for n_int in range(int(min_n), int(max_n) + 1, 100):
+    for n_int in range(int(min_n), int(max_n) + 1, spacing):
         n_val = float(n_int)
         pts = []
         for e_sample in (min_e, (min_e + max_e) / 2, max_e):
@@ -311,10 +319,9 @@ def _draw_mgrs_grid(img, x_center, y_center, zoom):
                 pass
         if len(pts) >= 2:
             draw.line(pts, fill=BLUE, width=1)
-        # Label every line at left edge — drop trailing "00"
         if pts:
             draw.text((3, pts[0][1] - lbl_sz - 2),
-                      f"{(n_int % 100_000) // 100:03d}",
+                      lbl_fmt.format((n_int % 100_000) // lbl_div),
                       fill=BLUE, font=font, stroke_width=2, stroke_fill="white")
 
     return img
