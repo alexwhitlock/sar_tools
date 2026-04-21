@@ -702,7 +702,7 @@ function openEditModal(asgn) {
   const notesEl       = document.getElementById("asgnNotes");
   const errEl         = document.getElementById("asgnModalError");
 
-  infoEl.textContent = `Assignment ${asgn.number ?? "?"}  ·  ${asgn.assignmentType ?? ""}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
+  infoEl.textContent = `Fields set in CalTopo:  Assignment ${asgn.number ?? "?"}${asgn.resourceType ? "  ·  " + asgn.resourceType : ""}`;
   statusEl.value     = (asgn.status || "DRAFT").toUpperCase();
 
   // Populate team dropdown from teamsCache (single-letter teams only)
