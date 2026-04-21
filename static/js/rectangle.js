@@ -187,7 +187,8 @@ uploadBtn.onclick = async () => {
     return;
   }
 
-  if (!navigator.onLine) {
+  const caltopoOfflineMode = document.querySelector('input[name="caltopoMode"][value="offline"]')?.checked ?? false;
+  if (!navigator.onLine && !caltopoOfflineMode) {
     rectangleMessage.show("Upload unavailable while offline.","error");
     return;
   }
