@@ -219,7 +219,7 @@
    Assignment modal
    =============================== */
 
-.asgn-modal {
+.modal.asgn-modal {
   width: 1360px;
   max-width: calc(100vw - 32px);
 }
