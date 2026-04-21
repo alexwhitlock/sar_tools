@@ -180,7 +180,6 @@ function renderAssignmentRow(a) {
   tr.innerHTML = `
     <td>${numberHtml}</td>
     <td>${escapeHtml(a.team ?? "")}</td>
-    <td>${escapeHtml(a.assignmentType ?? "")}</td>
     <td>${escapeHtml(a.resourceType ?? "")}</td>
     <td>${escapeHtml(a.asgnType ?? "")}</td>
     <td class="col-asgn-description"><div class="cell-wrap">${escapeHtml(a.description ?? "")}</div></td>
