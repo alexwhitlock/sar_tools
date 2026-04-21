@@ -279,6 +279,12 @@ function renderTeamRow(t) {
         aria-label="Actions">⋮</button>
     </td>
   `;
+  tr.addEventListener("dblclick", async (e) => {
+    if (e.target.closest(".team-menu-btn")) return;
+    const teamId = tr.querySelector(".team-menu-btn")?.dataset.teamId;
+    const team = teamId ? findTeamInCache(teamId) : null;
+    if (team) await openTeamModal("edit", team);
+  });
   return tr;
 }
 

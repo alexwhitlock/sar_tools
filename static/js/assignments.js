@@ -198,6 +198,10 @@ function renderAssignmentRow(a) {
     e.stopPropagation();
     openAsgnMenu(e.currentTarget, a);
   });
+  tr.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".asgn-menu-btn")) return;
+    openEditModal(a);
+  });
   return tr;
 }
 

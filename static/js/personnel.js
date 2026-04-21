@@ -100,6 +100,12 @@ function renderPersonnelRow(p) {
         aria-label="Actions">⋮</button>
     </td>
   `;
+  tr.addEventListener("dblclick", async (e) => {
+    if (e.target.closest(".person-menu-btn")) return;
+    const key = tr.querySelector(".person-menu-btn")?.dataset.personKey;
+    const person = key ? findPersonInCache(key) : null;
+    if (person) await openPersonModal("edit", person);
+  });
   return tr;
 }
 
