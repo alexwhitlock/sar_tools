@@ -301,6 +301,37 @@ body {
   margin-left: 0.5rem;
 }
 
+@media print {
+  @page { margin: 1.5cm; }
+
+  /* Hide page chrome */
+  .top-bar { display: none !important; }
+
+  /* Free layout constraints */
+  html, body { height: auto !important; }
+  body        { display: block !important; }
+  #page       { overflow: visible !important; height: auto !important; position: static !important; }
+
+  /* Show only the active tab panel */
+  .tab-panel              { position: static !important; height: auto !important; }
+  .tab-panel:not(.active) { display: none !important; }
+  .tab-panel.active       { display: block !important; }
+  .tab-content            { height: auto !important; overflow: visible !important; display: block !important; }
+
+  /* Print header */
+  .tab-print-header {
+    display: block !important;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #ccc;
+  }
+  .tph-title { font-size: 1rem; font-weight: 700; }
+  .tph-meta  { font-size: 0.8rem; color: #555; margin-top: 2px; }
+
+  /* Hide action buttons column */
+  .actions-col, .actions-cell { display: none !important; }
+}
+
 /* ===============================
    Shared form controls
    =============================== */
