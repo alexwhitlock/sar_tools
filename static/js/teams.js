@@ -1245,12 +1245,11 @@ function refreshMemberUI() {
   }
   leaderSelect.value = modalMembers.some(m => String(m.id) === currentLeader) ? currentLeader : "";
 
-  // Rebuild add-member select: only Checked In people with no team assignment
+  // Rebuild add-member select: unassigned people not already on this team
   const memberIds = new Set(modalMembers.map(m => String(m.id)));
   addSelect.innerHTML = '<option value="">— Add member —</option>';
   for (const p of allPersonnel) {
     if (memberIds.has(String(p.id))) continue;          // already a member
-    if (p.status !== "Checked In") continue;            // must be checked in
     if (p.team) continue;                               // must be unassigned
     const opt = document.createElement("option");
     opt.value = p.id;
