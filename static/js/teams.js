@@ -281,7 +281,7 @@ function renderTeamRow(t) {
   }
 
   const unchecked = hasUncheckedMembers(t)
-    ? `<div class="team-unchecked-warn">⚠ Some members not checked in</div>`
+    ? ` <span class="team-unchecked-warn">⚠ Some members not checked in</span>`
     : "";
 
   const tr = document.createElement("tr");
@@ -959,12 +959,6 @@ function renderCardView(teams, personnel) {
     hdr.className = "cv-team-header";
     hdr.innerHTML = `Team ${escapeHtml(team.name)} <span class="cv-col-count">${members.length}</span>`;
 
-    if (hasUncheckedMembers(team)) {
-      const warn = document.createElement("div");
-      warn.className = "team-unchecked-warn";
-      warn.textContent = "⚠ Some members not checked in";
-      hdr.appendChild(warn);
-    }
 
     // TL zone
     const tlZone = document.createElement("div");
