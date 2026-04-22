@@ -698,7 +698,7 @@ function makePersonChip(person, fromTeamId, isTl) {
   if (!checkedIn) {
     const dot = document.createElement("span");
     dot.className = "cv-status-dot cv-status-out";
-    dot.title = full?.status ?? "Not checked in";
+    dot.title = "Not Checked In";
     chip.appendChild(dot);
   }
   return chip;
