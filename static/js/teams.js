@@ -693,13 +693,14 @@ function makePersonChip(person, fromTeamId, isTl) {
 
   const label = document.createElement("span");
   label.textContent = isTl ? `${person.name} (TL)` : person.name;
-
-  const dot = document.createElement("span");
-  dot.className = checkedIn ? "cv-status-dot cv-status-in" : "cv-status-dot cv-status-out";
-  dot.title = checkedIn ? "Checked In" : (full?.status ?? "Not checked in");
-
   chip.appendChild(label);
-  chip.appendChild(dot);
+
+  if (!checkedIn) {
+    const dot = document.createElement("span");
+    dot.className = "cv-status-dot cv-status-out";
+    dot.title = full?.status ?? "Not checked in";
+    chip.appendChild(dot);
+  }
   return chip;
 }
 
@@ -922,6 +923,10 @@ function renderCardView(teams, personnel) {
   const searchVal = (document.getElementById("teams-search")?.value || "").toLowerCase();
   container.innerHTML = "";
 
+  const hasUnchecked = personnel.some(p => p.status !== "Checked In");
+  const legend = document.getElementById("cv-legend-unchecked");
+  if (legend) legend.classList.toggle("hidden", !hasUnchecked);
+
   // Unassigned column
   const unassigned = personnel
     .filter(p => !p.team)
@@ -1120,6 +1125,7 @@ function switchView(view) {
   tableView?.classList.add("hidden");
   kanbanView?.classList.add("hidden");
   cardView?.classList.add("hidden");
+  document.getElementById("cv-legend-unchecked")?.classList.add("hidden");
 
   if (view === "table") {
     tableView?.classList.remove("hidden");
