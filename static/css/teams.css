@@ -412,6 +412,12 @@ body.kanban-grabbing * {
   display: none;
 }
 
+.team-unchecked-warn {
+  font-size: 0.72rem;
+  color: #b45309;
+  margin-top: 3px;
+}
+
 
 /* ===============================
    Team modal

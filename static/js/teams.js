@@ -107,6 +107,15 @@ function requireIncidentOrError() {
 }
 
 /**
+ * Returns true if the team is Out of Service and has members not yet checked in.
+ */
+function hasUncheckedMembers(team) {
+  if (team.status !== "Out of Service") return false;
+  const memberIds = new Set(parseMemberData(team.memberData).map(m => String(m.id)));
+  return allPersonnel.some(p => memberIds.has(String(p.id)) && p.status !== "Checked In");
+}
+
+/**
  * Validate a proposed team status change against assignment rules.
  * Returns an error string if the change should be blocked, null if OK.
  */
@@ -119,9 +128,8 @@ function validateTeamStatusChange(team, newStatus) {
     const notCheckedIn = allPersonnel
       .filter(p => memberIds.has(String(p.id)) && p.status !== "Checked In")
       .map(p => p.name);
-    if (notCheckedIn.length) {
+    if (notCheckedIn.length)
       return `Cannot put Team ${team.name} in service — the following members are not checked in: ${notCheckedIn.join(", ")}.`;
-    }
   }
 
   // Can't enter an in-progress state without an active assignment
@@ -272,9 +280,13 @@ function renderTeamRow(t) {
     assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠</span>`;
   }
 
+  const unchecked = hasUncheckedMembers(t)
+    ? `<div class="team-unchecked-warn">⚠ Some members not checked in</div>`
+    : "";
+
   const tr = document.createElement("tr");
   tr.innerHTML = `
-    <td>${escapeHtml(t.name)}</td>
+    <td>${escapeHtml(t.name)}${unchecked}</td>
     <td><span class="ts-badge ${badgeClass}">${escapeHtml(t.status)}</span></td>
     <td>${escapeHtml(t.teamLeaderName || "—")}</td>
     <td title="${memberTooltip(t)}" style="cursor:help">${t.memberCount ?? 0}</td>
@@ -360,18 +372,19 @@ export async function loadTeams() {
     // Build searchText on every team after assignments are available
     teams.forEach(t => { t.searchText = buildTeamSearchText(t); });
 
+    try {
+      allPersonnel = await apiLoadPersonnel(incidentName);
+    } catch (_) {
+      allPersonnel = [];
+    }
+    cardPersonnel = allPersonnel;
+
     if (currentView === "table") {
       teamsTable.setData(teams);
     } else if (currentView === "kanban") {
       renderKanban(teams);
     } else {
-      // card view — also need personnel
-      try {
-        cardPersonnel = await apiLoadPersonnel(incidentName);
-      } catch (_) {
-        cardPersonnel = [];
-      }
-      renderCardView(teams, cardPersonnel);
+      renderCardView(teams, allPersonnel);
     }
   } catch (err) {
     logMessage("ERROR", "Failed to load teams", err.message);
@@ -946,6 +959,13 @@ function renderCardView(teams, personnel) {
     hdr.className = "cv-team-header";
     hdr.innerHTML = `Team ${escapeHtml(team.name)} <span class="cv-col-count">${members.length}</span>`;
 
+    if (hasUncheckedMembers(team)) {
+      const warn = document.createElement("div");
+      warn.className = "team-unchecked-warn";
+      warn.textContent = "⚠ Some members not checked in";
+      hdr.appendChild(warn);
+    }
+
     // TL zone
     const tlZone = document.createElement("div");
     tlZone.className = "cv-tl-zone";
@@ -1043,6 +1063,10 @@ function renderKanban(teams) {
         card.classList.add("search-hidden");
       }
 
+      const kanbanUnchecked = hasUncheckedMembers(team)
+        ? `<div class="team-unchecked-warn">⚠ Some members not checked in</div>`
+        : "";
+
       card.innerHTML = `
         <div class="kanban-card-header">
           <span class="kanban-card-name">Team ${escapeHtml(team.name)}</span>
@@ -1050,6 +1074,7 @@ function renderKanban(teams) {
         </div>
         <div class="kanban-card-tl">TL: ${escapeHtml(team.teamLeaderName || "None")}</div>
         <div class="kanban-card-assignment">${assignmentHtml}</div>
+        ${kanbanUnchecked}
       `;
 
       wireMouseDnd(card, team);
