@@ -923,10 +923,6 @@ function renderCardView(teams, personnel) {
   const searchVal = (document.getElementById("teams-search")?.value || "").toLowerCase();
   container.innerHTML = "";
 
-  const hasUnchecked = personnel.some(p => p.status !== "Checked In");
-  const legend = document.getElementById("cv-legend-unchecked");
-  if (legend) legend.classList.toggle("hidden", !hasUnchecked);
-
   // Unassigned column
   const unassigned = personnel
     .filter(p => !p.team)
@@ -1125,8 +1121,6 @@ function switchView(view) {
   tableView?.classList.add("hidden");
   kanbanView?.classList.add("hidden");
   cardView?.classList.add("hidden");
-  document.getElementById("cv-legend-unchecked")?.classList.add("hidden");
-
   if (view === "table") {
     tableView?.classList.remove("hidden");
     if (statusFilterGroup) statusFilterGroup.style.display = "";

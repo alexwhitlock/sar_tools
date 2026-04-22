@@ -694,15 +694,6 @@ body.kanban-grabbing * {
 
 .cv-status-out { background: #ef4444; }
 
-.cv-legend-unchecked {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.75rem;
-  color: #b91c1c;
-  white-space: nowrap;
-}
-
 .cv-person.cv-hidden {
   display: none;
 }
