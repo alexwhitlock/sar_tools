@@ -687,7 +687,19 @@ function makePersonChip(person, fromTeamId, isTl) {
   chip.dataset.personId   = person.id;
   chip.dataset.fromTeamId = fromTeamId != null ? String(fromTeamId) : "";
   chip.dataset.isTl       = isTl ? "1" : "0";
-  chip.textContent        = isTl ? `${person.name} (TL)` : person.name;
+
+  const full = allPersonnel.find(p => String(p.id) === String(person.id));
+  const checkedIn = full?.status === "Checked In";
+
+  const label = document.createElement("span");
+  label.textContent = isTl ? `${person.name} (TL)` : person.name;
+
+  const dot = document.createElement("span");
+  dot.className = checkedIn ? "cv-status-dot cv-status-in" : "cv-status-dot cv-status-out";
+  dot.title = checkedIn ? "Checked In" : (full?.status ?? "Not checked in");
+
+  chip.appendChild(label);
+  chip.appendChild(dot);
   return chip;
 }
 

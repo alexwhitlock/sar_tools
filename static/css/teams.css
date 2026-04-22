@@ -679,7 +679,21 @@ body.kanban-grabbing * {
   touch-action: pan-x pan-y;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   word-break: break-word;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
+
+.cv-status-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cv-status-in  { background: #22c55e; }
+.cv-status-out { background: #ef4444; }
 
 .cv-person.cv-hidden {
   display: none;
