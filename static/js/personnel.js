@@ -730,6 +730,11 @@ function wireMenuAndModal() {
     if (!incidentName) return;
 
     if (action === "check-in" || action === "undo-check-in" || action === "check-out") {
+      if (action === "undo-check-in") {
+        const person = findPersonInCache(activePersonKey);
+        const name = person?.name ?? "this person";
+        if (!confirm(`Undo check-in for ${name}?`)) return;
+      }
       const newStatus = action === "check-in" ? "Checked In"
                       : action === "check-out" ? "Checked Out"
                       : "Added";
