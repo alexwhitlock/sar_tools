@@ -4,6 +4,9 @@
     <!-- Toolbar -->
     <div class="teams-toolbar">
       <div id="teams-message" class="message-bar info hidden"></div>
+      <span id="cv-legend-unchecked" class="cv-legend-unchecked hidden">
+        <span class="cv-status-dot cv-status-out"></span> Not Checked In
+      </span>
       <button id="team-add" class="teams-toolbar-btn" title="Create Team" disabled>+ Team</button>
       <div class="view-toggle">
         <button id="view-table-btn"  class="view-toggle-btn active" title="Table view">Table</button>
@@ -14,9 +17,6 @@
 
     <!-- Search + filters -->
     <div class="teams-filters">
-      <span id="cv-legend-unchecked" class="cv-legend-unchecked hidden">
-        <span class="cv-status-dot cv-status-out"></span> Not Checked In
-      </span>
       <div class="filter-group" id="teams-search-group">
         <label>Search</label>
         <input type="text" id="teams-search" placeholder="Search name, TL, assignment…" />
