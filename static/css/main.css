@@ -331,6 +331,9 @@ body {
 
   /* Hide action buttons column */
   .actions-col, .actions-cell { display: none !important; }
+
+  /* Keep table rows whole — move to next page rather than split */
+  tr { break-inside: avoid; }
 }
 
 /* ===============================
