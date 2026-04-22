@@ -1,15 +1,22 @@
 <div id="teams" class="tab-panel">
   <div class="tab-content">
 
+    <!-- Print header (hidden on screen, shown only when printing) -->
+    <div id="teams-print-header" class="teams-print-header">
+      <div class="tph-title"></div>
+      <div class="tph-meta"></div>
+    </div>
+
     <!-- Toolbar -->
     <div class="teams-toolbar">
       <div id="teams-message" class="message-bar info hidden"></div>
-<button id="team-add" class="teams-toolbar-btn" title="Create Team" disabled>+ Team</button>
+      <button id="team-add" class="teams-toolbar-btn" title="Create Team" disabled>+ Team</button>
       <div class="view-toggle">
         <button id="view-table-btn"  class="view-toggle-btn active" title="Table view">Table</button>
         <button id="view-kanban-btn" class="view-toggle-btn"        title="Kanban view">Kanban</button>
         <button id="view-card-btn"   class="view-toggle-btn"        title="Card view">Card</button>
       </div>
+      <button id="teams-print-btn" class="teams-toolbar-btn teams-print-btn" title="Print / Save as PDF">&#x2399; Print</button>
     </div>
 
     <!-- Search + filters -->

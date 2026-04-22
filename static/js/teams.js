@@ -1641,6 +1641,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("view-kanban-btn")?.addEventListener("click", () => switchView("kanban"));
   document.getElementById("view-card-btn")?.addEventListener("click",   () => switchView("card"));
 
+  // Print
+  document.getElementById("teams-print-btn")?.addEventListener("click", () => {
+    const incidentName = getCurrentIncidentName() || "";
+    const viewLabel = { table: "Table View", kanban: "Kanban View", card: "Card View" }[currentView] || "";
+    const header = document.getElementById("teams-print-header");
+    if (header) {
+      header.querySelector(".tph-title").textContent = `Teams — ${viewLabel}`;
+      header.querySelector(".tph-meta").textContent =
+        [incidentName, new Date().toLocaleString()].filter(Boolean).join("  ·  ");
+    }
+    window.print();
+  });
+
   // Incident change
   document.getElementById("incidentSelect")?.addEventListener("change", () => {
     updateAddButtonEnabled();

@@ -697,3 +697,88 @@ body.kanban-grabbing * {
 .cv-person.cv-hidden {
   display: none;
 }
+
+
+/* ===============================
+   Print / PDF
+   =============================== */
+
+/* Print header — hidden on screen */
+.teams-print-header { display: none; }
+
+/* Print button styling */
+.teams-print-btn { margin-left: auto; }
+
+@media print {
+  @page { size: landscape; margin: 1.5cm; }
+
+  /* Hide all page chrome */
+  .top-bar { display: none !important; }
+  #page > .tab-panel:not(#teams) { display: none !important; }
+
+  /* Free layout constraints */
+  html, body { height: auto !important; }
+  body { display: block !important; }
+  #page { overflow: visible !important; height: auto !important; position: static !important; }
+
+  #teams {
+    position: static !important;
+    display: block !important;
+    height: auto !important;
+  }
+
+  #teams .tab-content {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Hide toolbar, filters, modals, menus */
+  .teams-toolbar  { display: none !important; }
+  .teams-filters  { display: none !important; }
+  #teamMenu       { display: none !important; }
+  #teamModalBackdrop { display: none !important; }
+
+  /* Show print header */
+  .teams-print-header {
+    display: block !important;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #ccc;
+  }
+  .tph-title { font-size: 1rem; font-weight: 700; }
+  .tph-meta  { font-size: 0.8rem; color: #555; margin-top: 2px; }
+
+  /* Table view */
+  .teams-table-container {
+    height: auto !important;
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  /* Hide actions column */
+  .actions-col, .actions-cell { display: none !important; }
+
+  /* Kanban view */
+  .teams-kanban {
+    height: auto !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .kanban-col {
+    min-width: 0 !important;
+    flex: 0 0 200px !important;
+    break-inside: avoid;
+  }
+
+  /* Card view */
+  .teams-card-view {
+    height: auto !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+  }
+  .cv-team-card, .cv-unassigned-col {
+    break-inside: avoid;
+  }
+}
