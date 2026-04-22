@@ -307,6 +307,7 @@ body {
     @bottom-right {
       content: "Page " counter(page) " of " counter(pages);
       font-size: 8pt;
+      font-family: Arial, sans-serif;
       color: #555;
     }
   }

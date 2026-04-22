@@ -6,7 +6,7 @@ function injectPageHeaderStyle(title, meta) {
   let s = document.getElementById("dynamic-print-header");
   if (!s) { s = document.createElement("style"); s.id = "dynamic-print-header"; document.head.appendChild(s); }
   const esc = v => v.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  s.textContent = `@media print { @page { @top-left { content: "${esc(title)}"; font-size: 9pt; font-weight: bold; } @top-right { content: "${esc(meta)}"; font-size: 8pt; } } }`;
+  s.textContent = `@media print { @page { @top-left { content: "${esc(title)}"; font-size: 9pt; font-weight: bold; font-family: Arial, sans-serif; } @top-right { content: "${esc(meta)}"; font-size: 8pt; font-family: Arial, sans-serif; } } }`;
 }
 
 let assignmentsTable = null;
