@@ -113,6 +113,17 @@ function requireIncidentOrError() {
 function validateTeamStatusChange(team, newStatus) {
   const hasInProgress = getInProgressAssignmentsForTeam(team.name).length > 0;
 
+  // Can't put a team in service until all members are checked in
+  if (team.status === "Out of Service" && newStatus !== "Out of Service") {
+    const memberIds = new Set(parseMemberData(team.memberData).map(m => String(m.id)));
+    const notCheckedIn = allPersonnel
+      .filter(p => memberIds.has(String(p.id)) && p.status !== "Checked In")
+      .map(p => p.name);
+    if (notCheckedIn.length) {
+      return `Cannot put Team ${team.name} in service — the following members are not checked in: ${notCheckedIn.join(", ")}.`;
+    }
+  }
+
   // Can't enter an in-progress state without an active assignment
   if (IN_PROGRESS_TEAM_STATES.has(newStatus) && !hasInProgress) {
     return `Team ${team.name} cannot be set to "${newStatus}" — they have no in-progress CalTopo assignment.`;
