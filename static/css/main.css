@@ -302,7 +302,14 @@ body {
 }
 
 @media print {
-  @page { margin: 1.5cm; }
+  @page {
+    margin: 2cm 1.5cm 1.8cm;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #555;
+    }
+  }
 
   /* Hide page chrome */
   .top-bar { display: none !important; }
@@ -316,17 +323,25 @@ body {
   .tab-panel              { position: static !important; height: auto !important; }
   .tab-panel:not(.active) { display: none !important; }
   .tab-panel.active       { display: block !important; }
-  .tab-content            { height: auto !important; overflow: visible !important; display: block !important; }
+  .tab-content            { height: auto !important; overflow: visible !important; display: block !important;
+                            padding-top: 36px !important; } /* clear fixed header */
 
-  /* Print header */
+  /* Repeating page header — fixed so it appears on every page */
   .tab-print-header {
-    display: block !important;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #ccc;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #bbb;
+    background: white;
   }
-  .tph-title { font-size: 1rem; font-weight: 700; }
-  .tph-meta  { font-size: 0.8rem; color: #555; margin-top: 2px; }
+  .tph-title { font-size: 10pt; font-weight: 700; }
+  .tph-meta  { font-size: 8pt;  color: #555; }
 
   /* Hide action buttons column */
   .actions-col, .actions-cell { display: none !important; }

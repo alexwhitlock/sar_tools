@@ -703,9 +703,6 @@ body.kanban-grabbing * {
    Print / PDF
    =============================== */
 
-/* Print header — hidden on screen */
-.teams-print-header { display: none; }
-
 /* Print button styling */
 .teams-print-btn { margin-left: 0.5rem; }
 
