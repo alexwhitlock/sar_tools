@@ -356,13 +356,5 @@
     border: none !important;
   }
 
-  .assignments-kanban {
-    height: auto !important;
-    overflow: visible !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-  }
-  .assignments-kanban .kanban-col { break-inside: avoid; }
-
   .actions-col, .actions-cell { display: none !important; }
 }

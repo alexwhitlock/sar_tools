@@ -552,7 +552,7 @@ body.kanban-grabbing * {
 /* ── Unassigned column ── */
 
 .cv-unassigned-col {
-  flex: 0 0 175px;
+  flex: 0 0 193px;
   display: flex;
   flex-direction: column;
   background: #f0f0f0;
@@ -615,7 +615,7 @@ body.kanban-grabbing * {
 
 .cv-team-card {
   flex: 0 0 auto;
-  width: 175px;
+  width: 193px;
   display: flex;
   flex-direction: column;
   background: #f0f0f0;
@@ -758,19 +758,6 @@ body.kanban-grabbing * {
 
   /* Hide actions column */
   .actions-col, .actions-cell { display: none !important; }
-
-  /* Kanban view */
-  .teams-kanban {
-    height: auto !important;
-    overflow: visible !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-  }
-  .kanban-col {
-    min-width: 0 !important;
-    flex: 0 0 200px !important;
-    break-inside: avoid;
-  }
 
   /* Card view */
   .teams-card-view {

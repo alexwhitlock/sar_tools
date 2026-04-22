@@ -1110,6 +1110,7 @@ function switchView(view) {
   const kanbanBtn          = document.getElementById("view-kanban-btn");
   const cardBtn            = document.getElementById("view-card-btn");
   const addBtn             = document.getElementById("team-add");
+  const printBtn           = document.getElementById("teams-print-btn");
   const toolbar            = document.querySelector(".teams-toolbar");
   const filtersRow         = document.querySelector(".teams-filters");
   const searchGroup        = document.getElementById("teams-search-group");
@@ -1125,7 +1126,8 @@ function switchView(view) {
     tableView?.classList.remove("hidden");
     if (statusFilterGroup) statusFilterGroup.style.display = "";
     if (colTogglesGroup)   colTogglesGroup.style.display   = "";
-    if (addBtn) addBtn.style.display = "";
+    if (addBtn)    addBtn.style.display    = "";
+    if (printBtn)  printBtn.style.display  = "";
     if (filtersRow) filtersRow.style.display = "";
     tableBtn?.classList.add("active");
     // Move search back into filters row
@@ -1146,10 +1148,12 @@ function switchView(view) {
     }
 
     if (view === "kanban") {
+      if (printBtn) printBtn.style.display = "none";
       kanbanView?.classList.remove("hidden");
       kanbanBtn?.classList.add("active");
       renderKanban(teamsCache);
     } else {
+      if (printBtn) printBtn.style.display = "";
       cardView?.classList.remove("hidden");
       cardBtn?.classList.add("active");
       loadTeams();

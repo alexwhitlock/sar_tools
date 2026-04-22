@@ -844,11 +844,13 @@ function switchView(view) {
   const filtersRow  = document.getElementById("assignments-filters-row");
   const tableBtn    = document.getElementById("asgn-view-table-btn");
   const kanbanBtn   = document.getElementById("asgn-view-kanban-btn");
+  const printBtn    = document.getElementById("asgn-print-btn");
 
   if (view === "table") {
     tableView?.classList.remove("hidden");
     kanbanView?.classList.add("hidden");
     if (filtersRow) filtersRow.style.display = "";
+    if (printBtn)   printBtn.style.display   = "";
     tableBtn?.classList.add("active");
     kanbanBtn?.classList.remove("active");
     assignmentsTable.setData(assignmentsCache);
@@ -856,6 +858,7 @@ function switchView(view) {
     tableView?.classList.add("hidden");
     kanbanView?.classList.remove("hidden");
     if (filtersRow) filtersRow.style.display = "none";
+    if (printBtn)   printBtn.style.display   = "none";
     tableBtn?.classList.remove("active");
     kanbanBtn?.classList.add("active");
     renderKanban(assignmentsCache);
