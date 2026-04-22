@@ -262,6 +262,7 @@ async function openPersonModal(mode, person = null) {
   if (!backdrop || !titleEl || !nameInput) return;
 
   modalMode = mode;
+  if (mode === "edit" && person) activePersonKey = getPersonKey(person);
   const errEl = document.getElementById("personModalError");
   if (errEl) errEl.classList.add("hidden");
   titleEl.textContent = mode === "add" ? "Add Person" : "Edit Person";
