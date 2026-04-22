@@ -303,7 +303,7 @@ body {
 
 @media print {
   @page {
-    margin: 2cm 1.5cm 1.8cm;
+    margin: 1.5cm;
     @bottom-right {
       content: "Page " counter(page) " of " counter(pages);
       font-size: 8pt;
@@ -323,25 +323,10 @@ body {
   .tab-panel              { position: static !important; height: auto !important; }
   .tab-panel:not(.active) { display: none !important; }
   .tab-panel.active       { display: block !important; }
-  .tab-content            { height: auto !important; overflow: visible !important; display: block !important;
-                            padding-top: 36px !important; } /* clear fixed header */
+  .tab-content            { height: auto !important; overflow: visible !important; display: block !important; }
 
-  /* Repeating page header — fixed so it appears on every page */
-  .tab-print-header {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: baseline !important;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #bbb;
-    background: white;
-  }
-  .tph-title { font-size: 10pt; font-weight: 700; }
-  .tph-meta  { font-size: 8pt;  color: #555; }
+  /* Header content is injected into @page margin boxes by JS — hide the in-page div */
+  .tab-print-header { display: none !important; }
 
   /* Hide action buttons column */
   .actions-col, .actions-cell { display: none !important; }

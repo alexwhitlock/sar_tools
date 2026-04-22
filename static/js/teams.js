@@ -1,6 +1,13 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
 
+function injectPageHeaderStyle(title, meta) {
+  let s = document.getElementById("dynamic-print-header");
+  if (!s) { s = document.createElement("style"); s.id = "dynamic-print-header"; document.head.appendChild(s); }
+  const esc = v => v.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  s.textContent = `@media print { @page { @top-left { content: "${esc(title)}"; font-size: 9pt; font-weight: bold; } @top-right { content: "${esc(meta)}"; font-size: 8pt; } } }`;
+}
+
 const TEAM_STATUSES = [
   "Out of Service",
   "Staged",
@@ -1648,13 +1655,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Print
   document.getElementById("teams-print-btn")?.addEventListener("click", () => {
     const incidentName = getCurrentIncidentName() || "";
-    const viewLabel = { table: "Table View", kanban: "Kanban View", card: "Card View" }[currentView] || "";
-    const header = document.getElementById("teams-print-header");
-    if (header) {
-      header.querySelector(".tph-title").textContent = `Teams — ${viewLabel}`;
-      header.querySelector(".tph-meta").textContent =
-        [incidentName, new Date().toLocaleString()].filter(Boolean).join("  ·  ");
-    }
+    const viewLabel = { table: "Table View", card: "Card View" }[currentView] || "";
+    injectPageHeaderStyle(`Teams — ${viewLabel}`,
+      [incidentName, new Date().toLocaleString()].filter(Boolean).join("  ·  "));
     window.print();
   });
 

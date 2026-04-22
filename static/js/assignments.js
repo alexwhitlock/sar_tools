@@ -2,6 +2,13 @@ import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
 import { printAssignmentMap } from "./print-map.js";
 
+function injectPageHeaderStyle(title, meta) {
+  let s = document.getElementById("dynamic-print-header");
+  if (!s) { s = document.createElement("style"); s.id = "dynamic-print-header"; document.head.appendChild(s); }
+  const esc = v => v.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  s.textContent = `@media print { @page { @top-left { content: "${esc(title)}"; font-size: 9pt; font-weight: bold; } @top-right { content: "${esc(meta)}"; font-size: 8pt; } } }`;
+}
+
 let assignmentsTable = null;
 let assignmentsMessage = null;
 let assignmentsCache = [];   // last-fetched assignment list
@@ -964,13 +971,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Print
   document.getElementById("asgn-print-btn")?.addEventListener("click", () => {
     const incidentName = getCurrentIncidentName() || "";
-    const viewLabel = currentView === "kanban" ? "Kanban View" : "Table View";
-    const header = document.getElementById("asgn-print-header");
-    if (header) {
-      header.querySelector(".tph-title").textContent = `Assignments — ${viewLabel}`;
-      header.querySelector(".tph-meta").textContent =
-        [incidentName, new Date().toLocaleString()].filter(Boolean).join("  ·  ");
-    }
+    injectPageHeaderStyle("Assignments — Table View",
+      [incidentName, new Date().toLocaleString()].filter(Boolean).join("  ·  "));
     window.print();
   });
 
