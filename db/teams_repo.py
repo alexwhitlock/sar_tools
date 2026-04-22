@@ -151,7 +151,11 @@ def assign_person_to_team(incident_name: str, *, team_id: int, person_id: int) -
 
 
 def remove_person_from_team(incident_name: str, *, person_id: int) -> None:
-    """Remove a person from whichever team they are currently in."""
+    """Remove a person from whichever team they are currently in, clearing TL if needed."""
     with get_connection(incident_name) as conn:
         conn.execute("DELETE FROM team_members WHERE personnel_id = ?", (person_id,))
+        conn.execute(
+            "UPDATE teams SET team_leader_id = NULL WHERE team_leader_id = ?",
+            (person_id,),
+        )
         conn.commit()
