@@ -1118,6 +1118,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const d4hBtn = document.getElementById("d4h-add");
   if (d4hBtn) d4hBtn.addEventListener("click", addFromD4h);
 
+  document.getElementById("personnel-print-btn")?.addEventListener("click", () => {
+    const incidentName = getCurrentIncidentName() || "";
+    const header = document.getElementById("personnel-print-header");
+    if (header) {
+      header.querySelector(".tph-title").textContent = "Personnel";
+      header.querySelector(".tph-meta").textContent =
+        [incidentName, new Date().toLocaleString()].filter(Boolean).join("  ·  ");
+    }
+    window.print();
+  });
+
   // Disable buttons until required fields are set
   updateAddButtonsEnabled();
 

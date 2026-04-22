@@ -958,6 +958,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("asgn-view-table-btn")?.addEventListener("click",  () => switchView("table"));
   document.getElementById("asgn-view-kanban-btn")?.addEventListener("click", () => switchView("kanban"));
 
+  // Print
+  document.getElementById("asgn-print-btn")?.addEventListener("click", () => {
+    const incidentName = getCurrentIncidentName() || "";
+    const viewLabel = currentView === "kanban" ? "Kanban View" : "Table View";
+    const header = document.getElementById("asgn-print-header");
+    if (header) {
+      header.querySelector(".tph-title").textContent = `Assignments — ${viewLabel}`;
+      header.querySelector(".tph-meta").textContent =
+        [incidentName, new Date().toLocaleString()].filter(Boolean).join("  ·  ");
+    }
+    window.print();
+  });
+
   // Popup menu wiring
   document.getElementById("asgnMenu")?.addEventListener("click", (e) => {
     const action = e.target.closest("[data-action]")?.dataset.action;

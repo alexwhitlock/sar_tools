@@ -313,3 +313,56 @@
   font-weight: normal;
 }
 #asgnModalPrint:hover { background: #f5f5f5; }
+
+/* ===============================
+   Print / PDF
+   =============================== */
+
+@media print {
+  @page { size: landscape; margin: 1.5cm; }
+
+  .top-bar { display: none !important; }
+  #page > .tab-panel:not(#assignments) { display: none !important; }
+
+  html, body { height: auto !important; }
+  body { display: block !important; }
+  #page { overflow: visible !important; height: auto !important; position: static !important; }
+
+  #assignments {
+    position: static !important;
+    display: block !important;
+    height: auto !important;
+  }
+  #assignments .tab-content {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .assignments-toolbar  { display: none !important; }
+  .assignments-filters  { display: none !important; }
+  #asgnMenu, #asgnModalBackdrop { display: none !important; }
+
+  #asgn-print-header {
+    display: block !important;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .assignments-table-container {
+    height: auto !important;
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  .assignments-kanban {
+    height: auto !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .assignments-kanban .kanban-col { break-inside: avoid; }
+
+  .actions-col, .actions-cell { display: none !important; }
+}

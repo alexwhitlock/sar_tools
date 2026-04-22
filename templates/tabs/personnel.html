@@ -1,6 +1,12 @@
 <div id="personnel" class="tab-panel">
   <div class="tab-content">
     <!-- Top row: message + reload -->
+    <!-- Print header (hidden on screen, shown only when printing) -->
+    <div id="personnel-print-header" class="tab-print-header">
+      <div class="tph-title"></div>
+      <div class="tph-meta"></div>
+    </div>
+
     <div class="personnel-toolbar">
 
       <div id="personnel-message" class="message-bar info hidden"></div>
@@ -18,6 +24,8 @@
         title="Add from D4H">
         Add from D4H
       </button>
+
+      <button id="personnel-print-btn" class="tab-print-btn" title="Print / Save as PDF">Print</button>
 
     </div>
 

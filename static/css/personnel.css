@@ -423,3 +423,50 @@
 .removed-check-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: #b71c1c; }
 .removed-check-label input[type="checkbox"] { width: auto; flex-shrink: 0; padding: 0; }
 .conflict-row.action-remove { border-color: #b71c1c; background: #fce8e8; }
+
+/* ===============================
+   Print / PDF
+   =============================== */
+
+@media print {
+  @page { size: portrait; margin: 1.5cm; }
+
+  .top-bar { display: none !important; }
+  #page > .tab-panel:not(#personnel) { display: none !important; }
+
+  html, body { height: auto !important; }
+  body { display: block !important; }
+  #page { overflow: visible !important; height: auto !important; position: static !important; }
+
+  #personnel {
+    position: static !important;
+    display: block !important;
+    height: auto !important;
+  }
+  #personnel .tab-content {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .personnel-toolbar { display: none !important; }
+  .personnel-filters { display: none !important; }
+  #personMenu, #personModalBackdrop, #conflictModalBackdrop { display: none !important; }
+
+  #personnel-print-header {
+    display: block !important;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #ccc;
+  }
+  .tph-title { font-size: 1rem; font-weight: 700; }
+  .tph-meta  { font-size: 0.8rem; color: #555; margin-top: 2px; }
+
+  .personnel-table-container {
+    height: auto !important;
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  .actions-col, .actions-cell { display: none !important; }
+}

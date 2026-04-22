@@ -290,6 +290,18 @@ body {
 
 
 /* ===============================
+   Shared print header + button
+   =============================== */
+
+.tab-print-header { display: none; }
+
+.tab-print-btn {
+  width: auto !important;
+  flex: 0 0 auto;
+  margin-left: 0.5rem;
+}
+
+/* ===============================
    Shared form controls
    =============================== */
 

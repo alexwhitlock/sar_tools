@@ -1,6 +1,12 @@
 <div id="assignments" class="tab-panel">
   <div class="tab-content">
 
+    <!-- Print header (hidden on screen, shown only when printing) -->
+    <div id="asgn-print-header" class="tab-print-header">
+      <div class="tph-title"></div>
+      <div class="tph-meta"></div>
+    </div>
+
     <!-- Toolbar -->
     <div class="assignments-toolbar">
       <div id="assignments-message" class="message-bar info hidden"></div>
@@ -8,6 +14,7 @@
         <button id="asgn-view-table-btn" class="view-toggle-btn active" title="Table view">Table</button>
         <button id="asgn-view-kanban-btn" class="view-toggle-btn" title="Kanban view">Kanban</button>
       </div>
+      <button id="asgn-print-btn" class="tab-print-btn" title="Print / Save as PDF">Print</button>
     </div>
 
     <!-- Filters (table view only) -->
