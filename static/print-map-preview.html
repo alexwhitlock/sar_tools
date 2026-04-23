@@ -282,8 +282,8 @@
       btn.textContent = "Generating\u2026";
 
       const center       = _map.getCenter();
-      const showVertices = document.getElementById("showVertices")?.checked ?? false;
-      const showBearings = document.getElementById("showBearings")?.checked ?? false;
+      const showVertices = _vertices.length <= 4 && (document.getElementById("showVertices")?.checked ?? false);
+      const showBearings = _vertices.length <= 4 && (document.getElementById("showBearings")?.checked ?? false);
       const showGrid     = document.getElementById("showGrid")?.checked     ?? false;
       const basemap      = document.querySelector('input[name="basemap"]:checked')?.value ?? "osm";
 
