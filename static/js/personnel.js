@@ -738,18 +738,32 @@ function wireMenuAndModal() {
     if (!incidentName) return;
 
     if (action === "check-in" || action === "undo-check-in" || action === "check-out") {
+      const person = findPersonInCache(activePersonKey);
+      const name = person?.name ?? "this person";
+
       if (action === "undo-check-in") {
-        const person = findPersonInCache(activePersonKey);
-        const name = person?.name ?? "this person";
         if (!confirm(`Undo check-in for ${name}?`)) return;
       }
+
+      let removeFromTeam = false;
+      if (action === "check-out" && person?.team) {
+        removeFromTeam = confirm(`${name} is assigned to Team ${person.team}. Remove them from the team?`);
+      }
+
       const newStatus = action === "check-in" ? "Checked In"
                       : action === "check-out" ? "Checked Out"
                       : "Added";
       try {
         personnelMessage.show(`Updating status…`, "info");
-        const person = findPersonInCache(activePersonKey);
         await apiUpdatePersonStatus({ incidentName, personKey: activePersonKey, status: newStatus, expectedUpdatedAt: person?.updatedAt });
+        if (removeFromTeam) {
+          const personId = person.id ?? person.personId ?? person.person_id ?? activePersonKey;
+          await fetch("/api/teams/remove-person", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ incidentName, personId }),
+          });
+        }
         await loadPersonnel();
         personnelMessage.show(`Status updated to ${newStatus}.`, "info");
       } catch (err) {
