@@ -63,6 +63,31 @@ def api_caltopo_map_info(map_id):
         return jsonify({"error": str(e)}), 500
 
 
+@bp.get("/api/caltopo/map/<map_id>/operational-periods")
+def api_caltopo_op_periods(map_id):
+    mode = (request.args.get("mode") or "online").strip()
+    try:
+        ops = _get_operational_periods(map_id, mode=mode)
+        return jsonify({"operationalPeriods": ops})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _get_operational_periods(map_id, mode="online"):
+    endpoint = f"/api/v1/map/{map_id}/since/0"
+    data = get_from_caltopo(endpoint, mode=mode)
+    features = data.get("state", {}).get("features", [])
+    ops = []
+    for f in features:
+        props = f.get("properties", {})
+        if props.get("class") == "OperationalPeriod":
+            ops.append({
+                "id": f.get("id"),
+                "title": props.get("title") or f.get("id"),
+            })
+    return ops
+
+
 def _get_acct_features(team_id):
     """Returns cached account features, refreshing if older than TTL."""
     now = time.time()
@@ -493,7 +518,8 @@ def get_assignments_for_map(map_id, mode: str = "online"):
             "assignmentType": assignment_type,
             "resourceType": props.get("resourceType"),
             "status": status,
-            "op": op_info.get("title"),
+            "op":   op_info.get("title"),
+            "opId": op_id,
             "titleConflict": title_conflict,
             "geometry": geometry if geometry else None,
         })

@@ -126,7 +126,7 @@ def api_incident_import():
     return jsonify({"ok": True, "incidentName": incident_name})
 
 
-_ALLOWED_SETTINGS_KEYS = {"linked_d4h_activity_id", "linked_caltopo_map_id", "caltopo_mode"}
+_ALLOWED_SETTINGS_KEYS = {"linked_d4h_activity_id", "linked_caltopo_map_id", "caltopo_mode", "selected_op_id"}
 
 
 @bp.get("/api/incident/settings")
@@ -144,6 +144,7 @@ def api_incident_get_settings():
         "d4hActivityId":  s.get("linked_d4h_activity_id"),
         "caltopoMapId":   s.get("linked_caltopo_map_id"),
         "caltopoMode":    s.get("caltopo_mode", "online"),
+        "selectedOpId":   s.get("selected_op_id"),
     })
 
 

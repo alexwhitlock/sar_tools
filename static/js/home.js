@@ -164,8 +164,8 @@ function setD4hLinked(linked) {
 // Name hint lookups
 // ===============================
 
-async function fetchCaltopoMapName(mapId) {
-  if (!mapId) { caltopoMsg.clear(); return; }
+async function fetchCaltopoMapName(mapId, selectedOpId = null) {
+  if (!mapId) { caltopoMsg.clear(); clearOpPeriods(); return; }
   const mode = document.querySelector('input[name="caltopoMode"]:checked')?.value ?? "online";
   caltopoMsg.show("Looking up map…", "info");
   try {
@@ -173,12 +173,46 @@ async function fetchCaltopoMapName(mapId) {
     const data = await res.json();
     if (!res.ok || data.error) {
       caltopoMsg.show(data.error || "Map not found.", "error");
+      clearOpPeriods();
       return;
     }
     caltopoMsg.show(data.title ? `Current Map: ${data.title}` : "Map found.", "info");
+    await fetchOpPeriods(mapId, selectedOpId);
   } catch (e) {
     caltopoMsg.show("Error looking up map.", "error");
+    clearOpPeriods();
   }
+}
+
+async function fetchOpPeriods(mapId, selectedId = null) {
+  const mode = document.querySelector('input[name="caltopoMode"]:checked')?.value ?? "online";
+  const row = $("opPeriodRow");
+  const sel = $("opSelect");
+  if (!sel) return;
+  try {
+    const res = await fetch(`/api/caltopo/map/${encodeURIComponent(mapId)}/operational-periods?mode=${encodeURIComponent(mode)}`);
+    const data = await res.json();
+    if (!res.ok || data.error) { clearOpPeriods(); return; }
+    const ops = data.operationalPeriods || [];
+    sel.innerHTML = '<option value="">— All periods —</option>';
+    for (const op of ops) {
+      const opt = document.createElement("option");
+      opt.value = op.id;
+      opt.textContent = op.title || op.id;
+      sel.appendChild(opt);
+    }
+    if (selectedId) sel.value = selectedId;
+    if (row) row.style.display = ops.length ? "" : "none";
+  } catch (e) {
+    clearOpPeriods();
+  }
+}
+
+function clearOpPeriods() {
+  const row = $("opPeriodRow");
+  const sel = $("opSelect");
+  if (sel) sel.innerHTML = '<option value="">— All periods —</option>';
+  if (row) row.style.display = "none";
 }
 
 async function fetchD4hActivityName(activityId) {
@@ -220,6 +254,7 @@ async function loadIncidentSettings(incidentName) {
     setD4hLinked(false);
     caltopoMsg.clear();
     d4hMsg.clear();
+    clearOpPeriods();
     const onlineRadio = document.querySelector('input[name="caltopoMode"][value="online"]');
     if (onlineRadio) onlineRadio.checked = true;
     return;
@@ -233,6 +268,7 @@ async function loadIncidentSettings(incidentName) {
     const caltopoMapId    = data.caltopoMapId;
     const d4hActivityId   = data.d4hActivityId;
     const caltopoMode     = data.caltopoMode || "online";
+    const selectedOpId    = data.selectedOpId || null;
 
     // Restore mode radio
     const modeRadio = document.querySelector(`input[name="caltopoMode"][value="${caltopoMode}"]`);
@@ -241,11 +277,12 @@ async function loadIncidentSettings(incidentName) {
     if (caltopoMapId) {
       $("mapId").value = caltopoMapId;
       setCaltopoLinked(true);
-      fetchCaltopoMapName(caltopoMapId);
+      fetchCaltopoMapName(caltopoMapId, selectedOpId);
     } else {
       $("mapId").value = "";
       setCaltopoLinked(false);
       caltopoMsg.clear();
+      clearOpPeriods();
     }
 
     if (d4hActivityId) {
@@ -350,6 +387,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!$("mapId").disabled) {
       caltopoMsg.clear();
       $("mapIdLookupBtn").disabled = false;
+      clearOpPeriods();
     }
   });
 
@@ -377,8 +415,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       await saveSetting("caltopo_mode", radio.value);
       logUserEvent(incident, `CalTopo mode set to ${radio.value}`);
       const mapId = ($("mapId")?.value || "").trim();
-      if (mapId) fetchCaltopoMapName(mapId);
+      if (mapId) fetchCaltopoMapName(mapId, $("opSelect")?.value || null);
     });
+  });
+
+  $("opSelect")?.addEventListener("change", async (e) => {
+    await saveSetting("selected_op_id", e.target.value || null);
+    document.dispatchEvent(new CustomEvent("opSelectionChanged"));
   });
 
   // CalTopo link checkbox

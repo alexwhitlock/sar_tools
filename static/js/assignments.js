@@ -52,6 +52,12 @@ function getCurrentCaltopoMode() {
   return r ? r.value : "online";
 }
 
+function getFilteredAssignments() {
+  const opId = document.getElementById("opSelect")?.value?.trim() || null;
+  if (!opId) return assignmentsCache;
+  return assignmentsCache.filter(a => !a.opId || a.opId === opId);
+}
+
 function findMissingTeams(assignments, dbLetters) {
   const missing = new Set();
   for (const a of (assignments || [])) {
@@ -315,9 +321,9 @@ export async function loadAssignments() {
     }
 
     if (currentView === "table") {
-      assignmentsTable.setData(assignmentsCache);
+      assignmentsTable.setData(getFilteredAssignments());
     } else {
-      renderKanban(assignmentsCache);
+      renderKanban(getFilteredAssignments());
     }
 
   } catch (err) {
@@ -356,7 +362,7 @@ function renderKanban(assignments) {
     col.querySelector(".kanban-col-header").addEventListener("click", () => {
       if (collapsedStatuses.has(status)) collapsedStatuses.delete(status);
       else collapsedStatuses.add(status);
-      renderKanban(assignmentsCache);
+      renderKanban(getFilteredAssignments());
     });
 
     const cardsEl = col.querySelector(".kanban-col-cards");
@@ -860,7 +866,7 @@ function switchView(view) {
     if (printBtn)   printBtn.style.display   = "";
     tableBtn?.classList.add("active");
     kanbanBtn?.classList.remove("active");
-    assignmentsTable.setData(assignmentsCache);
+    assignmentsTable.setData(getFilteredAssignments());
   } else {
     tableView?.classList.add("hidden");
     kanbanView?.classList.remove("hidden");
@@ -868,7 +874,7 @@ function switchView(view) {
     if (printBtn)   printBtn.style.display   = "none";
     tableBtn?.classList.remove("active");
     kanbanBtn?.classList.add("active");
-    renderKanban(assignmentsCache);
+    renderKanban(getFilteredAssignments());
   }
 }
 
@@ -963,6 +969,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   wireFilters(assignmentsTable);
   watchAssignmentsTab();
+
+  document.addEventListener("opSelectionChanged", () => {
+    if (currentView === "table") {
+      assignmentsTable.setData(getFilteredAssignments());
+    } else {
+      renderKanban(getFilteredAssignments());
+    }
+  });
 
   // View toggle
   document.getElementById("asgn-view-table-btn")?.addEventListener("click",  () => switchView("table"));
