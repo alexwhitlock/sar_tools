@@ -214,8 +214,14 @@ def update_person(incident_name: str, *, person_id: int, name: str, notes: str |
 def delete_person(incident_name: str, *, person_id: int) -> bool:
     """
     Delete a person. Returns True if a row was deleted.
+    Clears team_leader_id on any team where this person was TL before deleting,
+    since that FK has no ON DELETE action.
     """
     with get_connection(incident_name) as conn:
+        conn.execute(
+            "UPDATE teams SET team_leader_id = NULL WHERE team_leader_id = ?",
+            (person_id,),
+        )
         cur = conn.execute(
             "DELETE FROM personnel WHERE id = ?",
             (person_id,),
