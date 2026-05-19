@@ -145,6 +145,7 @@ def api_teams_delete():
 
 @bp.get("/api/teams/history")
 def api_teams_history():
+    import re
     incident_name = (request.args.get("incidentName") or "").strip()
     team_name = (request.args.get("teamName") or "").strip()
     if not incident_name:
@@ -152,9 +153,23 @@ def api_teams_history():
     if not team_name:
         return jsonify({"ok": False, "error": "teamName is required"}), 400
     try:
-        rows = get_logs(incident_name, type_filter="user_event",
-                        search=f'Team "{team_name}"', order="asc")
-        return jsonify({"ok": True, "entries": rows})
+        # Team events: created, deleted, updated, member joins/leaves
+        team_rows = get_logs(incident_name, type_filter="user_event",
+                             search=f'Team "{team_name}"', order="asc")
+
+        # Assignment team-change events: "Assignment N updated: ... team="X" ..."
+        # Use exact-match regex to avoid substring hits (e.g. team="A" vs team="AB")
+        asgn_candidates = get_logs(incident_name, type_filter="user_event",
+                                   search=f'team="{team_name}"', order="asc")
+        team_ids = {r["id"] for r in team_rows}
+        pattern = re.compile(r'team="' + re.escape(team_name) + r'"')
+        asgn_rows = [
+            r for r in asgn_candidates
+            if r["id"] not in team_ids and pattern.search(r["message"])
+        ]
+
+        all_rows = sorted(team_rows + asgn_rows, key=lambda r: (r["timestamp"] or "", r["id"]))
+        return jsonify({"ok": True, "entries": all_rows})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

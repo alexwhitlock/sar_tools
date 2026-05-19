@@ -1438,6 +1438,16 @@ function parseHistoryEntry(msg, teamName) {
     if (lines.length > 0) return { type: primaryType, lines };
   }
 
+  // Assignment team-change event: "Assignment N updated: team="X" ..."
+  m = msg.match(/^Assignment (\S+) updated: (.+)$/);
+  if (m) {
+    const num = m[1];
+    const raw = m[2];
+    const statusM = raw.match(/status="([^"]+)"/);
+    const statusPart = statusM ? ` — status ${statusM[1]}` : "";
+    return { type: "assignment", lines: [`Assignment ${num} assigned to this team${statusPart}`] };
+  }
+
   return { type: "other", lines: [msg] };
 }
 
