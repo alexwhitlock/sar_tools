@@ -249,11 +249,11 @@ def api_personnel_import_d4h():
             stats = upsert_people_from_d4h(incident_name, people)
             parts = []
             if stats.get("imported"):
-                parts.append(f'added: {", ".join(stats["importedNames"])}')
+                parts.append(f'{stats["imported"]} added: {", ".join(stats["importedNames"])}')
             if stats.get("updated"):
-                parts.append(f'updated: {", ".join(stats["updatedNames"])}')
+                parts.append(f'{stats["updated"]} updated: {", ".join(stats["updatedNames"])}')
             if stats.get("skipped"):
-                parts.append(f'skipped: {stats["skipped"]}')
+                parts.append(f'{stats["skipped"]} skipped')
             _log(incident_name, f'D4H import — {"; ".join(parts)}' if parts else 'D4H import — no changes')
             return jsonify({"ok": True, "incidentName": incident_name, **stats})
         except Exception as e:
@@ -291,11 +291,11 @@ def api_personnel_import_d4h():
         stats = upsert_people_from_d4h(incident_name, people)
         parts = []
         if stats.get("imported"):
-            parts.append(f'added: {", ".join(stats["importedNames"])}')
+            parts.append(f'{stats["imported"]} added: {", ".join(stats["importedNames"])}')
         if stats.get("updated"):
-            parts.append(f'updated: {", ".join(stats["updatedNames"])}')
+            parts.append(f'{stats["updated"]} updated: {", ".join(stats["updatedNames"])}')
         if stats.get("skipped"):
-            parts.append(f'skipped: {stats["skipped"]}')
+            parts.append(f'{stats["skipped"]} skipped')
         _log(incident_name, f'D4H import — {"; ".join(parts)}' if parts else 'D4H import — no changes')
 
         return jsonify({
