@@ -521,8 +521,8 @@ function wireMouseDnd(card, team) {
     if (team.status === newStatus) return;
     const incidentName = getCurrentIncidentName();
     if (!incidentName) return;
-    const err = validateTeamStatusChange(team, newStatus);
-    if (err) { teamsMessage.show(`⚠ ${err}`, "error"); return; }
+    const warn = validateTeamStatusChange(team, newStatus);
+    if (warn) teamsMessage.show(`⚠ ${warn}`, "warning");
     try {
       const oldStatus = team.status;
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(team.id), status: newStatus, expectedUpdatedAt: team.updatedAt });
@@ -661,8 +661,8 @@ function wireTouchDnd(card, teamId) {
     const incidentName = getCurrentIncidentName();
     if (!incidentName) return;
 
-    const err = validateTeamStatusChange(team, newStatus);
-    if (err) { teamsMessage.show(`⚠ ${err}`, "error", 6000); return; }
+    const warn = validateTeamStatusChange(team, newStatus);
+    if (warn) teamsMessage.show(`⚠ ${warn}`, "warning", 6000);
 
     try {
       const oldStatus = team.status;
@@ -1390,15 +1390,12 @@ async function saveTeamModal() {
     return;
   }
 
-  // Validate status change rules for edits (create always starts at the chosen status with no assignment)
+  // Validate status change rules for edits — warn but don't block
+  let statusChangeWarning = null;
   if (modalMode === "edit") {
     const currentTeam = teamsCache.find(t => t.id === activeTeamId);
     if (currentTeam && currentTeam.status !== status) {
-      const err = validateTeamStatusChange(currentTeam, status);
-      if (err) {
-        teamsMessage.show(`⚠ ${err}`, "error", 6000);
-        return;
-      }
+      statusChangeWarning = validateTeamStatusChange(currentTeam, status);
     }
   }
 
@@ -1461,7 +1458,11 @@ async function saveTeamModal() {
 
     closeTeamModal();
     await loadTeams();
-    teamsMessage.show(_mode === "create" ? "Team created." : "Changes saved.", "info");
+    if (statusChangeWarning) {
+      teamsMessage.show(`⚠ ${statusChangeWarning}`, "warning");
+    } else {
+      teamsMessage.show(_mode === "create" ? "Team created." : "Changes saved.", "info");
+    }
   } catch (err) {
     const errEl = document.getElementById("teamModalError");
     if (err instanceof ConflictError) {
