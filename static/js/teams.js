@@ -1384,7 +1384,7 @@ function refreshMemberUI() {
 function formatHistoryTs(utcStr) {
   if (!utcStr) return "";
   const dt = new Date(utcStr.replace(" ", "T") + "Z");
-  return dt.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return dt.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function parseHistoryEntry(entry, teamName) {
