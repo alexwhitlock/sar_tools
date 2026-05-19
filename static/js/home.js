@@ -321,9 +321,24 @@ async function loadSystemInfo() {
       ? "t3600 (Alex Whitlock's home server)"
       : data.hostname;
     set("sysHostname", hostname);
-    set("sysGitHash",  data.gitHash);
     set("sysGitDate",  formatDeployDate(data.gitDate));
     set("sysDbPath",   data.dbPath);
+
+    const hashEl = $("sysGitHash");
+    if (hashEl) {
+      const hash = data.gitHash || "unknown";
+      if (hash !== "unknown") {
+        const a = document.createElement("a");
+        a.href = `https://github.com/alexwhitlock/sar_tools/commit/${hash}`;
+        a.textContent = hash;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        hashEl.textContent = "";
+        hashEl.appendChild(a);
+      } else {
+        hashEl.textContent = "unknown";
+      }
+    }
   } catch (e) {
     console.warn("[home.js] system info fetch failed:", e);
   }

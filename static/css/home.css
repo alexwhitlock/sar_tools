@@ -138,3 +138,8 @@
   color: #222;
   word-break: break-all;
 }
+
+.system-info-links {
+  margin-top: 10px;
+  font-size: 13px;
+}
