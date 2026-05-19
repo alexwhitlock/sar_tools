@@ -1407,10 +1407,10 @@ function parseHistoryEntry(entry, teamName) {
     return { type: "delete", lines: ["Team deleted"] };
 
   let m = msg.match(/^"(.+)" assigned to Team/);
-  if (m) return { type: "personnel", lines: [`${m[1]} joined the team`] };
+  if (m) return { type: "personnel", subtype: "added", name: m[1], lines: [`${m[1]} added`] };
 
   m = msg.match(/^"(.+)" removed from Team/);
-  if (m) return { type: "personnel", lines: [`${m[1]} left the team`] };
+  if (m) return { type: "personnel", subtype: "removed", name: m[1], lines: [`${m[1]} removed`] };
 
   m = msg.match(new RegExp(`^Team "${esc}" updated: (.+)$`));
   if (m) {
@@ -1443,7 +1443,7 @@ function parseHistoryEntry(entry, teamName) {
     }
 
     const notesM = raw.match(/notes="([^"]+)"/);
-    if (notesM) lines.push("Notes updated");
+    if (notesM && notesM[1] !== "(none)") lines.push(`Notes: ${notesM[1]}`);
 
     if (lines.length > 0) return { type: primaryType, lines };
   }
@@ -1456,17 +1456,66 @@ function renderTeamHistoryTimeline(container, entries, teamName) {
     container.innerHTML = '<div class="th-empty">No history found for this team.</div>';
     return;
   }
+
+  // Parse all entries upfront so we can inspect types for grouping
+  const parsed = entries.map(e => ({ entry: e, p: parseHistoryEntry(e, teamName) }));
+
+  // Group consecutive personnel events within 60 seconds of each other
+  const groups = [];
+  let i = 0;
+  while (i < parsed.length) {
+    const { entry, p } = parsed[i];
+    if (p.type !== "personnel") {
+      groups.push({ kind: "single", entry, p });
+      i++;
+      continue;
+    }
+    const members = [{ entry, p }];
+    let j = i + 1;
+    while (j < parsed.length && parsed[j].p.type === "personnel") {
+      const prevTs = new Date(members[members.length - 1].entry.timestamp.replace(" ", "T") + "Z");
+      const nextTs = new Date(parsed[j].entry.timestamp.replace(" ", "T") + "Z");
+      if (Math.abs(nextTs - prevTs) > 60000) break;
+      members.push(parsed[j]);
+      j++;
+    }
+    groups.push({ kind: "personnel-group", members });
+    i = j;
+  }
+
   container.innerHTML = "";
-  for (const entry of entries) {
-    const parsed = parseHistoryEntry(entry, teamName);
+  for (const g of groups) {
     const div = document.createElement("div");
-    div.className = `th-event th-${parsed.type}`;
-    div.innerHTML = `
-      <div class="th-time">${escapeHtml(formatHistoryTs(entry.timestamp))}</div>
-      <div class="th-desc">${parsed.lines.map(l => escapeHtml(l)).join("<br>")}</div>
-    `;
+    if (g.kind === "single") {
+      div.className = `th-event th-${g.p.type}`;
+      div.innerHTML = `
+        <div class="th-time">${escapeHtml(formatHistoryTs(g.entry.timestamp))}</div>
+        <div class="th-desc">${g.p.lines.map(l => escapeHtml(l)).join("<br>")}</div>
+      `;
+    } else {
+      const lastTs = g.members[g.members.length - 1].entry.timestamp;
+      const added   = g.members.filter(m => m.p.subtype === "added").map(m => m.p.name);
+      const removed = g.members.filter(m => m.p.subtype === "removed").map(m => m.p.name);
+      const lines = [];
+      if (added.length === 1) {
+        lines.push(`${added[0]} added`);
+      } else if (added.length > 1) {
+        lines.push(`${added.length} members added:`, ...added);
+      }
+      if (removed.length === 1) {
+        lines.push(`${removed[0]} removed`);
+      } else if (removed.length > 1) {
+        lines.push(`${removed.length} members removed:`, ...removed);
+      }
+      div.className = "th-event th-personnel";
+      div.innerHTML = `
+        <div class="th-time">${escapeHtml(formatHistoryTs(lastTs))}</div>
+        <div class="th-desc">${lines.map(l => escapeHtml(l)).join("<br>")}</div>
+      `;
+    }
     container.appendChild(div);
   }
+
   // Scroll body so most recent event is visible on open
   const body = container.closest(".team-history-body");
   if (body) body.scrollTop = body.scrollHeight;
