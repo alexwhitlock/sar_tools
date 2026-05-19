@@ -261,7 +261,6 @@ code {
   <a href="#overview">Overview</a>
   <a href="#deployment">Deployment</a>
   <a href="#deployment" class="sub">Web-hosted vs Local</a>
-  <a href="#updating" class="sub">Updating</a>
   <a href="#home">Home</a>
   <a href="#home" class="sub">Incidents</a>
   <a href="#home" class="sub">CalTopo Setup</a>
@@ -353,35 +352,6 @@ code {
 
 <div class="note">When running offline, the CalTopo offline server URL must be reachable from the SAR Tools server. By default it expects <code>http://localhost:8080</code>. This can be changed in the server configuration.</div>
 
-
-<!-- ════════════════════════ -->
-<h2 id="updating" class="section-anchor">Updating the locally-hosted server</h2>
-
-<p>SAR Tools runs as a Docker container. To update to the latest version:</p>
-
-<h3>1. Pull the latest code</h3>
-<p>SSH into the server and pull the latest code from GitHub:</p>
-<p><code>ssh alex@&lt;server-ip&gt;</code><br>
-<code>cd ~/sar_tools &amp;&amp; git pull</code></p>
-
-<h3>2. Rebuild and restart</h3>
-<p>Run the following command on the server to rebuild the Docker image and restart the container. Replace <code>&lt;env&gt;</code> with <code>sar-tools-test</code> or <code>sar-tools-prod</code>:</p>
-
-<p><code>HASH=$(git rev-parse --short HEAD) &amp;&amp; DATE=$(git log -1 --format=%cI HEAD) &amp;&amp; HOST=$(hostname) &amp;&amp;<br>
-docker build --build-arg GIT_HASH=$HASH --build-arg GIT_DATE=$DATE --build-arg HOST_HOSTNAME=$HOST -t sar-tools:$HASH . &amp;&amp;<br>
-sed -i "s|image: sar-tools:.*|image: sar-tools:$HASH|" ~/compose/&lt;env&gt;/docker-compose.yml &amp;&amp;<br>
-cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
-
-<h3>3. Verify</h3>
-<p>Check the System Info card on the Home tab — the Git commit hash shown should match the latest commit. The container version is also visible in the page title and system info panel.</p>
-
-<h3>Test vs production</h3>
-<ul>
-  <li><strong>Test</strong> — port 5001, compose folder <code>sar-tools-test</code>, data in <code>sar-tools-test-data/</code></li>
-  <li><strong>Production</strong> — port 5000, compose folder <code>sar-tools-prod</code>, data in <code>sar-tools-prod-data/</code></li>
-</ul>
-
-<div class="warn">Always test on the test environment before updating production, especially mid-incident.</div>
 
 
 <!-- ════════════════════════════════ -->
