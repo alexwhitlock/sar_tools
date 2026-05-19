@@ -768,7 +768,7 @@ function wireMenuAndModal() {
         personnelMessage.show(`Status updated to ${newStatus}.`, "info");
       } catch (err) {
         if (err instanceof ConflictError) {
-          personnelMessage.show("⚠️ Record was modified by another user — reloading.", "warning", 6000);
+          personnelMessage.show("⚠ Record was modified by another user — reloading.", "warning", 6000);
           await loadPersonnel();
         } else {
           personnelMessage.show(`Failed to update status: ${err.message}`, "error");
@@ -911,7 +911,7 @@ function wireMenuAndModal() {
     } catch (err) {
       const errEl = document.getElementById("personModalError");
       if (err instanceof ConflictError) {
-        if (errEl) { errEl.textContent = "⚠️ This record was modified by another user. Close and re-open to see the latest version."; errEl.classList.remove("hidden"); }
+        if (errEl) { errEl.textContent = "⚠ This record was modified by another user. Close and re-open to see the latest version."; errEl.classList.remove("hidden"); }
         await loadPersonnel();
       } else {
         logMessage("ERROR", "Failed to save person", err.message);
