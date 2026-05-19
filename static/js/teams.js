@@ -391,6 +391,12 @@ export async function loadTeams() {
           const names = oosWithAssignment.map(t => `Team ${t.name}`).join(", ");
           warnings.push(`${names} marked Out of Service but assigned to an in-progress assignment`);
         }
+
+        // Warn for status conflict on any team (bypassed status-change rules)
+        for (const t of teamsCache) {
+          const conflict = getStatusConflictWarning(t);
+          if (conflict) warnings.push(`Team ${t.name}: ${conflict}`);
+        }
       }
 
       if (warnings.length > 0) {
