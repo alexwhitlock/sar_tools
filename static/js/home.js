@@ -323,7 +323,6 @@ async function loadSystemInfo() {
     set("sysHostname", hostname);
     set("sysGitHash",  data.gitHash);
     set("sysGitDate",  formatDeployDate(data.gitDate));
-    set("sysDbPath",   data.dbPath);
   } catch (e) {
     console.warn("[home.js] system info fetch failed:", e);
   }
