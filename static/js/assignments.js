@@ -809,13 +809,8 @@ async function saveEditModal() {
                   newNotes       !== (_modalAsgn.notes       || "");
   if (!changed) { closeEditModal(); return; }
 
-  // Validate team required for INPROGRESS / COMPLETED
-  const validationErr = validateStatusChange({ ..._modalAsgn, team: newTeam }, newStatus);
-  if (validationErr) {
-    errEl.textContent = validationErr;
-    errEl.classList.remove("hidden");
-    return;
-  }
+  // Warn (but don't block) if team is cleared on an in-progress/completed assignment
+  const validationWarn = validateStatusChange({ ..._modalAsgn, team: newTeam }, newStatus);
 
   saveBtn.disabled    = true;
   saveBtn.textContent = "Writing to CalTopo…";
@@ -834,6 +829,9 @@ async function saveEditModal() {
     });
     closeEditModal();
     await loadAssignments();
+    if (validationWarn) {
+      assignmentsMessage.show(`⚠ ${validationWarn}`, "warning");
+    }
     if (newStatus === "COMPLETED")  await maybeStageTeam(newTeam || _modalAsgn.team);
     if (newStatus === "INPROGRESS") await maybeBriefTeam(newTeam || _modalAsgn.team);
   } catch (err) {
