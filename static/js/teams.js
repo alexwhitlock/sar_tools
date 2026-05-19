@@ -311,16 +311,16 @@ function renderTeamRow(t) {
     const tip  = escapeHtml(
       `Team ${t.name} has ${inProgress.length} in-progress assignments (${nums}). Only one should be active at a time.`
     );
-    assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠</span>`;
+    assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠️</span>`;
   }
 
   const unchecked = hasUncheckedMembers(t)
-    ? ` <span class="team-unchecked-warn">⚠ Some members not checked in</span>`
+    ? ` <span class="team-unchecked-warn">⚠️ Some members not checked in</span>`
     : "";
 
   const statusConflict = getStatusConflictWarning(t);
   const statusConflictHtml = statusConflict
-    ? ` <span class="conflict-warn" title="${escapeHtml(statusConflict)}">⚠</span>`
+    ? ` <span class="conflict-warn" title="${escapeHtml(statusConflict)}">⚠️</span>`
     : "";
 
   const tr = document.createElement("tr");
@@ -423,7 +423,7 @@ export async function loadTeams() {
       }
 
       if (warnings.length > 0) {
-        teamsMessage.show(`${countLabel} ⚠ ${warnings.join(" — ")}`, "warning");
+        teamsMessage.show(`${countLabel} ⚠️ ${warnings.join(" — ")}`, "warning");
       } else {
         teamsMessage.show(countLabel, "info");
       }
@@ -575,7 +575,7 @@ function wireMouseDnd(card, team) {
     const incidentName = getCurrentIncidentName();
     if (!incidentName) return;
     const warn = validateTeamStatusChange(team, newStatus);
-    if (warn) teamsMessage.show(`⚠ ${warn}`, "warning");
+    if (warn) teamsMessage.show(`⚠️ ${warn}`, "warning");
     try {
       const oldStatus = team.status;
       await apiPost("/api/teams/update", { incidentName, teamId: parseInt(team.id), status: newStatus, expectedUpdatedAt: team.updatedAt });
@@ -583,7 +583,7 @@ function wireMouseDnd(card, team) {
       renderKanban(teamsCache);
     } catch (err) {
       if (err instanceof ConflictError) {
-        teamsMessage.show("⚠ Team was modified by another user — reloading.", "warning", 6000);
+        teamsMessage.show("⚠️ Team was modified by another user — reloading.", "warning", 6000);
         await loadTeams();
       } else {
         teamsMessage.show(`Failed to update status: ${err.message}`, "error");
@@ -715,7 +715,7 @@ function wireTouchDnd(card, teamId) {
     if (!incidentName) return;
 
     const warn = validateTeamStatusChange(team, newStatus);
-    if (warn) teamsMessage.show(`⚠ ${warn}`, "warning", 6000);
+    if (warn) teamsMessage.show(`⚠️ ${warn}`, "warning", 6000);
 
     try {
       const oldStatus = team.status;
@@ -724,7 +724,7 @@ function wireTouchDnd(card, teamId) {
       renderKanban(teamsCache);
     } catch (err) {
       if (err instanceof ConflictError) {
-        teamsMessage.show("⚠ Team was modified by another user — reloading.", "warning", 6000);
+        teamsMessage.show("⚠️ Team was modified by another user — reloading.", "warning", 6000);
         await loadTeams();
       } else {
         teamsMessage.show(`Failed to update status: ${err.message}`, "error");
@@ -1121,7 +1121,7 @@ function renderKanban(teams) {
         const tip  = escapeHtml(
           `Team ${team.name} has ${inProgress.length} in-progress assignments (${nums}). Only one should be active at a time.`
         );
-        assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠</span>`;
+        assignmentHtml = `Assignment ${escapeHtml(nums)} <span class="conflict-warn" title="${tip}">⚠️</span>`;
       }
 
       const card = document.createElement("div");
@@ -1133,12 +1133,12 @@ function renderKanban(teams) {
       }
 
       const kanbanUnchecked = hasUncheckedMembers(team)
-        ? `<div class="team-unchecked-warn">⚠ Some members not checked in</div>`
+        ? `<div class="team-unchecked-warn">⚠️ Some members not checked in</div>`
         : "";
 
       const kanbanConflict = getStatusConflictWarning(team);
       const kanbanConflictIcon = kanbanConflict
-        ? ` <span class="conflict-warn" title="${escapeHtml(kanbanConflict)}">⚠</span>`
+        ? ` <span class="conflict-warn" title="${escapeHtml(kanbanConflict)}">⚠️</span>`
         : "";
 
       card.innerHTML = `
@@ -1541,14 +1541,14 @@ async function saveTeamModal() {
     closeTeamModal();
     await loadTeams();
     if (statusChangeWarning) {
-      teamsMessage.show(`⚠ ${statusChangeWarning}`, "warning");
+      teamsMessage.show(`⚠️ ${statusChangeWarning}`, "warning");
     } else {
       teamsMessage.show(_mode === "create" ? "Team created." : "Changes saved.", "info");
     }
   } catch (err) {
     const errEl = document.getElementById("teamModalError");
     if (err instanceof ConflictError) {
-      if (errEl) { errEl.textContent = "⚠ This team was modified by another user. Close and re-open to see the latest version."; errEl.classList.remove("hidden"); }
+      if (errEl) { errEl.textContent = "⚠️ This team was modified by another user. Close and re-open to see the latest version."; errEl.classList.remove("hidden"); }
       await loadTeams();
     } else {
       logMessage("ERROR", "Failed to save team", err.message);

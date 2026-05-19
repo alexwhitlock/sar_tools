@@ -184,10 +184,10 @@ function renderAssignmentRow(a) {
     const tip = (a.status || "").toUpperCase() === "COMPLETED"
       ? `Assignment ${a.number}: status is COMPLETED but title has no X prefix.`
       : `Assignment ${a.number}: title has X (completed) but status is ${a.status}.`;
-    numberHtml += ` <span class="conflict-warn" title="${escapeHtml(tip)}">⚠</span>`;
+    numberHtml += ` <span class="conflict-warn" title="${escapeHtml(tip)}">⚠️</span>`;
   }
   if (a.duplicateNumber) {
-    numberHtml += ` <span class="conflict-warn" title="Duplicate: assignment number ${a.number} is used more than once">⚠</span>`;
+    numberHtml += ` <span class="conflict-warn" title="Duplicate: assignment number ${a.number} is used more than once">⚠️</span>`;
   }
 
   tr.innerHTML = `
@@ -314,7 +314,7 @@ export async function loadAssignments() {
       }
 
       if (warnings.length > 0) {
-        assignmentsMessage.show(`⚠ ${warnings.join(" — ")} — Last updated ${getTimeHHMMSS()}`, "warning");
+        assignmentsMessage.show(`⚠️ ${warnings.join(" — ")} — Last updated ${getTimeHHMMSS()}`, "warning");
       } else {
         assignmentsMessage.show(`Last updated ${getTimeHHMMSS()}`, "info");
       }
@@ -374,7 +374,7 @@ function renderKanban(assignments) {
 
       card.innerHTML = `
         <div class="kanban-card-header">
-          <span class="asgn-card-number">Assignment ${escapeHtml(String(a.number ?? "?"))}${a.duplicateNumber ? ` <span class="conflict-warn" title="Duplicate: assignment number ${a.number} is used more than once">⚠</span>` : ""}${a.titleConflict ? ` <span class="conflict-warn" title="Title/status mismatch">⚠</span>` : ""}</span>
+          <span class="asgn-card-number">Assignment ${escapeHtml(String(a.number ?? "?"))}${a.duplicateNumber ? ` <span class="conflict-warn" title="Duplicate: assignment number ${a.number} is used more than once">⚠️</span>` : ""}${a.titleConflict ? ` <span class="conflict-warn" title="Title/status mismatch">⚠️</span>` : ""}</span>
         </div>
         <div class="asgn-card-team">
           <span>Team: ${escapeHtml(a.team || "—")}</span>
@@ -642,7 +642,7 @@ function maybeBriefTeam(teamField) {
 async function doStatusWrite(asgn, newStatus, cardEl) {
   const validationErr = validateStatusChange(asgn, newStatus);
   if (validationErr) {
-    assignmentsMessage.show(`⚠ ${validationErr}`, "error");
+    assignmentsMessage.show(`⚠️ ${validationErr}`, "error");
     return;
   }
   if (cardEl) cardEl.classList.add("writing");
