@@ -247,7 +247,14 @@ def api_personnel_import_d4h():
                 if m.get("name") and m.get("d4hRef")
             ]
             stats = upsert_people_from_d4h(incident_name, people)
-            _log(incident_name, f'D4H import: {stats.get("imported", 0)} added, {stats.get("updated", 0)} updated, {stats.get("skipped", 0)} skipped')
+            parts = []
+            if stats.get("imported"):
+                parts.append(f'added: {", ".join(stats["importedNames"])}')
+            if stats.get("updated"):
+                parts.append(f'updated: {", ".join(stats["updatedNames"])}')
+            if stats.get("skipped"):
+                parts.append(f'skipped: {stats["skipped"]}')
+            _log(incident_name, f'D4H import — {"; ".join(parts)}' if parts else 'D4H import — no changes')
             return jsonify({"ok": True, "incidentName": incident_name, **stats})
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
@@ -282,6 +289,14 @@ def api_personnel_import_d4h():
                 people.append((name, str(mid), m.get("ref") or None))
 
         stats = upsert_people_from_d4h(incident_name, people)
+        parts = []
+        if stats.get("imported"):
+            parts.append(f'added: {", ".join(stats["importedNames"])}')
+        if stats.get("updated"):
+            parts.append(f'updated: {", ".join(stats["updatedNames"])}')
+        if stats.get("skipped"):
+            parts.append(f'skipped: {stats["skipped"]}')
+        _log(incident_name, f'D4H import — {"; ".join(parts)}' if parts else 'D4H import — no changes')
 
         return jsonify({
             "ok": True,

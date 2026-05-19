@@ -242,6 +242,8 @@ def upsert_people_from_d4h(
     imported = 0
     updated = 0
     skipped = 0
+    imported_names: list = []
+    updated_names: list = []
 
     with get_connection(incident_name) as conn:
         # Ensure migrations ran (safe even if already created)
@@ -273,9 +275,14 @@ def upsert_people_from_d4h(
 
             if existed:
                 updated += 1
+                updated_names.append(name)
             else:
                 imported += 1
+                imported_names.append(name)
 
         conn.commit()
 
-    return {"imported": imported, "updated": updated, "skipped": skipped}
+    return {
+        "imported": imported, "updated": updated, "skipped": skipped,
+        "importedNames": imported_names, "updatedNames": updated_names,
+    }
