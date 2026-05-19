@@ -1387,8 +1387,15 @@ function formatHistoryTs(utcStr) {
   return dt.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-function parseHistoryEntry(msg, teamName) {
+function parseHistoryEntry(entry, teamName) {
+  const msg = entry.message;
   const esc = teamName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Assignment transition (structured by backend)
+  if (entry.asgnAction === "assigned")
+    return { type: "assignment", lines: [`Assignment ${entry.asgnNum} assigned to this team`] };
+  if (entry.asgnAction === "removed")
+    return { type: "assignment", lines: [`Assignment ${entry.asgnNum} removed from this team`] };
 
   if (new RegExp(`^Team "${esc}" created`).test(msg))
     return { type: "create", lines: ["Team created"] };
@@ -1438,16 +1445,6 @@ function parseHistoryEntry(msg, teamName) {
     if (lines.length > 0) return { type: primaryType, lines };
   }
 
-  // Assignment team-change event: "Assignment N updated: team="X" ..."
-  m = msg.match(/^Assignment (\S+) updated: (.+)$/);
-  if (m) {
-    const num = m[1];
-    const raw = m[2];
-    const statusM = raw.match(/status="([^"]+)"/);
-    const statusPart = statusM ? ` — status ${statusM[1]}` : "";
-    return { type: "assignment", lines: [`Assignment ${num} assigned to this team${statusPart}`] };
-  }
-
   return { type: "other", lines: [msg] };
 }
 
@@ -1458,7 +1455,7 @@ function renderTeamHistoryTimeline(container, entries, teamName) {
   }
   container.innerHTML = "";
   for (const entry of entries) {
-    const parsed = parseHistoryEntry(entry.message, teamName);
+    const parsed = parseHistoryEntry(entry, teamName);
     const div = document.createElement("div");
     div.className = `th-event th-${parsed.type}`;
     div.innerHTML = `
@@ -1467,6 +1464,9 @@ function renderTeamHistoryTimeline(container, entries, teamName) {
     `;
     container.appendChild(div);
   }
+  // Scroll body so most recent event is visible on open
+  const body = container.closest(".team-history-body");
+  if (body) body.scrollTop = body.scrollHeight;
 }
 
 async function openTeamHistory(team) {

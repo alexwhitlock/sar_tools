@@ -153,22 +153,49 @@ def api_teams_history():
     if not team_name:
         return jsonify({"ok": False, "error": "teamName is required"}), 400
     try:
-        # Team events: created, deleted, updated, member joins/leaves
+        # Team-level events: created, deleted, updated, member joins/leaves
         team_rows = get_logs(incident_name, type_filter="user_event",
                              search=f'Team "{team_name}"', order="asc")
 
-        # Assignment team-change events: "Assignment N updated: ... team="X" ..."
-        # Use exact-match regex to avoid substring hits (e.g. team="A" vs team="AB")
-        asgn_candidates = get_logs(incident_name, type_filter="user_event",
-                                   search=f'team="{team_name}"', order="asc")
-        team_ids = {r["id"] for r in team_rows}
-        pattern = re.compile(r'team="' + re.escape(team_name) + r'"')
-        asgn_rows = [
-            r for r in asgn_candidates
-            if r["id"] not in team_ids and pattern.search(r["message"])
-        ]
+        # Walk every assignment's team-change history to find transitions
+        # onto or off this team (handles single-letter substring ambiguity too)
+        all_asgn = get_logs(incident_name, type_filter="user_event",
+                            search='team="', order="asc")
 
-        all_rows = sorted(team_rows + asgn_rows, key=lambda r: (r["timestamp"] or "", r["id"]))
+        asgn_re = re.compile(r'^Assignment (\S+) updated: .+')
+        team_re = re.compile(r'team="([^"]+)"')
+        exact   = re.compile(r'^' + re.escape(team_name) + r'$', re.IGNORECASE)
+
+        parsed_asgn = []
+        for row in all_asgn:
+            m = asgn_re.match(row["message"])
+            t = team_re.search(row["message"])
+            if m and t:
+                parsed_asgn.append({**row, "asgnNum": m.group(1), "asgnTeam": t.group(1)})
+
+        by_num = {}
+        for e in parsed_asgn:
+            by_num.setdefault(e["asgnNum"], []).append(e)
+
+        team_ids = {r["id"] for r in team_rows}
+        asgn_result = []
+
+        for num, events in by_num.items():
+            prev = None
+            for e in events:
+                curr = e["asgnTeam"]
+                is_this  = bool(exact.match(curr))
+                was_this = bool(exact.match(prev)) if prev else False
+                if is_this and not was_this and e["id"] not in team_ids:
+                    asgn_result.append({**e, "asgnAction": "assigned"})
+                elif not is_this and was_this and e["id"] not in team_ids:
+                    asgn_result.append({**e, "asgnAction": "removed"})
+                prev = curr
+
+        all_rows = sorted(
+            list(team_rows) + asgn_result,
+            key=lambda r: (r["timestamp"] or "", r["id"])
+        )
         return jsonify({"ok": True, "entries": all_rows})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
