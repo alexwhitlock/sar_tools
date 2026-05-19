@@ -55,6 +55,7 @@ def run_migrations(conn):
         (10, migration_010_d4h_member_ref),
         (11, migration_011_assignments_table),
         (12, migration_012_assignments_sync_triggers),
+        (13, migration_013_quick_fields),
     ]
 
     for version, migration in migrations:
@@ -236,6 +237,12 @@ def migration_011_assignments_table(conn):
             SELECT feature_id, notes, updated_at FROM assignment_notes
         """)
         conn.execute("DROP TABLE assignment_notes")
+
+
+def migration_013_quick_fields(conn):
+    """Add manual quick-entry TL name and assignment label to teams."""
+    conn.execute("ALTER TABLE teams ADD COLUMN manual_tl TEXT")
+    conn.execute("ALTER TABLE teams ADD COLUMN manual_assignment TEXT")
 
 
 def migration_008_add_notes(conn):

@@ -83,6 +83,10 @@ def api_teams_update():
         kwargs["name"] = (data["name"] or "").strip()
     if "teamLeaderId" in data:
         kwargs["team_leader_id"] = data["teamLeaderId"]  # None to clear
+    if "manualTl" in data:
+        kwargs["manual_tl"] = (data["manualTl"] or "").strip() or None
+    if "manualAssignment" in data:
+        kwargs["manual_assignment"] = (data["manualAssignment"] or "").strip() or None
     if "status" in data:
         status = data["status"]
         if status not in TEAM_STATUSES:
@@ -103,7 +107,9 @@ def api_teams_update():
             parts = []
             if "name"           in kwargs: parts.append(f'name="{kwargs["name"]}"')
             if "status"         in kwargs: parts.append(f'status="{kwargs["status"]}"')
-            if "notes"          in kwargs: parts.append(f'notes="{kwargs["notes"] or "(none)"}"')
+            if "notes"             in kwargs: parts.append(f'notes="{kwargs["notes"] or "(none)"}"')
+            if "manual_tl"         in kwargs: parts.append(f'quick_tl="{kwargs["manual_tl"] or "(none)"}"')
+            if "manual_assignment" in kwargs: parts.append(f'quick_assignment="{kwargs["manual_assignment"] or "(none)"}"')
             if "team_leader_id" in kwargs:
                 ldr_id = kwargs["team_leader_id"]
                 ldr = get_person_name(incident_name, ldr_id) if ldr_id else None

@@ -460,6 +460,52 @@ body.kanban-grabbing * {
    Team members section (inside modal)
    =============================== */
 
+.quick-add-section {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.quick-add-summary {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-add-summary::-webkit-details-marker { display: none; }
+
+.quick-add-summary::after {
+  content: "▶";
+  font-size: 0.65rem;
+  margin-left: auto;
+  transition: transform 0.15s;
+}
+
+details[open] .quick-add-summary::after {
+  transform: rotate(90deg);
+}
+
+.quick-add-icon {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  cursor: default;
+}
+
+.quick-add-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 8px;
+  background: #fafafa;
+}
+
 .team-members-section {
   border: 1px solid #ddd;
   border-radius: 4px;

@@ -1,5 +1,6 @@
 import { createTable } from "./table/table-core.js";
 import { initMessageBar } from "./message-bar.js";
+import { logUserEvent } from "./logging.js";
 
 function injectPageHeaderStyle(title, meta) {
   let s = document.getElementById("dynamic-print-header");
@@ -134,8 +135,10 @@ function getStatusConflictWarning(team) {
 
   if (hasUnchecked)
     return "Some members are not checked in";
-  if (IN_PROGRESS_TEAM_STATES.has(team.status) && !hasInProgress)
+  // Manual assignment satisfies the "has assignment" requirement
+  if (IN_PROGRESS_TEAM_STATES.has(team.status) && !hasInProgress && !team.manualAssignment)
     return `Status is "${team.status}" but there is no in-progress CalTopo assignment`;
+  // Only warn about real CalTopo assignments vs status — manual ones have no completion state
   if (!IN_PROGRESS_TEAM_STATES.has(team.status) && team.status !== "Out of Service" && hasInProgress)
     return `Has an in-progress CalTopo assignment but status is "${team.status}"`;
   return null;
@@ -147,6 +150,7 @@ function getStatusConflictWarning(team) {
  */
 function validateTeamStatusChange(team, newStatus) {
   const hasInProgress = getInProgressAssignmentsForTeam(team.name).length > 0;
+  const hasAssignment = hasInProgress || !!team.manualAssignment;
 
   // Can't put a team in service until all members are checked in
   if (team.status === "Out of Service" && newStatus !== "Out of Service") {
@@ -158,12 +162,12 @@ function validateTeamStatusChange(team, newStatus) {
       return `Cannot put Team ${team.name} in service — the following members are not checked in: ${notCheckedIn.join(", ")}.`;
   }
 
-  // Can't enter an in-progress state without an active assignment
-  if (IN_PROGRESS_TEAM_STATES.has(newStatus) && !hasInProgress) {
+  // Can't enter an in-progress state without an active assignment (real or manual)
+  if (IN_PROGRESS_TEAM_STATES.has(newStatus) && !hasAssignment) {
     return `Team ${team.name} cannot be set to "${newStatus}" — they have no in-progress CalTopo assignment.`;
   }
 
-  // Can't leave an in-progress state while still on an active assignment
+  // Can't leave an in-progress state while still on a real CalTopo assignment
   if (!IN_PROGRESS_TEAM_STATES.has(newStatus) && IN_PROGRESS_TEAM_STATES.has(team.status) && hasInProgress) {
     return `Team ${team.name} is still assigned to an in-progress assignment. Complete the assignment in CalTopo before changing status to "${newStatus}".`;
   }
@@ -214,6 +218,8 @@ function buildTeamSearchText(team) {
     team.name ? `team ${team.name}` : "",
     team.status || "",
     team.teamLeaderName || "",
+    team.manualTl || "",
+    team.manualAssignment || "",
     ...memberNames,
     ...assignmentNums,
   ].join(" ").toLowerCase();
@@ -295,7 +301,9 @@ function renderTeamRow(t) {
 
   let assignmentHtml;
   if (inProgress.length === 0) {
-    assignmentHtml = "—";
+    assignmentHtml = t.manualAssignment
+      ? `${escapeHtml(t.manualAssignment)} <span class="quick-add-icon" title="Quick Add value">⚡</span>`
+      : "—";
   } else if (inProgress.length === 1) {
     assignmentHtml = escapeHtml(`Assignment ${inProgress[0].number ?? "?"}`);
   } else {
@@ -319,7 +327,12 @@ function renderTeamRow(t) {
   tr.innerHTML = `
     <td>${escapeHtml(t.name)}${unchecked}${statusConflictHtml}</td>
     <td><span class="ts-badge ${badgeClass}">${escapeHtml(t.status)}</span></td>
-    <td>${escapeHtml(t.teamLeaderName || "—")}</td>
+    <td>${t.teamLeaderName
+      ? escapeHtml(t.teamLeaderName)
+      : t.manualTl
+        ? `${escapeHtml(t.manualTl)} <span class="quick-add-icon" title="Quick Add value">⚡</span>`
+        : "—"
+    }</td>
     <td title="${memberTooltip(t)}" style="cursor:help">${t.memberCount ?? 0}</td>
     <td class="col-members">${memberListHtml(t)}</td>
     <td>${assignmentHtml}</td>
@@ -369,6 +382,16 @@ export async function loadTeams() {
           const resp = await fetch(`/api/assignments?mapId=${encodeURIComponent(mapId)}`);
           if (resp.ok) kanbanAssignments = await resp.json().catch(() => []);
         } catch (_) { /* assignment enrichment is optional */ }
+
+        // Auto-clear Quick Assignment when a real CalTopo assignment is now active
+        for (const t of teamsCache) {
+          if (t.manualAssignment && getInProgressAssignmentsForTeam(t.name).length > 0) {
+            try {
+              await apiPost("/api/teams/update", { incidentName, teamId: t.id, manualAssignment: null });
+              t.manualAssignment = null;
+            } catch (_) { /* non-critical */ }
+          }
+        }
 
         const conflicts = findAssignmentConflicts(kanbanAssignments);
         if (conflicts.size > 0) {
@@ -1088,7 +1111,9 @@ function renderKanban(teams) {
 
       let assignmentHtml;
       if (inProgress.length === 0) {
-        assignmentHtml = "Not Assigned";
+        assignmentHtml = team.manualAssignment
+          ? `${escapeHtml(team.manualAssignment)} <span class="quick-add-icon" title="Quick Add value">⚡</span>`
+          : "Not Assigned";
       } else if (inProgress.length === 1) {
         assignmentHtml = escapeHtml(`Assignment ${inProgress[0].number ?? "?"}`);
       } else {
@@ -1121,7 +1146,13 @@ function renderKanban(teams) {
           <span class="kanban-card-name">Team ${escapeHtml(team.name)}</span>
           <span class="kanban-card-members" title="${memberTooltip(team)}">${team.memberCount ?? 0} Members</span>
         </div>
-        <div class="kanban-card-tl">TL: ${escapeHtml(team.teamLeaderName || "None")}</div>
+        <div class="kanban-card-tl">TL: ${
+          team.teamLeaderName
+            ? escapeHtml(team.teamLeaderName)
+            : team.manualTl
+              ? `${escapeHtml(team.manualTl)} <span class="quick-add-icon" title="Quick Add value">⚡</span>`
+              : "None"
+        }</div>
         <div class="kanban-card-assignment">${assignmentHtml}${kanbanConflictIcon}</div>
         ${kanbanUnchecked}
       `;
@@ -1369,6 +1400,13 @@ async function openTeamModal(mode, team = null) {
   const notesInput = document.getElementById("teamNotes");
   if (notesInput) notesInput.value = team?.notes ?? "";
 
+  const quickTlInput     = document.getElementById("quickTl");
+  const quickAssignInput = document.getElementById("quickAssignment");
+  const quickDetails     = document.getElementById("quickAddDetails");
+  if (quickTlInput)     quickTlInput.value     = team?.manualTl         ?? "";
+  if (quickAssignInput) quickAssignInput.value  = team?.manualAssignment ?? "";
+  if (quickDetails)     quickDetails.open       = !!(team?.manualTl || team?.manualAssignment);
+
   const incidentName = getCurrentIncidentName();
 
   // Load all personnel
@@ -1418,6 +1456,11 @@ async function saveTeamModal() {
   const status = document.getElementById("teamStatus")?.value || "Out of Service";
   const teamLeaderId = document.getElementById("teamLeader")?.value || null;
   const notes = (document.getElementById("teamNotes")?.value || "").trim();
+  const quickTl         = (document.getElementById("quickTl")?.value         || "").trim();
+  const quickAssignment = (document.getElementById("quickAssignment")?.value || "").trim();
+  // If a real TL is selected, clear the quick TL override
+  const manualTl         = teamLeaderId ? null : (quickTl || null);
+  const manualAssignment = quickAssignment || null;
 
   if (!name) {
     window.alert("Team name is required.");
@@ -1452,6 +1495,8 @@ async function saveTeamModal() {
         status,
         notes,
         teamLeaderId: teamLeaderId ? parseInt(teamLeaderId) : null,
+        manualTl,
+        manualAssignment,
         expectedUpdatedAt: currentTeam?.updatedAt,
       });
     }
@@ -1481,6 +1526,8 @@ async function saveTeamModal() {
         status,
         notes,
         teamLeaderId: teamLeaderId ? parseInt(teamLeaderId) : null,
+        manualTl,
+        manualAssignment,
       });
     }
 

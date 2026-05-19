@@ -24,6 +24,8 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
                 t.status,
                 t.team_leader_id,
                 t.notes,
+                t.manual_tl,
+                t.manual_assignment,
                 t.updated_at,
                 leader.name AS leader_name,
                 COUNT(tm.personnel_id) AS member_count,
@@ -44,6 +46,8 @@ def list_teams(incident_name: str) -> List[Dict[str, Any]]:
         "memberCount": r["member_count"],
         "memberData": r["member_data"] or "",
         "notes": r["notes"],
+        "manualTl": r["manual_tl"],
+        "manualAssignment": r["manual_assignment"],
         "updatedAt": r["updated_at"],
     } for r in rows]
 
@@ -86,6 +90,12 @@ def update_team(incident_name: str, *, team_id: int, expected_updated_at: str | 
     if "notes" in kwargs:
         sets.append("notes = ?")
         params.append(kwargs["notes"] or None)
+    if "manual_tl" in kwargs:
+        sets.append("manual_tl = ?")
+        params.append(kwargs["manual_tl"] or None)
+    if "manual_assignment" in kwargs:
+        sets.append("manual_assignment = ?")
+        params.append(kwargs["manual_assignment"] or None)
 
     if not sets:
         return False
