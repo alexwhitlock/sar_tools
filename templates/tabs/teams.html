@@ -92,6 +92,7 @@
     <!-- Kebab popup menu -->
     <div id="teamMenu" class="popup-menu hidden" role="menu" aria-label="Team actions">
       <button type="button" class="menu-item" data-action="edit" role="menuitem">Edit</button>
+      <button type="button" class="menu-item" data-action="history" role="menuitem">History</button>
       <button type="button" class="menu-item danger" data-action="delete" role="menuitem">Delete</button>
     </div>
 
@@ -158,8 +159,22 @@
 
         <div id="teamModalError" class="modal-error hidden"></div>
         <div class="modal-footer">
+          <button type="button" id="teamHistoryBtn" class="modal-footer-left">History</button>
           <button type="button" id="teamModalCancel">Cancel</button>
           <button type="button" id="teamModalSave">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team History Modal -->
+    <div id="teamHistoryBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal team-history-modal" role="dialog" aria-modal="true" aria-labelledby="teamHistoryTitle">
+        <div class="modal-header">
+          <div id="teamHistoryTitle" class="modal-title">Team History</div>
+          <button type="button" id="teamHistoryClose" class="modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body team-history-body">
+          <div id="teamHistoryTimeline" class="team-history-timeline"></div>
         </div>
       </div>
     </div>

@@ -1378,6 +1378,121 @@ function refreshMemberUI() {
 }
 
 /* ===============================
+   Team History
+   =============================== */
+
+function formatHistoryTs(utcStr) {
+  if (!utcStr) return "";
+  const dt = new Date(utcStr.replace(" ", "T") + "Z");
+  return dt.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function parseHistoryEntry(msg, teamName) {
+  const esc = teamName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if (new RegExp(`^Team "${esc}" created`).test(msg))
+    return { type: "create", lines: ["Team created"] };
+
+  if (new RegExp(`^Team "${esc}" deleted`).test(msg))
+    return { type: "delete", lines: ["Team deleted"] };
+
+  let m = msg.match(/^"(.+)" assigned to Team/);
+  if (m) return { type: "personnel", lines: [`${m[1]} joined the team`] };
+
+  m = msg.match(/^"(.+)" removed from Team/);
+  if (m) return { type: "personnel", lines: [`${m[1]} left the team`] };
+
+  m = msg.match(new RegExp(`^Team "${esc}" updated: (.+)$`));
+  if (m) {
+    const raw = m[1];
+    const lines = [];
+    let primaryType = "other";
+
+    const statusM = raw.match(/status="([^"]+)"/);
+    if (statusM) { lines.push(`Status → ${statusM[1]}`); primaryType = "status"; }
+
+    const nameM = raw.match(/name="([^"]+)"/);
+    if (nameM) lines.push(`Renamed to "${nameM[1]}"`);
+
+    const leaderM = raw.match(/leader="([^"]+)"/);
+    if (leaderM) {
+      lines.push(leaderM[1] === "(none)" ? "Leader cleared" : `Leader → ${leaderM[1]}`);
+      if (primaryType === "other") primaryType = "personnel";
+    }
+
+    const qtlM = raw.match(/quick_tl="([^"]+)"/);
+    if (qtlM) {
+      lines.push(qtlM[1] === "(none)" ? "Quick TL cleared" : `Quick TL → ${qtlM[1]}`);
+      if (primaryType === "other") primaryType = "personnel";
+    }
+
+    const qaM = raw.match(/quick_assignment="([^"]+)"/);
+    if (qaM) {
+      lines.push(qaM[1] === "(none)" ? "Quick assignment cleared" : `Quick assignment → ${qaM[1]}`);
+      if (primaryType === "other") primaryType = "assignment";
+    }
+
+    const notesM = raw.match(/notes="([^"]+)"/);
+    if (notesM) lines.push("Notes updated");
+
+    if (lines.length > 0) return { type: primaryType, lines };
+  }
+
+  return { type: "other", lines: [msg] };
+}
+
+function renderTeamHistoryTimeline(container, entries, teamName) {
+  if (!entries.length) {
+    container.innerHTML = '<div class="th-empty">No history found for this team.</div>';
+    return;
+  }
+  container.innerHTML = "";
+  for (const entry of entries) {
+    const parsed = parseHistoryEntry(entry.message, teamName);
+    const div = document.createElement("div");
+    div.className = `th-event th-${parsed.type}`;
+    div.innerHTML = `
+      <div class="th-time">${escapeHtml(formatHistoryTs(entry.timestamp))}</div>
+      <div class="th-desc">${parsed.lines.map(l => escapeHtml(l)).join("<br>")}</div>
+    `;
+    container.appendChild(div);
+  }
+}
+
+async function openTeamHistory(team) {
+  const backdrop = document.getElementById("teamHistoryBackdrop");
+  const titleEl  = document.getElementById("teamHistoryTitle");
+  const timeline = document.getElementById("teamHistoryTimeline");
+  if (!backdrop || !titleEl || !timeline) return;
+
+  titleEl.textContent = `Team ${team.name} — History`;
+  timeline.innerHTML = '<div class="th-loading">Loading…</div>';
+  backdrop.classList.remove("hidden");
+  backdrop.setAttribute("aria-hidden", "false");
+
+  const incidentName = getCurrentIncidentName();
+  try {
+    const resp = await fetch(
+      `/api/teams/history?incidentName=${encodeURIComponent(incidentName)}&teamName=${encodeURIComponent(team.name)}`
+    );
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
+    renderTeamHistoryTimeline(timeline, data.entries || [], team.name);
+  } catch (err) {
+    timeline.innerHTML = `<div class="th-error">Failed to load history: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function closeTeamHistory() {
+  const backdrop = document.getElementById("teamHistoryBackdrop");
+  if (backdrop) {
+    backdrop.classList.add("hidden");
+    backdrop.setAttribute("aria-hidden", "true");
+  }
+}
+
+
+/* ===============================
    Modal open/close
    =============================== */
 
@@ -1399,6 +1514,8 @@ async function openTeamModal(mode, team = null) {
   statusSelect.value = team?.status ?? "Out of Service";
   const notesInput = document.getElementById("teamNotes");
   if (notesInput) notesInput.value = team?.notes ?? "";
+  const histBtn = document.getElementById("teamHistoryBtn");
+  if (histBtn) histBtn.disabled = mode === "create";
 
   const quickTlInput     = document.getElementById("quickTl");
   const quickAssignInput = document.getElementById("quickAssignment");
@@ -1577,6 +1694,18 @@ function wireModal() {
   closeBtn.addEventListener("click", closeTeamModal);
   cancelBtn.addEventListener("click", closeTeamModal);
   backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeTeamModal(); });
+
+  // History button — open history panel on top (edit modal stays open)
+  document.getElementById("teamHistoryBtn")?.addEventListener("click", async () => {
+    const team = findTeamInCache(activeTeamId);
+    if (team) await openTeamHistory(team);
+  });
+
+  // History modal close
+  document.getElementById("teamHistoryClose")?.addEventListener("click", closeTeamHistory);
+  document.getElementById("teamHistoryBackdrop")?.addEventListener("click", (e) => {
+    if (e.target === document.getElementById("teamHistoryBackdrop")) closeTeamHistory();
+  });
   saveBtn.addEventListener("click", saveTeamModal);
 
   // Remove member via delegation
@@ -1653,6 +1782,13 @@ function wireMenuAndKebab() {
       const team = findTeamInCache(teamId);
       if (!team) return;
       await openTeamModal("edit", team);
+      return;
+    }
+
+    if (action === "history") {
+      const team = findTeamInCache(teamId);
+      if (!team) return;
+      await openTeamHistory(team);
       return;
     }
 
@@ -1750,9 +1886,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (panel.classList.contains("active")) loadTeams();
   });
 
-  // Escape closes all overlays
+  // Escape closes the top-most overlay first
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      const histBackdrop = document.getElementById("teamHistoryBackdrop");
+      if (histBackdrop && !histBackdrop.classList.contains("hidden")) {
+        closeTeamHistory();
+        return;
+      }
       closeTeamMenu();
       closeTeamModal();
     }

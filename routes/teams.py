@@ -16,7 +16,7 @@ from db.teams_repo import (
 )
 from db.errors import ConflictError
 from db.personnel_repo import get_person_name
-from db.log_repo import insert_log
+from db.log_repo import insert_log, get_logs
 
 
 def _log(incident_name, message):
@@ -139,6 +139,22 @@ def api_teams_delete():
             return jsonify({"ok": False, "error": "team not found"}), 404
         _log(incident_name, f'Team "{name}" deleted')
         return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.get("/api/teams/history")
+def api_teams_history():
+    incident_name = (request.args.get("incidentName") or "").strip()
+    team_name = (request.args.get("teamName") or "").strip()
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName is required"}), 400
+    if not team_name:
+        return jsonify({"ok": False, "error": "teamName is required"}), 400
+    try:
+        rows = get_logs(incident_name, type_filter="user_event",
+                        search=f'Team "{team_name}"', order="asc")
+        return jsonify({"ok": True, "entries": rows})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
