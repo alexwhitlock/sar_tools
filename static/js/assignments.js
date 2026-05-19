@@ -190,9 +190,13 @@ function renderAssignmentRow(a) {
     numberHtml += ` <span class="conflict-warn" title="Duplicate: assignment number ${a.number} is used more than once">⚠</span>`;
   }
 
+  const noTeamWarn = (a.status || "").toUpperCase() === "INPROGRESS" && !(a.team || "").trim()
+    ? ` <span class="conflict-warn" title="In-progress assignment has no team assigned">⚠</span>`
+    : "";
+
   tr.innerHTML = `
     <td>${numberHtml}</td>
-    <td>${escapeHtml(a.team ?? "")}</td>
+    <td>${escapeHtml(a.team ?? "")}${noTeamWarn}</td>
     <td>${escapeHtml(a.resourceType ?? "")}</td>
     <td>${escapeHtml(a.asgnType ?? "")}</td>
     <td class="col-asgn-description" title="${escapeHtml(a.description ?? "")}">${escapeHtml(a.description ?? "")}</td>
@@ -258,6 +262,14 @@ export async function loadAssignments() {
           .map(([letter, nums]) => `Team ${letter} (assignments ${nums.join(", ")})`)
           .join("; ");
         warnings.push(`Multiple in-progress assignments: ${detail}`);
+      }
+
+      const inProgressNoTeam = assignmentsCache.filter(
+        a => (a.status || "").toUpperCase() === "INPROGRESS" && !(a.team || "").trim()
+      );
+      if (inProgressNoTeam.length > 0) {
+        const nums = inProgressNoTeam.map(a => a.number ?? "?").join(", ");
+        warnings.push(`In-progress assignment${inProgressNoTeam.length > 1 ? "s" : ""} ${nums} ${inProgressNoTeam.length > 1 ? "have" : "has"} no team assigned`);
       }
 
       const titleConflicts = assignmentsCache.filter(a => a.titleConflict);
@@ -829,9 +841,6 @@ async function saveEditModal() {
     });
     closeEditModal();
     await loadAssignments();
-    if (validationWarn) {
-      assignmentsMessage.show(`⚠ ${validationWarn}`, "warning");
-    }
     if (newStatus === "COMPLETED")  await maybeStageTeam(newTeam || _modalAsgn.team);
     if (newStatus === "INPROGRESS") await maybeBriefTeam(newTeam || _modalAsgn.team);
   } catch (err) {
