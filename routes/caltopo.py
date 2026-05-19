@@ -146,7 +146,8 @@ def api_assignment_data_update():
         if asgn_type:   parts.append(f'type="{asgn_type}"')
         if description: parts.append(f'description="{description}"')
         if notes:       parts.append(f'notes="{notes}"')
-        _log(incident_name, f'{label} updated: {", ".join(parts)}' if parts else f'{label} data cleared')
+        if parts:
+            _log(incident_name, f'{label} updated: {", ".join(parts)}')
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
