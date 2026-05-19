@@ -136,7 +136,5 @@
 
 .system-info-value {
   color: #222;
-  font-family: monospace;
-  font-size: 12px;
   word-break: break-all;
 }
