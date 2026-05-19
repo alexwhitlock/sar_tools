@@ -1106,8 +1106,8 @@ function renderKanban(teams) {
         : "";
 
       const kanbanConflict = getStatusConflictWarning(team);
-      const kanbanConflictHtml = kanbanConflict
-        ? `<div class="team-unchecked-warn">⚠ ${escapeHtml(kanbanConflict)}</div>`
+      const kanbanConflictIcon = kanbanConflict
+        ? ` <span class="conflict-warn" title="${escapeHtml(kanbanConflict)}">⚠</span>`
         : "";
 
       card.innerHTML = `
@@ -1116,9 +1116,8 @@ function renderKanban(teams) {
           <span class="kanban-card-members" title="${memberTooltip(team)}">${team.memberCount ?? 0} Members</span>
         </div>
         <div class="kanban-card-tl">TL: ${escapeHtml(team.teamLeaderName || "None")}</div>
-        <div class="kanban-card-assignment">${assignmentHtml}</div>
+        <div class="kanban-card-assignment">${assignmentHtml}${kanbanConflictIcon}</div>
         ${kanbanUnchecked}
-        ${kanbanConflictHtml}
       `;
 
       wireMouseDnd(card, team);
