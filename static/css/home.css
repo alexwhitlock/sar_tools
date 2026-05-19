@@ -121,6 +121,7 @@
   gap: 6px 12px;
   margin-top: 6px;
   font-size: 13px;
+  align-items: center;
 }
 
 .system-info-row {

@@ -317,7 +317,10 @@ async function loadSystemInfo() {
     const res = await fetch("/api/system-info");
     const data = await res.json();
     const set = (id, val) => { const el = $(id); if (el) el.textContent = val || "unknown"; };
-    set("sysHostname", data.hostname);
+    const hostname = data.hostname === "t3600"
+      ? "t3600 (hosted on Alex Whitlock's home server)"
+      : data.hostname;
+    set("sysHostname", hostname);
     set("sysGitHash",  data.gitHash);
     set("sysGitDate",  formatDeployDate(data.gitDate));
     set("sysDbPath",   data.dbPath);
