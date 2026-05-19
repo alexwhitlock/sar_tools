@@ -190,6 +190,10 @@ tr:nth-child(even) td { background: #f8fafc; }
 .badge-orange { background: #ffedd5; color: #9a3412; }
 .badge-gray   { background: #f1f5f9; color: #475569; }
 .badge-red    { background: #fee2e2; color: #991b1b; }
+.badge-teal   { background: #ccfbf1; color: #115e59; }
+.badge-purple { background: #f3e8ff; color: #581c87; }
+.badge-amber  { background: #fef3c7; color: #92400e; }
+.badge-dark   { background: #e2e8f0; color: #1e293b; }
 
 .note {
   background: #eff6ff;
@@ -395,7 +399,7 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
 <div class="note">The selected incident persists across tabs. All data shown — assignments, personnel, teams, and log entries — belongs to the currently selected incident.</div>
 
 <h3>CalTopo setup</h3>
-<p>SAR Tools reads assignment data from a CalTopo map. Enter the <strong>Map ID</strong> (the alphanumeric code from the CalTopo URL, e.g. <code>APC1GE5</code>) and click <strong>Set Map</strong>. The map title will be confirmed once successfully linked.</p>
+<p>SAR Tools reads assignment data from a CalTopo map. Enter the <strong>Map ID</strong> (the alphanumeric code from the CalTopo URL, e.g. <code>APC1GE5</code>) and click <strong>Apply</strong>. The map title will be confirmed once successfully linked.</p>
 
 <h4>Online vs Offline mode</h4>
 <table>
@@ -439,10 +443,10 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
 <h3>Grid configuration</h3>
 <p>Use the <strong>Rows</strong> and <strong>Columns</strong> inputs to create a multi-segment grid. The tool builds the grid from the starting corner, placing segments in sequence along the bearing.</p>
 
-<p>The <strong>positioning mode</strong> controls where additional rows/columns are placed relative to the first segment (e.g. extending left, right, above, or below).</p>
+<p>The <strong>positioning mode</strong> controls where the starting coordinate sits relative to the grid: <strong>Center of grid (even only)</strong> places it at the centre of a symmetrical grid (requires an even number of columns), and <strong>Corner of grid</strong> places it at the corner of the first segment.</p>
 
 <h3>Preview and upload</h3>
-<p>Click <strong>Preview</strong> to see the generated polygons on the map. Review the shapes before uploading. Click <strong>Upload to CalTopo</strong> to push the segments to the linked map. Each segment becomes a separate Assignment feature in CalTopo.</p>
+<p>Click <strong>Preview</strong> to see the generated polygons on the map. Review the shapes before uploading. Click <strong>Upload</strong> to push the segments to the linked map. Each segment becomes a separate Assignment feature in CalTopo.</p>
 
 <div class="warn">Upload requires a valid Map ID to be set on the Home tab and an active internet (or local CalTopo) connection.</div>
 
@@ -460,15 +464,19 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
     <th>Meaning</th>
   </tr>
   <tr>
-    <td><span class="badge badge-gray">UNASSIGNED</span></td>
-    <td>Assignment exists in CalTopo but no team has been dispatched.</td>
+    <td><span class="badge badge-blue">DRAFT</span></td>
+    <td>Assignment exists in CalTopo but has not yet been prepared for dispatch.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-blue">INPROGRESS</span></td>
+    <td><span class="badge badge-orange">PREPARED</span></td>
+    <td>Assignment has been prepared and is ready to be dispatched to a team.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-red">INPROGRESS</span></td>
     <td>A team is actively working this assignment.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-green">COMPLETED</span></td>
+    <td><span class="badge badge-purple">COMPLETED</span></td>
     <td>Assignment has been completed. The CalTopo title is prefixed with "X".</td>
   </tr>
 </table>
@@ -551,15 +559,15 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
 </table>
 
 <h3>Adding personnel manually</h3>
-<p>Click <strong>+ Add Person</strong> and enter the person's name. The tool checks for duplicate or similar names and will warn you before saving if a match is found.</p>
+<p>Click <strong>+ Person</strong> and enter the person's name. The tool checks for duplicate or similar names and will warn you before saving if a match is found.</p>
 
 <h3>D4H import</h3>
-<p>If a D4H activity is linked on the Home tab, click <strong>Import from D4H</strong> to pull the attendance list for that activity. The import flow:</p>
+<p>If a D4H activity is linked on the Home tab, click <strong>Add from D4H</strong> to pull the attendance list for that activity. The import flow:</p>
 <ol>
   <li>SAR Tools fetches the list of attending members from D4H.</li>
   <li>Each member is compared against the existing personnel list.</li>
   <li>Members already in the database (matched by D4H ID) are updated.</li>
-  <li>Members whose names closely match an existing manually-added person are flagged as <strong>conflicts</strong> — you can choose to merge them or add as a separate entry.</li>
+  <li>Members whose names closely match an existing manually-added person are flagged as <strong>conflicts</strong> — choose <strong>Link to Existing</strong> (associate the D4H record with the existing person), <strong>Add as New</strong> (import as a separate entry), or <strong>Skip</strong> (do not import).</li>
   <li>New members with no match are imported directly.</li>
 </ol>
 
@@ -601,15 +609,15 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
     <td>Team is not active. All members must be checked in before moving to any other status.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-gray">Staged</span></td>
+    <td><span class="badge badge-blue">Staged</span></td>
     <td>Team is assembled and waiting for briefing.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-blue">Briefed</span></td>
+    <td><span class="badge badge-teal">Briefed</span></td>
     <td>Team has received their briefing.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-blue">Travelling to Assignment</span></td>
+    <td><span class="badge badge-orange">Travelling to Assignment</span></td>
     <td>Team is en route. Requires an assignment (CalTopo or Quick Add).</td>
   </tr>
   <tr>
@@ -617,15 +625,15 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
     <td>Team is actively working their assignment.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-orange">Returning from Assignment</span></td>
+    <td><span class="badge badge-purple">Returning from Assignment</span></td>
     <td>Team is heading back to base.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-orange">Awaiting Debrief</span></td>
+    <td><span class="badge badge-amber">Awaiting Debrief</span></td>
     <td>Team has returned and is waiting for debrief.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-gray">Retired</span></td>
+    <td><span class="badge badge-dark">Retired</span></td>
     <td>Team is stood down for the day.</td>
   </tr>
 </table>
@@ -670,8 +678,8 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
 <p>The Quick Log sub-tab is optimised for rapid entry of radio traffic. Use the buttons to build a log message:</p>
 
 <ol>
-  <li>Select a <strong>Role</strong> (IC, PLANS, OPS, COMMS, OTHER) — who is sending or receiving.</li>
-  <li>Select a <strong>Type</strong> (Comms, Note, System).</li>
+  <li>Select a <strong>Role</strong> (IC, PLANS, OPS, LOGS, SAFETY, COMMS, OTHER) — who is sending or receiving.</li>
+  <li>Select a <strong>Type</strong> (COMMS or NOTE). System entries are created automatically by the tool.</li>
   <li>Select a <strong>Method</strong> and <strong>Connector</strong> (e.g., "Radio to", "Phone from") to describe the communication channel.</li>
   <li>Select a <strong>Team station</strong> button or type a free-form message.</li>
   <li>Click <strong>Submit</strong> or press Enter to log the entry.</li>
@@ -690,7 +698,7 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
 </ul>
 
 <h4>Exporting the log</h4>
-<p>Click <strong>Export</strong> to download the log as a <strong>CSV</strong> file or <strong>PDF</strong>. The export respects any active filters — to export all entries, clear all filters before exporting. The PDF export includes the incident name, timestamp, and all filtered entries in a printable table.</p>
+<p>Click <strong>Export ▾</strong> to open the export menu. Options: <strong>All entries — CSV</strong>, <strong>Current view — CSV</strong>, <strong>All entries — PDF</strong>, or <strong>Current view — PDF</strong>. "Current view" respects any active search and filter. The PDF export includes the incident name, timestamp, and entries in a printable table.</p>
 
 
 <!-- ════════════════════════════════ -->
@@ -739,7 +747,7 @@ cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
   <tr>
     <td>D4H conflict — name match</td>
     <td>A D4H import found a member whose name closely matches an existing manually-added person.</td>
-    <td>In the conflict resolution screen, choose to <em>Merge</em> (link the D4H record to the existing person) or <em>Add separately</em>.</td>
+    <td>In the conflict resolution screen, choose <strong>Link to Existing</strong> (associate the D4H record with the existing person), <strong>Add as New</strong>, or <strong>Skip</strong>.</td>
   </tr>
   <tr>
     <td>D4H member no longer attending</td>
