@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SAR Tools — Help</title>
+<style>
+
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  background: #f7f7f7;
+}
+
+a { color: #1a56a0; }
+
+/* ── Layout ── */
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+nav.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #1e293b;
+  color: #cbd5e1;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 1.25rem 0 2rem;
+}
+
+.sidebar-title {
+  font-size: 0.78rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar a {
+  display: block;
+  padding: 0.38rem 1rem;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.875rem;
+  border-left: 3px solid transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.sidebar a:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.sidebar a.active {
+  background: #1e40af22;
+  border-left-color: #3b82f6;
+  color: #93c5fd;
+}
+
+.sidebar a.sub {
+  padding-left: 1.75rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.sidebar a.sub:hover {
+  color: #f1f5f9;
+}
+
+.pdf-btn-wrap {
+  padding: 1rem 1rem 0;
+  margin-top: 0.75rem;
+  border-top: 1px solid #334155;
+}
+
+.pdf-btn {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
+
+.pdf-btn:hover { background: #1d4ed8; color: #fff; }
+
+/* ── Main content ── */
+main {
+  flex: 1;
+  padding: 2.5rem 2.75rem;
+  max-width: 860px;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 0.3rem;
+  color: #0f172a;
+}
+
+.doc-subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-bottom: 2.5rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  color: #1e293b;
+  margin-top: 3rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+h3 {
+  font-size: 1.05rem;
+  color: #334155;
+  margin-top: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+
+h4 {
+  font-size: 0.95rem;
+  color: #475569;
+  margin-top: 1.1rem;
+  margin-bottom: 0.3rem;
+}
+
+p { margin-bottom: 0.75rem; }
+
+ul, ol {
+  margin: 0.4rem 0 0.75rem 1.5rem;
+}
+
+li { margin-bottom: 0.3rem; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.875rem;
+}
+
+th {
+  background: #f1f5f9;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  font-weight: bold;
+}
+
+td {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+tr:nth-child(even) td { background: #f8fafc; }
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+.badge-blue   { background: #dbeafe; color: #1e40af; }
+.badge-green  { background: #dcfce7; color: #166534; }
+.badge-orange { background: #ffedd5; color: #9a3412; }
+.badge-gray   { background: #f1f5f9; color: #475569; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+
+.note {
+  background: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  padding: 0.6rem 0.9rem;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.warn {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  padding: 0.6rem 0.9rem;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.section-anchor { scroll-margin-top: 1.5rem; }
+
+code {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.82rem;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Print / PDF ── */
+@media print {
+  body { background: #fff; font-size: 11pt; }
+
+  nav.sidebar { display: none; }
+
+  .layout { display: block; }
+
+  main {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  h1 { font-size: 18pt; }
+  h2 { font-size: 13pt; page-break-before: always; margin-top: 0; }
+  h2:first-of-type { page-break-before: avoid; }
+  h3 { font-size: 11pt; }
+
+  a { color: #000; text-decoration: none; }
+
+  .note, .warn { border-left-width: 3px; }
+
+  table { font-size: 9pt; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-title">SAR Tools Help</div>
+  <a href="#overview">Overview</a>
+  <a href="#deployment">Deployment</a>
+  <a href="#deployment" class="sub">Web-hosted vs Local</a>
+  <a href="#updating" class="sub">Updating</a>
+  <a href="#home">Home</a>
+  <a href="#home" class="sub">Incidents</a>
+  <a href="#home" class="sub">CalTopo Setup</a>
+  <a href="#home" class="sub">D4H Integration</a>
+  <a href="#rectangle">Rectangle Tool</a>
+  <a href="#assignments">Assignments</a>
+  <a href="#assignments" class="sub">Statuses</a>
+  <a href="#assignments" class="sub">Editing</a>
+  <a href="#personnel">Personnel</a>
+  <a href="#personnel" class="sub">Adding Personnel</a>
+  <a href="#personnel" class="sub">D4H Import</a>
+  <a href="#teams">Teams</a>
+  <a href="#teams" class="sub">Status Workflow</a>
+  <a href="#teams" class="sub">Views</a>
+  <a href="#teams" class="sub">History</a>
+  <a href="#logging">Logging</a>
+  <a href="#logging" class="sub">Quick Log</a>
+  <a href="#logging" class="sub">View Log</a>
+  <a href="#warnings">Warnings &amp; Errors</a>
+  <div class="pdf-btn-wrap">
+    <button class="pdf-btn" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</nav>
+
+<!-- ── Content ── -->
+<main>
+
+<h1>SAR Tools</h1>
+<p class="doc-subtitle">Operational support tool for search and rescue incident management</p>
+
+<!-- ════════════════════════════════ -->
+<h2 id="overview" class="section-anchor">Overview</h2>
+
+<p>SAR Tools is a web-based application for managing the operational side of a search and rescue incident. It provides a real-time shared view for the incident management team, covering assignments, personnel tracking, team status, and communications logging.</p>
+
+<h3>Key capabilities</h3>
+<ul>
+  <li><strong>Assignments</strong> — Reads assignment data from a CalTopo map and tracks status, resource type, team, and notes alongside the CalTopo data.</li>
+  <li><strong>Personnel</strong> — Tracks who is on scene with check-in / check-out status. Supports manual entry and bulk import from D4H.</li>
+  <li><strong>Teams</strong> — Creates and tracks field teams with status workflows, member lists, and team leaders. Integrates with CalTopo assignment team fields.</li>
+  <li><strong>Logging</strong> — Records radio traffic and operational notes in a searchable, exportable log.</li>
+  <li><strong>Rectangle Tool</strong> — Draws assignment polygons (grids) that can be uploaded directly to CalTopo.</li>
+</ul>
+
+<h3>Multiple users</h3>
+<p>Multiple operators can use the tool simultaneously. The interface syncs automatically every 30 seconds and immediately after any change you make. If a record is changed by another user while you have an edit modal open, you will receive a conflict warning and the data will be reloaded.</p>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="deployment" class="section-anchor">Deployment</h2>
+
+<h3>Web-hosted vs locally-hosted</h3>
+
+<p>SAR Tools can be run in two modes depending on your network situation:</p>
+
+<table>
+  <tr>
+    <th></th>
+    <th>Web-hosted</th>
+    <th>Locally-hosted</th>
+  </tr>
+  <tr>
+    <td><strong>CalTopo</strong></td>
+    <td>Online (caltopo.com)</td>
+    <td>Offline server on local network</td>
+  </tr>
+  <tr>
+    <td><strong>Internet required</strong></td>
+    <td>Yes</td>
+    <td>No</td>
+  </tr>
+  <tr>
+    <td><strong>Access</strong></td>
+    <td>Any browser with access to the server</td>
+    <td>Devices on the same local network (Wi-Fi hotspot or LAN)</td>
+  </tr>
+  <tr>
+    <td><strong>CalTopo mode setting</strong></td>
+    <td>Online</td>
+    <td>Offline</td>
+  </tr>
+</table>
+
+<h4>Web-hosted (online)</h4>
+<p>The server connects directly to <strong>caltopo.com</strong> to read and write assignment data. This requires an internet connection on the server. Operators access the tool through a browser — either over the internet or via a VPN (e.g., Tailscale). The map ID and CalTopo API credentials are configured by the administrator.</p>
+
+<h4>Locally-hosted (offline)</h4>
+<p>SAR Tools runs on a laptop or local server connected to a Wi-Fi hotspot. A local CalTopo offline server runs on the same machine (or local network). Operators connect their devices to the hotspot and open the tool in a browser using the server's local IP address. Select <strong>Offline</strong> mode on the Home tab when using a local CalTopo server.</p>
+
+<div class="note">When running offline, the CalTopo offline server URL must be reachable from the SAR Tools server. By default it expects <code>http://localhost:8080</code>. This can be changed in the server configuration.</div>
+
+
+<!-- ════════════════════════ -->
+<h2 id="updating" class="section-anchor">Updating the locally-hosted server</h2>
+
+<p>SAR Tools runs as a Docker container. To update to the latest version:</p>
+
+<h3>1. Pull the latest code</h3>
+<p>SSH into the server and pull the latest code from GitHub:</p>
+<p><code>ssh alex@&lt;server-ip&gt;</code><br>
+<code>cd ~/sar_tools &amp;&amp; git pull</code></p>
+
+<h3>2. Rebuild and restart</h3>
+<p>Run the following command on the server to rebuild the Docker image and restart the container. Replace <code>&lt;env&gt;</code> with <code>sar-tools-test</code> or <code>sar-tools-prod</code>:</p>
+
+<p><code>HASH=$(git rev-parse --short HEAD) &amp;&amp; DATE=$(git log -1 --format=%cI HEAD) &amp;&amp; HOST=$(hostname) &amp;&amp;<br>
+docker build --build-arg GIT_HASH=$HASH --build-arg GIT_DATE=$DATE --build-arg HOST_HOSTNAME=$HOST -t sar-tools:$HASH . &amp;&amp;<br>
+sed -i "s|image: sar-tools:.*|image: sar-tools:$HASH|" ~/compose/&lt;env&gt;/docker-compose.yml &amp;&amp;<br>
+cd ~/compose/&lt;env&gt; &amp;&amp; docker compose up -d</code></p>
+
+<h3>3. Verify</h3>
+<p>Check the System Info card on the Home tab — the Git commit hash shown should match the latest commit. The container version is also visible in the page title and system info panel.</p>
+
+<h3>Test vs production</h3>
+<ul>
+  <li><strong>Test</strong> — port 5001, compose folder <code>sar-tools-test</code>, data in <code>sar-tools-test-data/</code></li>
+  <li><strong>Production</strong> — port 5000, compose folder <code>sar-tools-prod</code>, data in <code>sar-tools-prod-data/</code></li>
+</ul>
+
+<div class="warn">Always test on the test environment before updating production, especially mid-incident.</div>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="home" class="section-anchor">Home</h2>
+
+<h3>Incidents</h3>
+<p>All data in SAR Tools is scoped to an <strong>incident</strong>. Select an incident from the dropdown at the top of the Home tab, or create a new one with the <strong>+ New Incident</strong> button.</p>
+
+<ul>
+  <li>Incidents can be renamed or exported as a zip archive for backup.</li>
+  <li>A previously exported incident can be re-imported.</li>
+  <li>Deleting an incident is permanent and removes all associated data.</li>
+</ul>
+
+<div class="note">The selected incident persists across tabs. All data shown — assignments, personnel, teams, and log entries — belongs to the currently selected incident.</div>
+
+<h3>CalTopo setup</h3>
+<p>SAR Tools reads assignment data from a CalTopo map. Enter the <strong>Map ID</strong> (the alphanumeric code from the CalTopo URL, e.g. <code>APC1GE5</code>) and click <strong>Set Map</strong>. The map title will be confirmed once successfully linked.</p>
+
+<h4>Online vs Offline mode</h4>
+<table>
+  <tr>
+    <th>Mode</th>
+    <th>When to use</th>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">Online</span></td>
+    <td>Connected to the internet; CalTopo data is read from and written to caltopo.com.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-gray">Offline</span></td>
+    <td>Using a local CalTopo offline server; no internet required. Set this before syncing.</td>
+  </tr>
+</table>
+
+<h3>D4H integration</h3>
+<p>If your organisation uses D4H for member management, you can link a D4H activity to the incident. Enter the <strong>Activity ID</strong> and click <strong>Link Activity</strong>. This enables importing attending members directly into the Personnel tab.</p>
+
+<h3>Op Period</h3>
+<p>If the CalTopo map uses Operational Periods, select the active Op Period from the dropdown on the Home tab. This filters assignments across the Assignments and other tabs to show only the selected period.</p>
+
+<h3>System Info</h3>
+<p>The System Info card shows the server hostname, current Git commit hash (linked to GitHub), and the database path. This is useful for confirming which version of the tool is running and for troubleshooting.</p>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="rectangle" class="section-anchor">Rectangle Tool</h2>
+
+<p>The Rectangle Tool creates assignment polygon grids and uploads them to CalTopo. It is used to divide a search area into individual assignment segments.</p>
+
+<h3>Setup</h3>
+<ol>
+  <li>Select a <strong>coordinate format</strong>: MGRS or Lat/Lon.</li>
+  <li>Enter the <strong>starting corner</strong> coordinate of the first segment.</li>
+  <li>Set the <strong>bearing</strong> (direction the grid runs, in degrees).</li>
+  <li>Set the <strong>segment dimensions</strong> — length and width in metres.</li>
+</ol>
+
+<h3>Grid configuration</h3>
+<p>Use the <strong>Rows</strong> and <strong>Columns</strong> inputs to create a multi-segment grid. The tool builds the grid from the starting corner, placing segments in sequence along the bearing.</p>
+
+<p>The <strong>positioning mode</strong> controls where additional rows/columns are placed relative to the first segment (e.g. extending left, right, above, or below).</p>
+
+<h3>Preview and upload</h3>
+<p>Click <strong>Preview</strong> to see the generated polygons on the map. Review the shapes before uploading. Click <strong>Upload to CalTopo</strong> to push the segments to the linked map. Each segment becomes a separate Assignment feature in CalTopo.</p>
+
+<div class="warn">Upload requires a valid Map ID to be set on the Home tab and an active internet (or local CalTopo) connection.</div>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="assignments" class="section-anchor">Assignments</h2>
+
+<p>Assignments are sourced directly from a CalTopo map. SAR Tools reads the assignment list on every sync and supplements it with locally-stored data (type, notes). Status and team changes made in SAR Tools are written back to CalTopo.</p>
+
+<h3>Assignment statuses</h3>
+
+<table>
+  <tr>
+    <th>Status</th>
+    <th>Meaning</th>
+  </tr>
+  <tr>
+    <td><span class="badge badge-gray">UNASSIGNED</span></td>
+    <td>Assignment exists in CalTopo but no team has been dispatched.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">INPROGRESS</span></td>
+    <td>A team is actively working this assignment.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">COMPLETED</span></td>
+    <td>Assignment has been completed. The CalTopo title is prefixed with "X".</td>
+  </tr>
+</table>
+
+<h3>Views</h3>
+<p><strong>Table view</strong> — a sortable, filterable list of all assignments. Use the search bar and filter pills to narrow by status, team, resource type, or Op Period.</p>
+<p><strong>Kanban view</strong> — assignments arranged in columns by status. Drag a card between columns to change its status (writes back to CalTopo immediately).</p>
+
+<h3>Editing an assignment</h3>
+<p>Double-click a row or use the ⋮ menu and select <strong>Edit</strong> to open the edit modal. The following fields can be changed:</p>
+
+<table>
+  <tr>
+    <th>Field</th>
+    <th>Stored in</th>
+    <th>Notes</th>
+  </tr>
+  <tr>
+    <td>Status</td>
+    <td>CalTopo</td>
+    <td>Changing to COMPLETED prefixes the title with "X" in CalTopo.</td>
+  </tr>
+  <tr>
+    <td>Team</td>
+    <td>CalTopo</td>
+    <td>Single letter matching a team name (e.g. "A"). Included in the CalTopo title.</td>
+  </tr>
+  <tr>
+    <td>Description</td>
+    <td>CalTopo</td>
+    <td>Free-text description synced with the CalTopo assignment description field.</td>
+  </tr>
+  <tr>
+    <td>Type</td>
+    <td>Local</td>
+    <td>Open Grid, Closed Grid, Contour, Hasty, Other.</td>
+  </tr>
+  <tr>
+    <td>Notes</td>
+    <td>Local</td>
+    <td>Internal operational notes, not visible in CalTopo.</td>
+  </tr>
+</table>
+
+<h3>Warning indicators</h3>
+<ul>
+  <li><strong>⚠ Multiple assignments</strong> — a team has more than one INPROGRESS assignment at the same time.</li>
+  <li><strong>⚠ No team assigned</strong> — an INPROGRESS assignment has no team set.</li>
+  <li><strong>⚠ Title conflict</strong> — the CalTopo title's "X" prefix is out of sync with the status field.</li>
+</ul>
+
+<h3>Printing</h3>
+<p>Click <strong>Print</strong> in the toolbar to print or save the assignment table as a PDF. The print view includes the incident name and timestamp in the page header.</p>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="personnel" class="section-anchor">Personnel</h2>
+
+<p>The Personnel tab tracks who is on scene and their current status. Personnel can be added manually or imported from D4H.</p>
+
+<h3>Personnel statuses</h3>
+
+<table>
+  <tr>
+    <th>Status</th>
+    <th>Meaning</th>
+  </tr>
+  <tr>
+    <td><span class="badge badge-gray">Added</span></td>
+    <td>Person is on the roster but has not yet been processed at check-in.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">Checked In</span></td>
+    <td>Person has checked in and is available for tasking.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">Checked Out</span></td>
+    <td>Person has been released from the incident.</td>
+  </tr>
+</table>
+
+<h3>Adding personnel manually</h3>
+<p>Click <strong>+ Add Person</strong> and enter the person's name. The tool checks for duplicate or similar names and will warn you before saving if a match is found.</p>
+
+<h3>D4H import</h3>
+<p>If a D4H activity is linked on the Home tab, click <strong>Import from D4H</strong> to pull the attendance list for that activity. The import flow:</p>
+<ol>
+  <li>SAR Tools fetches the list of attending members from D4H.</li>
+  <li>Each member is compared against the existing personnel list.</li>
+  <li>Members already in the database (matched by D4H ID) are updated.</li>
+  <li>Members whose names closely match an existing manually-added person are flagged as <strong>conflicts</strong> — you can choose to merge them or add as a separate entry.</li>
+  <li>New members with no match are imported directly.</li>
+</ol>
+
+<p>Members who were previously imported from D4H but are no longer on the attendance list are shown as <strong>removed</strong> — you can choose to check them out or leave them as-is.</p>
+
+<div class="note">When you check out a person who is currently a team member, you will be prompted to also remove them from their team.</div>
+
+<h3>Filtering and searching</h3>
+<p>Use the search bar to find by name. Filter pills let you narrow by team assignment, team status, or check-in status.</p>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="teams" class="section-anchor">Teams</h2>
+
+<p>Teams are the operational field units. Each team has a single-letter name (A, B, C, …) that maps to the team field on CalTopo assignments.</p>
+
+<h3>Creating and editing teams</h3>
+<p>Click <strong>+ Team</strong> to create a team. In the edit modal you can set:</p>
+<ul>
+  <li><strong>Name</strong> — single letter, used in CalTopo assignment titles.</li>
+  <li><strong>Status</strong> — see workflow below.</li>
+  <li><strong>Notes</strong> — internal operational notes.</li>
+  <li><strong>Team Leader</strong> — selected from the team's current members.</li>
+  <li><strong>Members</strong> — add or remove personnel (only checked-in, unassigned personnel can be added).</li>
+</ul>
+
+<h3>Quick Add TL &amp; Assignment ⚡</h3>
+<p>Expand the <strong>⚡ Quick Add</strong> section in the edit modal to temporarily set a team leader name or assignment before the full personnel or CalTopo data is in place. Quick Add values are shown with a ⚡ icon throughout the tool and are automatically cleared once a real team leader or CalTopo assignment is linked.</p>
+
+<h3>Team status workflow</h3>
+
+<table>
+  <tr>
+    <th>Status</th>
+    <th>Notes</th>
+  </tr>
+  <tr>
+    <td><span class="badge badge-gray">Out of Service</span></td>
+    <td>Team is not active. All members must be checked in before moving to any other status.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-gray">Staged</span></td>
+    <td>Team is assembled and waiting for briefing.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">Briefed</span></td>
+    <td>Team has received their briefing.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">Travelling to Assignment</span></td>
+    <td>Team is en route. Requires an assignment (CalTopo or Quick Add).</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">On Assignment</span></td>
+    <td>Team is actively working their assignment.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">Returning from Assignment</span></td>
+    <td>Team is heading back to base.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">Awaiting Debrief</span></td>
+    <td>Team has returned and is waiting for debrief.</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-gray">Retired</span></td>
+    <td>Team is stood down for the day.</td>
+  </tr>
+</table>
+
+<p>The statuses Briefed through Awaiting Debrief are considered "in-progress" states. Moving a team to an in-progress state requires an active assignment. Moving a team out of an in-progress state while still on a live CalTopo assignment will show a warning.</p>
+
+<h3>Warning indicators</h3>
+<ul>
+  <li><strong>⚠ Not checked in</strong> — team has members whose status is not Checked In.</li>
+  <li><strong>⚠ Status conflict</strong> — team's status is inconsistent with their assignment state (e.g., On Assignment but no active CalTopo assignment).</li>
+</ul>
+
+<h3>Views</h3>
+
+<h4>Table view</h4>
+<p>A sortable list of all teams. Filter by status using the status pills. Use the column toggles to show/hide member names and notes. Double-click a row to edit. Supports print/PDF export.</p>
+
+<h4>Kanban view</h4>
+<p>Teams arranged in columns by status. <strong>Hold and drag</strong> a card to move it to a different status column (desktop and touch supported). Status change rules still apply — a warning is shown if a rule is violated, but the move is allowed.</p>
+
+<h4>Card view</h4>
+<p>A two-column layout showing unassigned personnel on the left and team cards on the right. <strong>Hold and drag</strong> a person chip to assign them to a team, change their role (member vs team leader), or return them to unassigned.</p>
+
+<h3>Team history</h3>
+<p>Click <strong>History</strong> from the ⋮ menu or the edit modal to view a timeline of events for a team, including:</p>
+<ul>
+  <li>Status changes</li>
+  <li>Personnel added and removed (grouped if they occurred at the same time)</li>
+  <li>Team leader changes</li>
+  <li>Assignment assigned or removed</li>
+  <li>Notes changes</li>
+</ul>
+<p>The timeline opens at the most recent event. Scroll up to see older history.</p>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="logging" class="section-anchor">Logging</h2>
+
+<p>The Logging tab provides a structured radio/communications log for the incident.</p>
+
+<h3>Quick Log</h3>
+<p>The Quick Log sub-tab is optimised for rapid entry of radio traffic. Use the buttons to build a log message:</p>
+
+<ol>
+  <li>Select a <strong>Role</strong> (IC, PLANS, OPS, COMMS, OTHER) — who is sending or receiving.</li>
+  <li>Select a <strong>Type</strong> (Comms, Note, System).</li>
+  <li>Select a <strong>Method</strong> and <strong>Connector</strong> (e.g., "Radio to", "Phone from") to describe the communication channel.</li>
+  <li>Select a <strong>Team station</strong> button or type a free-form message.</li>
+  <li>Click <strong>Submit</strong> or press Enter to log the entry.</li>
+</ol>
+
+<p>Quick message templates can be selected to pre-fill common message structures. The <strong>Auto-status transition</strong> toggle, when enabled, will automatically update a team's status based on certain logged messages (e.g., logging "Team A — Departed" moves Team A to Travelling to Assignment).</p>
+
+<h3>View Log</h3>
+<p>The View Log sub-tab shows all log entries for the incident in chronological order.</p>
+
+<h4>Filtering and search</h4>
+<ul>
+  <li>Search by message content or role.</li>
+  <li>Filter by entry type (System, Comms, Note) or role.</li>
+  <li>Mark entries as <strong>Important</strong> (starred) for quick reference.</li>
+</ul>
+
+<h4>Exporting the log</h4>
+<p>Click <strong>Export</strong> to download the log as a <strong>CSV</strong> file or <strong>PDF</strong>. The export respects any active filters — to export all entries, clear all filters before exporting. The PDF export includes the incident name, timestamp, and all filtered entries in a printable table.</p>
+
+
+<!-- ════════════════════════════════ -->
+<h2 id="warnings" class="section-anchor">Warnings &amp; Errors Reference</h2>
+
+<p>SAR Tools surfaces warnings in the message bar at the top of each tab and with ⚠ icons inline in tables and cards. This section explains each one and how to resolve it.</p>
+
+<h3>Assignments tab</h3>
+
+<table>
+  <tr>
+    <th>Warning</th>
+    <th>Cause</th>
+    <th>Resolution</th>
+  </tr>
+  <tr>
+    <td>⚠ In-progress assignment has no team assigned</td>
+    <td>An assignment is INPROGRESS in CalTopo but has no team letter in its title.</td>
+    <td>Edit the assignment and set the Team field.</td>
+  </tr>
+  <tr>
+    <td>⚠ Title conflict</td>
+    <td>The CalTopo assignment title has an "X" prefix but the status is not COMPLETED, or the status is COMPLETED but the title lacks the "X" prefix.</td>
+    <td>Edit the assignment and set the correct status. SAR Tools will rebuild the CalTopo title to match.</td>
+  </tr>
+  <tr>
+    <td>CalTopo sync failed</td>
+    <td>The server could not reach CalTopo (internet outage, credential issue, or the map ID is wrong).</td>
+    <td>Check internet connectivity and verify the Map ID on the Home tab. Review server logs if the issue persists.</td>
+  </tr>
+</table>
+
+<h3>Personnel tab</h3>
+
+<table>
+  <tr>
+    <th>Warning / Error</th>
+    <th>Cause</th>
+    <th>Resolution</th>
+  </tr>
+  <tr>
+    <td>Duplicate name detected</td>
+    <td>A person with the same or very similar name already exists when adding manually.</td>
+    <td>Review the match and either cancel (if it's the same person) or proceed to add a separate entry.</td>
+  </tr>
+  <tr>
+    <td>D4H conflict — name match</td>
+    <td>A D4H import found a member whose name closely matches an existing manually-added person.</td>
+    <td>In the conflict resolution screen, choose to <em>Merge</em> (link the D4H record to the existing person) or <em>Add separately</em>.</td>
+  </tr>
+  <tr>
+    <td>D4H member no longer attending</td>
+    <td>A person previously imported from D4H is not on the current D4H attendance list.</td>
+    <td>Check them out manually if they have left the scene, or ignore if this is expected.</td>
+  </tr>
+  <tr>
+    <td>⚠ Modified by another user (conflict)</td>
+    <td>The record was changed by another operator while your edit modal was open.</td>
+    <td>Close the modal and re-open it to see the latest data, then re-apply your changes.</td>
+  </tr>
+</table>
+
+<h3>Teams tab</h3>
+
+<table>
+  <tr>
+    <th>Warning / Error</th>
+    <th>Cause</th>
+    <th>Resolution</th>
+  </tr>
+  <tr>
+    <td>⚠ Some members not checked in</td>
+    <td>The team has one or more members whose personnel status is not Checked In.</td>
+    <td>Check in the affected members on the Personnel tab before putting the team in service.</td>
+  </tr>
+  <tr>
+    <td>Cannot put team in service — members not checked in</td>
+    <td>Attempting to move a team out of Out of Service when members are not checked in.</td>
+    <td>Check in all team members first.</td>
+  </tr>
+  <tr>
+    <td>⚠ Status conflict — no assignment</td>
+    <td>Team has an in-progress status (e.g. On Assignment) but no active CalTopo assignment or Quick Add assignment.</td>
+    <td>Assign a CalTopo assignment to the team, set a Quick Add assignment, or correct the team status.</td>
+  </tr>
+  <tr>
+    <td>⚠ Status conflict — has assignment but status is inactive</td>
+    <td>Team has an active CalTopo assignment but their status is Out of Service, Staged, or Retired.</td>
+    <td>Update the team status to reflect their current situation, or complete/reassign the CalTopo assignment.</td>
+  </tr>
+  <tr>
+    <td>⚠ Out of Service but assigned to in-progress assignment</td>
+    <td>A team marked Out of Service is still listed as the team on an INPROGRESS CalTopo assignment.</td>
+    <td>Reassign or complete the CalTopo assignment, or correct the team status.</td>
+  </tr>
+  <tr>
+    <td>⚠ Multiple in-progress assignments</td>
+    <td>The same team letter appears on more than one INPROGRESS assignment in CalTopo.</td>
+    <td>Complete or reassign the extra assignment in CalTopo.</td>
+  </tr>
+  <tr>
+    <td>Team in CalTopo not in database</td>
+    <td>A CalTopo assignment references a team letter (e.g. "D") that has not been created in SAR Tools.</td>
+    <td>Create the missing team on the Teams tab.</td>
+  </tr>
+  <tr>
+    <td>⚠ Still on in-progress assignment (status change warning)</td>
+    <td>Attempting to move a team out of an in-progress state while they still have an active CalTopo assignment.</td>
+    <td>This is a warning, not a block — the status change is allowed. To clear the warning, complete the assignment in CalTopo.</td>
+  </tr>
+  <tr>
+    <td>⚠ Modified by another user (conflict)</td>
+    <td>The team record was changed by another operator while your edit modal was open.</td>
+    <td>Close and re-open the edit modal to reload the current data.</td>
+  </tr>
+</table>
+
+<h3>General / connectivity</h3>
+
+<table>
+  <tr>
+    <th>Error</th>
+    <th>Cause</th>
+    <th>Resolution</th>
+  </tr>
+  <tr>
+    <td>No incident selected</td>
+    <td>A tab was opened before selecting an incident on the Home tab.</td>
+    <td>Go to Home and select or create an incident.</td>
+  </tr>
+  <tr>
+    <td>Offline</td>
+    <td>The browser has lost its connection to the SAR Tools server.</td>
+    <td>Check network connectivity. The tool will automatically reconnect and reload when the connection is restored.</td>
+  </tr>
+  <tr>
+    <td>Failed to load [data]: HTTP 500</td>
+    <td>An unexpected error occurred on the server.</td>
+    <td>Refresh the page. If it persists, check the server logs for details.</td>
+  </tr>
+</table>
+
+
+</main>
+</div>
+
+<script>
+// Highlight the active sidebar link based on scroll position
+(function () {
+  const sections = document.querySelectorAll("h2.section-anchor");
+  const links = document.querySelectorAll("nav.sidebar a");
+
+  function getActive() {
+    let active = null;
+    for (const s of sections) {
+      if (s.getBoundingClientRect().top <= 80) active = s;
+    }
+    return active;
+  }
+
+  function update() {
+    const active = getActive();
+    links.forEach(a => {
+      const href = a.getAttribute("href").slice(1);
+      a.classList.toggle("active", active && active.id === href);
+    });
+  }
+
+  window.addEventListener("scroll", update, { passive: true });
+  update();
+})();
+</script>
+
+</body>
+</html>

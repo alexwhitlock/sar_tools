@@ -99,7 +99,7 @@
 
     <button id="sync-now-btn" class="sync-now-btn hidden">Sync Now</button>
 
-    <button onclick="window.open('/help/help.pdf', '_blank')">Help</button>
+    <button onclick="var a=document.querySelector('.tab-panel.active');window.open('/help/help.html#'+(a?a.id:'overview'),'_blank')">Help</button>
 
   </div>
 
