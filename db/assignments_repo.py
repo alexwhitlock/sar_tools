@@ -17,21 +17,19 @@ def upsert_assignment_data(
     feature_id: str,
     *,
     asgn_type: Optional[str],
-    description: Optional[str],
     notes: Optional[str],
 ) -> None:
-    """Save or clear local data for a CalTopo assignment feature."""
+    """Save or clear local data (type, notes) for a CalTopo assignment feature."""
     with get_connection(incident_name) as conn:
-        if asgn_type is None and description is None and notes is None:
+        if asgn_type is None and notes is None:
             conn.execute("DELETE FROM assignments WHERE feature_id = ?", (feature_id,))
         else:
             conn.execute("""
-                INSERT INTO assignments (feature_id, type, description, notes, updated_at)
-                VALUES (?, ?, ?, ?, datetime('now'))
+                INSERT INTO assignments (feature_id, type, notes, updated_at)
+                VALUES (?, ?, ?, datetime('now'))
                 ON CONFLICT(feature_id) DO UPDATE SET
-                    type        = excluded.type,
-                    description = excluded.description,
-                    notes       = excluded.notes,
-                    updated_at  = datetime('now')
-            """, (feature_id, asgn_type, description, notes))
+                    type       = excluded.type,
+                    notes      = excluded.notes,
+                    updated_at = datetime('now')
+            """, (feature_id, asgn_type, notes))
         conn.commit()

@@ -115,9 +115,9 @@ def api_assignments():
             data_map = get_assignment_data(incident_name)
             for a in assignments:
                 row = data_map.get(a["id"]) or {}
-                a["notes"]       = row.get("notes") or None
-                a["asgnType"]    = row.get("type") or None
-                a["description"] = row.get("description") or None
+                a["notes"]   = row.get("notes") or None
+                a["asgnType"] = row.get("type") or None
+                # description comes from CalTopo, not local DB
         return jsonify(assignments)
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -129,9 +129,8 @@ def api_assignment_data_update():
     data = request.get_json(force=True) or {}
     incident_name = (data.get("incidentName") or "").strip()
     feature_id    = (data.get("featureId")    or "").strip()
-    asgn_type     = (data.get("type")         or "").strip() or None
-    description   = (data.get("description")  or "").strip() or None
-    notes         = (data.get("notes")        or "").strip() or None
+    asgn_type     = (data.get("type")  or "").strip() or None
+    notes         = (data.get("notes") or "").strip() or None
     number        = data.get("number")
 
     if not incident_name or not feature_id:
@@ -140,12 +139,11 @@ def api_assignment_data_update():
     try:
         from db.assignments_repo import upsert_assignment_data
         upsert_assignment_data(incident_name, feature_id,
-                               asgn_type=asgn_type, description=description, notes=notes)
+                               asgn_type=asgn_type, notes=notes)
         label = f"Assignment {number}" if number is not None else f"Assignment ({feature_id[:8]}…)"
         parts = []
-        if asgn_type:   parts.append(f'type="{asgn_type}"')
-        if description: parts.append(f'description="{description}"')
-        if notes:       parts.append(f'notes="{notes}"')
+        if asgn_type: parts.append(f'type="{asgn_type}"')
+        if notes:     parts.append(f'notes="{notes}"')
         if parts:
             _log(incident_name, f'{label} updated: {", ".join(parts)}')
         return jsonify(ok=True)
@@ -379,8 +377,9 @@ def api_update_assignment():
     feature_id    = (data.get("featureId")    or "").strip()
     incident_name = (data.get("incidentName") or "").strip()
     mode          = (data.get("mode")         or "online").strip()
-    new_status = data.get("status")   # None = don't change
-    new_team   = data.get("team")     # None = don't change; "" = clear team
+    new_status      = data.get("status")       # None = don't change
+    new_team        = data.get("team")         # None = don't change; "" = clear team
+    new_description = data.get("description")  # None = don't change; "" = clear
 
     if not map_id or not feature_id:
         return jsonify(ok=False, error="mapId and featureId required"), 400
@@ -404,6 +403,9 @@ def api_update_assignment():
 
         if new_team is not None:
             team = str(new_team).strip()
+
+        if new_description is not None:
+            props["description"] = new_description.strip()
 
         # Rebuild title keeping X prefix in sync with COMPLETED status
         new_title = _build_assignment_title(completed_x, number, team)
@@ -434,8 +436,9 @@ def api_update_assignment():
                 pass  # non-fatal
 
         parts = []
-        if new_status is not None: parts.append(f'status="{props["status"]}"')
-        if new_team   is not None: parts.append(f'team="{team or "(none)"}"')
+        if new_status      is not None: parts.append(f'status="{props["status"]}"')
+        if new_team        is not None: parts.append(f'team="{team or "(none)"}"')
+        if new_description is not None: parts.append(f'description="{new_description.strip() or "(none)"}"')
         if parts:
             _log(incident_name, f'Assignment {number or feature_id} updated: {", ".join(parts)}')
 
@@ -519,6 +522,7 @@ def get_assignments_for_map(map_id, mode: str = "online"):
             "assignmentType": assignment_type,
             "resourceType": props.get("resourceType"),
             "status": status,
+            "description": (props.get("description") or "").strip() or None,
             "op":   op_info.get("title"),
             "opId": op_id,
             "titleConflict": title_conflict,

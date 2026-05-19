@@ -140,26 +140,26 @@ async function writeToCalTopo({ featureId, status, team, notes, asgnType, descri
   if (!mapId || !featureId) throw new Error("Map ID or feature ID missing");
 
   const body = { mapId, featureId, incidentName, mode };
-  if (status !== undefined) body.status = status;
-  if (team   !== undefined) body.team   = team;
+  if (status      !== undefined) body.status      = status;
+  if (team        !== undefined) body.team        = team;
+  if (description !== undefined) body.description = description;
 
-  // DB-only fields (type, description, notes) — not written to CalTopo
-  if (notes !== undefined || asgnType !== undefined || description !== undefined) {
+  // DB-only fields (type, notes) — not written to CalTopo
+  if (notes !== undefined || asgnType !== undefined) {
     await fetch("/api/assignments/data", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         incidentName, featureId,
-        number:      number       ?? null,
-        type:        asgnType     ?? null,
-        description: description  ?? null,
-        notes:       notes        ?? null,
+        number: number   ?? null,
+        type:   asgnType ?? null,
+        notes:  notes    ?? null,
       }),
     });
   }
 
-  // Only hit CalTopo if status or team changed
-  if (body.status !== undefined || body.team !== undefined) {
+  // Hit CalTopo if status, team, or description changed
+  if (body.status !== undefined || body.team !== undefined || body.description !== undefined) {
     assignmentsMessage.show("Writing to CalTopo…", "info");
     const resp = await fetch("/api/caltopo/assignment/update", {
       method:  "POST",
