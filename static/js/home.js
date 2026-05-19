@@ -318,7 +318,7 @@ async function loadSystemInfo() {
     const data = await res.json();
     const set = (id, val) => { const el = $(id); if (el) el.textContent = val || "unknown"; };
     const hostname = data.hostname === "t3600"
-      ? "t3600 (hosted on Alex Whitlock's home server)"
+      ? "t3600 (Alex Whitlock's home server)"
       : data.hostname;
     set("sysHostname", hostname);
     set("sysGitHash",  data.gitHash);

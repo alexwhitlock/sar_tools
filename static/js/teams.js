@@ -123,6 +123,25 @@ function hasUncheckedMembers(team) {
 }
 
 /**
+ * Returns a warning string if the team's current state is inconsistent
+ * (result of a bypassed status-change rule), or null if everything looks OK.
+ */
+function getStatusConflictWarning(team) {
+  const hasInProgress = getInProgressAssignmentsForTeam(team.name).length > 0;
+  const memberIds = new Set(parseMemberData(team.memberData).map(m => String(m.id)));
+  const hasUnchecked = team.status !== "Out of Service" &&
+    allPersonnel.some(p => memberIds.has(String(p.id)) && p.status !== "Checked In");
+
+  if (hasUnchecked)
+    return "Some members are not checked in";
+  if (IN_PROGRESS_TEAM_STATES.has(team.status) && !hasInProgress)
+    return `Status is "${team.status}" but there is no in-progress CalTopo assignment`;
+  if (!IN_PROGRESS_TEAM_STATES.has(team.status) && team.status !== "Out of Service" && hasInProgress)
+    return `Has an in-progress CalTopo assignment but status is "${team.status}"`;
+  return null;
+}
+
+/**
  * Validate a proposed team status change against assignment rules.
  * Returns an error string if the change should be blocked, null if OK.
  */
@@ -291,9 +310,14 @@ function renderTeamRow(t) {
     ? ` <span class="team-unchecked-warn">⚠ Some members not checked in</span>`
     : "";
 
+  const statusConflict = getStatusConflictWarning(t);
+  const statusConflictHtml = statusConflict
+    ? ` <span class="conflict-warn" title="${escapeHtml(statusConflict)}">⚠</span>`
+    : "";
+
   const tr = document.createElement("tr");
   tr.innerHTML = `
-    <td>${escapeHtml(t.name)}${unchecked}</td>
+    <td>${escapeHtml(t.name)}${unchecked}${statusConflictHtml}</td>
     <td><span class="ts-badge ${badgeClass}">${escapeHtml(t.status)}</span></td>
     <td>${escapeHtml(t.teamLeaderName || "—")}</td>
     <td title="${memberTooltip(t)}" style="cursor:help">${t.memberCount ?? 0}</td>
@@ -1081,6 +1105,11 @@ function renderKanban(teams) {
         ? `<div class="team-unchecked-warn">⚠ Some members not checked in</div>`
         : "";
 
+      const kanbanConflict = getStatusConflictWarning(team);
+      const kanbanConflictHtml = kanbanConflict
+        ? `<div class="team-unchecked-warn">⚠ ${escapeHtml(kanbanConflict)}</div>`
+        : "";
+
       card.innerHTML = `
         <div class="kanban-card-header">
           <span class="kanban-card-name">Team ${escapeHtml(team.name)}</span>
@@ -1089,6 +1118,7 @@ function renderKanban(teams) {
         <div class="kanban-card-tl">TL: ${escapeHtml(team.teamLeaderName || "None")}</div>
         <div class="kanban-card-assignment">${assignmentHtml}</div>
         ${kanbanUnchecked}
+        ${kanbanConflictHtml}
       `;
 
       wireMouseDnd(card, team);
