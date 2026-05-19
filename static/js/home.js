@@ -300,6 +300,24 @@ async function loadIncidentSettings(incidentName) {
 }
 
 // ===============================
+// System info
+// ===============================
+
+async function loadSystemInfo() {
+  try {
+    const res = await fetch("/api/system-info");
+    const data = await res.json();
+    const set = (id, val) => { const el = $(id); if (el) el.textContent = val || "unknown"; };
+    set("sysHostname", data.hostname);
+    set("sysGitHash",  data.gitHash);
+    set("sysGitDate",  data.gitDate);
+    set("sysDbPath",   data.dbPath);
+  } catch (e) {
+    console.warn("[home.js] system info fetch failed:", e);
+  }
+}
+
+// ===============================
 // Home tab activation watcher
 // ===============================
 
@@ -519,6 +537,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   watchHomeTab();
+  loadSystemInfo();
   await loadIncidents("");
 });
 

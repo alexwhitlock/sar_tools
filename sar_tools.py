@@ -43,6 +43,9 @@ app.register_blueprint(sync_bp)
 from routes.pdf import bp as pdf_bp
 app.register_blueprint(pdf_bp)
 
+from routes.system import bp as system_bp
+app.register_blueprint(system_bp)
+
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 

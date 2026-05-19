@@ -116,4 +116,27 @@
   margin-top: 10px;
 }
 
+.system-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin-top: 6px;
+  font-size: 13px;
+}
 
+.system-info-row {
+  display: contents;
+}
+
+.system-info-label {
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+.system-info-value {
+  color: #222;
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
