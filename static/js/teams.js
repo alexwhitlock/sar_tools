@@ -1112,7 +1112,7 @@ function renderKanban(teams) {
       let assignmentHtml;
       if (inProgress.length === 0) {
         assignmentHtml = team.manualAssignment
-          ? `${escapeHtml(team.manualAssignment)} <span class="quick-add-icon" title="Quick Add value">⚡</span>`
+          ? `Assignment ${escapeHtml(team.manualAssignment)} <span class="quick-add-icon" title="Quick Add value">⚡</span>`
           : "Not Assigned";
       } else if (inProgress.length === 1) {
         assignmentHtml = escapeHtml(`Assignment ${inProgress[0].number ?? "?"}`);
