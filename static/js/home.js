@@ -303,6 +303,15 @@ async function loadIncidentSettings(incidentName) {
 // System info
 // ===============================
 
+function formatDeployDate(iso) {
+  if (!iso || iso === "unknown") return iso;
+  // "2026-05-19T13:17:37-04:00" → "2026-05-19 13:17"
+  const [datePart, rest] = iso.split("T");
+  if (!rest) return iso;
+  const timePart = rest.replace(/[+-]\d{2}:\d{2}$/, "").replace("Z", "");
+  return `${datePart} ${timePart.slice(0, 5)}`;
+}
+
 async function loadSystemInfo() {
   try {
     const res = await fetch("/api/system-info");
@@ -310,7 +319,7 @@ async function loadSystemInfo() {
     const set = (id, val) => { const el = $(id); if (el) el.textContent = val || "unknown"; };
     set("sysHostname", data.hostname);
     set("sysGitHash",  data.gitHash);
-    set("sysGitDate",  data.gitDate);
+    set("sysGitDate",  formatDeployDate(data.gitDate));
     set("sysDbPath",   data.dbPath);
   } catch (e) {
     console.warn("[home.js] system info fetch failed:", e);

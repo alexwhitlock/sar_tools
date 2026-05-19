@@ -1,7 +1,6 @@
 import json
 import os
 from flask import Blueprint, jsonify
-from db.database import INCIDENT_DIR
 
 bp = Blueprint("system", __name__)
 
@@ -20,5 +19,5 @@ def api_system_info():
         "gitHash":  version.get("gitHash",  "unknown"),
         "gitDate":  version.get("gitDate",  "unknown"),
         "hostname": version.get("hostname", "unknown"),
-        "dbPath":   INCIDENT_DIR,
+        "dbPath":   version.get("dbPath",   "unknown"),
     })
