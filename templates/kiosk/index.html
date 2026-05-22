@@ -181,8 +181,9 @@
     .picker-select:focus { outline: none; border-color: var(--accent); }
 
     /* ── Search ── */
+    .search-row { display: flex; gap: 8px; align-items: stretch; }
     .search-input {
-      width: 100%;
+      flex: 1;
       font-size: 1.05rem;
       padding: 12px 14px;
       border: 1.5px solid var(--border);
@@ -191,6 +192,18 @@
       background: #fafafa;
     }
     .search-input:focus { border-color: var(--accent); background: #fff; }
+    .search-dismiss-btn {
+      flex-shrink: 0;
+      padding: 0 14px;
+      font-size: 1.2rem;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: #fafafa;
+      cursor: pointer;
+      color: var(--muted);
+      line-height: 1;
+    }
+    .search-dismiss-btn:active { background: #eee; }
 
     .search-results {
       margin-top: 8px;
@@ -460,14 +473,17 @@
     <!-- CHECKOUT SECTION -->
     <div class="section" id="checkoutSection">
       <div class="card">
-        <input
-          type="search"
-          id="checkoutSearch"
-          class="search-input"
-          placeholder="Filter by name…"
-          autocomplete="off"
-          autocorrect="off"
-        />
+        <div class="search-row">
+          <input
+            type="search"
+            id="checkoutSearch"
+            class="search-input"
+            placeholder="Filter by name…"
+            autocomplete="off"
+            autocorrect="off"
+          />
+          <button type="button" id="checkoutSearchDismiss" class="search-dismiss-btn" title="Dismiss keyboard">&#x1F50D;</button>
+        </div>
         <div class="checkout-list" id="checkoutList"></div>
         <p class="checkout-empty" id="checkoutEmpty" style="display:none">No one is checked in yet.</p>
       </div>
@@ -957,13 +973,7 @@
 
   $("checkoutSearch").addEventListener("input", filterCheckout);
 
-  // Dismiss keyboard when user taps off the search input or scrolls the list
-  document.addEventListener("touchstart", (e) => {
-    if (document.activeElement === $("checkoutSearch") && e.target !== $("checkoutSearch")) {
-      $("checkoutSearch").blur();
-    }
-  }, { passive: true });
-  $("checkoutList").addEventListener("scroll", () => $("checkoutSearch").blur(), { passive: true });
+  $("checkoutSearchDismiss").addEventListener("click", () => $("checkoutSearch").blur());
 
   $("confirmCheckoutBtn").addEventListener("click", async () => {
     if (!selectedCheckoutPerson) return;
