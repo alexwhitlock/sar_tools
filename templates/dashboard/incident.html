@@ -25,13 +25,13 @@ body {
   display: flex;
   align-items: center;
   padding: 0 1.5rem;
-  height: 58px;
+  height: 40px;
   flex-shrink: 0;
   gap: 1.5rem;
 }
 
 .dash-logo {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -40,7 +40,7 @@ body {
 }
 
 .dash-incident {
-  font-size: 1.35rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #f1f5f9;
   flex: 1;
@@ -50,7 +50,7 @@ body {
 }
 
 .dash-clock {
-  font-size: 1.5rem;
+  font-size: 0.95rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #f1f5f9;
@@ -167,40 +167,48 @@ body {
 
 .team-card-detail {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
   white-space: nowrap;
   font-size: 0.72rem;
-  padding: 0 0.55rem;
-  border-left: 1px solid rgba(255,255,255,0.25);
+  padding: 0 0.5rem;
 }
 
 .team-card-detail-label {
   font-size: 0.55rem;
   opacity: 0.65;
   line-height: 1;
-  margin-bottom: 1px;
+  flex-shrink: 0;
 }
 
 .team-card-detail-tl {
-  width: 110px;
+  width: 135px;
 }
 
 .team-card-detail-asgn {
-  width: 52px;
+  width: 55px;
 }
 
 .team-card-detail-members {
-  width: 34px;
-  align-items: center;
+  width: 36px;
 }
 
 /* TL name ellipsis */
 .team-card-detail-tl-value {
-  max-width: 100%;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Scroll loop separator */
+.teams-scroll-separator {
+  height: 2px;
+  background: #cbd5e1;
+  margin: 3px 0 4px;
+  opacity: 0.55;
+  border-radius: 1px;
 }
 
 
@@ -308,25 +316,9 @@ body {
   padding: 0.5rem 0;
 }
 
-/* ── Teams auto-scroll ── */
-@keyframes teams-scroll {
-  0%        { transform: translateY(0); }
-  /* pause at top */
-  10%       { transform: translateY(0); }
-  /* scroll to bottom */
-  85%       { transform: translateY(var(--scroll-dist)); }
-  /* pause at bottom */
-  95%       { transform: translateY(var(--scroll-dist)); }
-  /* snap back (hidden during reset) */
-  100%      { transform: translateY(0); }
-}
-
+/* ── Teams auto-scroll (JS-driven so data updates don't interrupt) ── */
 #dashTeamsList.scrolling {
   overflow: hidden;
-}
-
-#dashTeamsList.scrolling > .teams-scroll-inner {
-  animation: teams-scroll var(--scroll-duration, 20s) ease-in-out infinite;
 }
 
 /* ── No incident message ── */
@@ -489,6 +481,22 @@ function nowHHMMSS() {
   return `${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}:${String(n.getSeconds()).padStart(2,"0")}`;
 }
 
+// ── Teams scroll state (persists across data updates) ──
+const teamScroll = { pos: 0, height: 0, active: false, raf: null, _lastTs: null };
+const SCROLL_PX_PER_SEC = 35;
+
+function teamsScrollStep(ts) {
+  if (!teamScroll.active) return;
+  if (teamScroll._lastTs == null) teamScroll._lastTs = ts;
+  const dt = Math.min((ts - teamScroll._lastTs) / 1000, 0.1);
+  teamScroll._lastTs = ts;
+  teamScroll.pos += SCROLL_PX_PER_SEC * dt;
+  if (teamScroll.pos >= teamScroll.height) teamScroll.pos -= teamScroll.height;
+  const inner = document.querySelector("#dashTeamsList .teams-scroll-inner");
+  if (inner) inner.style.transform = `translateY(-${teamScroll.pos.toFixed(2)}px)`;
+  teamScroll.raf = requestAnimationFrame(teamsScrollStep);
+}
+
 // ── Render ──
 function renderTeams(teams, assignments) {
   // Build lookup: team letter -> INPROGRESS assignment numbers
@@ -507,8 +515,10 @@ function renderTeams(teams, assignments) {
   countEl.textContent = `${active.length} active · ${teams.length} total`;
 
   if (!teams.length) {
-    listEl.innerHTML = `<div class="asgn-empty">No teams created yet.</div>`;
+    teamScroll.active = false;
+    if (teamScroll.raf) { cancelAnimationFrame(teamScroll.raf); teamScroll.raf = null; }
     listEl.classList.remove("scrolling");
+    listEl.innerHTML = `<div class="asgn-empty">No teams created yet.</div>`;
     return;
   }
 
@@ -534,35 +544,50 @@ function renderTeams(teams, assignments) {
           <div class="team-card-details">
             <div class="team-card-detail team-card-detail-tl">
               <span class="team-card-detail-label">TL</span>
-              <span class="team-card-detail-tl-value">${tlDisplay}</span>
+              <span class="team-card-detail-tl-value"> ${tlDisplay}</span>
             </div>
             <div class="team-card-detail team-card-detail-asgn">
               <span class="team-card-detail-label">Asgn</span>
-              <span>${asgnDisplay}</span>
+              <span> ${asgnDisplay}</span>
             </div>
             <div class="team-card-detail team-card-detail-members">
-              <svg width="10" height="10" viewBox="0 0 16 16" fill="#000" style="opacity:0.55"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg>
-              <span>${members}</span>
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="#fff"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg>
+              <span> ${members}</span>
             </div>
           </div>
         </div>
       </div>`;
   }).join("");
 
-  listEl.classList.remove("scrolling");
-  listEl.innerHTML = `<div class="teams-scroll-inner">${cards}</div>`;
+  const separator = `<div class="teams-scroll-separator"></div>`;
+  const wasScrolling = teamScroll.active;
+  const prevPos     = teamScroll.pos;
 
-  // Activate auto-scroll only when content overflows the container
+  // Rebuild DOM — the running RAF loop will pick up the new element automatically
+  listEl.innerHTML = `<div class="teams-scroll-inner">${cards}${separator}</div>`;
+
   requestAnimationFrame(() => {
-    const inner     = listEl.querySelector(".teams-scroll-inner");
-    const overflow  = inner.scrollHeight - listEl.clientHeight;
-    if (overflow > 20) {
-      const pxPerSec  = 40;
-      const scrollSec = overflow / pxPerSec;
-      const totalSec  = Math.max(scrollSec / 0.75, 10); // 75% of animation is scrolling
-      listEl.style.setProperty("--scroll-dist", `-${overflow}px`);
-      listEl.style.setProperty("--scroll-duration", `${totalSec.toFixed(1)}s`);
+    const inner = listEl.querySelector(".teams-scroll-inner");
+    if (!inner) return;
+    const oneHeight = inner.scrollHeight; // one copy height (cards + separator)
+
+    if (oneHeight > listEl.clientHeight + 20) {
+      inner.innerHTML += inner.innerHTML; // duplicate for seamless loop
+      teamScroll.height = oneHeight;
+      // Resume from same position so scroll appears uninterrupted
+      teamScroll.pos = wasScrolling ? (prevPos % oneHeight) : 0;
+      inner.style.transform = `translateY(-${teamScroll.pos.toFixed(2)}px)`;
       listEl.classList.add("scrolling");
+      if (!teamScroll.active) {
+        teamScroll.active = true;
+        teamScroll._lastTs = null;
+        teamScroll.raf = requestAnimationFrame(teamsScrollStep);
+      }
+    } else {
+      teamScroll.active = false;
+      if (teamScroll.raf) { cancelAnimationFrame(teamScroll.raf); teamScroll.raf = null; }
+      listEl.classList.remove("scrolling");
+      inner.style.transform = "";
     }
   });
 }
