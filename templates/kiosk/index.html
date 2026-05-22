@@ -430,9 +430,9 @@
     /* NFC */
     .nfc-toast {
       position: fixed;
-      bottom: 88px;
+      top: 16px;
       left: 50%;
-      transform: translateX(-50%) translateY(12px);
+      transform: translateX(-50%) translateY(-12px);
       width: min(360px, calc(100vw - 32px));
       background: var(--card);
       border-radius: 12px;
@@ -646,7 +646,6 @@
       <div id="detailStatus" class="status-msg"></div>
       <button class="submit-btn" id="submitBtn">Check In</button>
       <button class="nfc-link-btn" id="linkNfcBtn" style="display:none">Link NFC Tag</button>
-      <div id="nfcLinkStatus" class="status-msg"></div>
     </div>
 
     <!-- SUCCESS -->
@@ -799,7 +798,6 @@
     $("checkoutSearchDismiss").disabled = true;
     nfcLinkingMode = false;
     currentD4hRef = null;
-    clearMsg("nfcLinkStatus");
     updateLinkNfcBtn();
 
     if (action === "checkout") {
@@ -883,7 +881,6 @@
     populateDetail(r);
     showKiosk("detailSection");
     clearMsg("detailStatus");
-    clearMsg("nfcLinkStatus");
     updateLinkNfcBtn();
   }
 
@@ -894,7 +891,6 @@
     $("fieldName").readOnly = false;
     showKiosk("detailSection");
     clearMsg("detailStatus");
-    clearMsg("nfcLinkStatus");
     updateLinkNfcBtn();
   }
 
@@ -1216,7 +1212,6 @@
 
   $("linkNfcBtn").addEventListener("click", () => {
     nfcLinkingMode = !nfcLinkingMode;
-    clearMsg("nfcLinkStatus");
     updateLinkNfcBtn();
   });
 
@@ -1286,8 +1281,7 @@
       populateDetail(data);
       showKiosk("detailSection");
       clearMsg("detailStatus");
-      clearMsg("nfcLinkStatus");
-      updateLinkNfcBtn();
+        updateLinkNfcBtn();
     } catch (e) {
       showNfcToast("NFC read error", "error");
     }
@@ -1304,14 +1298,14 @@
       });
       const data = await res.json();
       if (data.status === "linked") {
-        showMsg("nfcLinkStatus", `Linked: ${serial}`, "info");
+        showNfcToast("Tag linked successfully", "success");
       } else if (data.status === "already_this") {
-        showMsg("nfcLinkStatus", `Already linked: ${serial}`, "info");
+        showNfcToast("Tag already linked to this person", "info");
       } else if (data.status === "already_other") {
-        showMsg("nfcLinkStatus", `Already linked to ${data.name}: ${serial}`, "error");
+        showNfcToast(`Tag already linked to ${data.name}`, "error");
       }
     } catch (e) {
-      showMsg("nfcLinkStatus", "Failed to link tag", "error");
+      showNfcToast("Failed to link tag", "error");
     }
   }
 
