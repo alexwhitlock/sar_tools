@@ -56,6 +56,7 @@ def run_migrations(conn):
         (11, migration_011_assignments_table),
         (12, migration_012_assignments_sync_triggers),
         (13, migration_013_quick_fields),
+        (14, migration_014_checkin_info),
     ]
 
     for version, migration in migrations:
@@ -243,6 +244,14 @@ def migration_013_quick_fields(conn):
     """Add manual quick-entry TL name and assignment label to teams."""
     conn.execute("ALTER TABLE teams ADD COLUMN manual_tl TEXT")
     conn.execute("ALTER TABLE teams ADD COLUMN manual_assignment TEXT")
+
+
+def migration_014_checkin_info(conn):
+    """Add kiosk check-in contact fields to personnel."""
+    conn.execute("ALTER TABLE personnel ADD COLUMN checkin_phone TEXT")
+    conn.execute("ALTER TABLE personnel ADD COLUMN checkin_ec_name TEXT")
+    conn.execute("ALTER TABLE personnel ADD COLUMN checkin_ec_phone TEXT")
+    conn.execute("ALTER TABLE personnel ADD COLUMN checkin_license_plate TEXT")
 
 
 def migration_008_add_notes(conn):

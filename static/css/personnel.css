@@ -77,6 +77,16 @@
 
 .hide-notes .col-notes { display: none; }
 
+.col-checkin-info { display: none; }
+.show-checkin-info .col-checkin-info { display: table-cell; }
+
+.checkin-info-cell {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: #444;
+  white-space: nowrap;
+}
+
 /* ===============================
    Filters (same row)
    =============================== */

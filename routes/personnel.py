@@ -10,6 +10,7 @@ from db.personnel_repo import (
     add_person,
     update_person,
     update_person_status,
+    update_checkin_info,
     delete_person,
     get_person_name,
     upsert_people_from_d4h,
@@ -219,6 +220,29 @@ def api_personnel_status():
         return jsonify({"ok": True})
     except ConflictError:
         return jsonify({"ok": False, "error": "conflict"}), 409
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.post("/api/personnel/checkin-info")
+def api_personnel_checkin_info():
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    person_key = data.get("personKey")
+    if not incident_name or person_key in (None, ""):
+        return jsonify({"ok": False, "error": "incidentName and personKey required"}), 400
+    phone = (data.get("phone") or "").strip() or None
+    ec_name = (data.get("ecName") or "").strip() or None
+    ec_phone = (data.get("ecPhone") or "").strip() or None
+    license_plate = (data.get("licensePlate") or "").strip() or None
+    try:
+        ok = update_checkin_info(
+            incident_name, person_id=int(person_key),
+            phone=phone, ec_name=ec_name, ec_phone=ec_phone, license_plate=license_plate,
+        )
+        if not ok:
+            return jsonify({"ok": False, "error": "person not found"}), 404
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

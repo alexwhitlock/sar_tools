@@ -123,7 +123,11 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
                 p.status AS status,
                 p.previous_status AS previousStatus,
                 p.notes AS notes,
-                p.updated_at AS updatedAt
+                p.updated_at AS updatedAt,
+                p.checkin_phone AS checkinPhone,
+                p.checkin_ec_name AS checkinEcName,
+                p.checkin_ec_phone AS checkinEcPhone,
+                p.checkin_license_plate AS checkinLicensePlate
             FROM personnel p
             LEFT JOIN team_members tm ON tm.personnel_id = p.id
             LEFT JOIN teams t ON t.id = tm.team_id
@@ -141,6 +145,10 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
         "previousStatus": r["previousStatus"],
         "notes": r["notes"],
         "updatedAt": r["updatedAt"],
+        "checkinPhone": r["checkinPhone"],
+        "checkinEcName": r["checkinEcName"],
+        "checkinEcPhone": r["checkinEcPhone"],
+        "checkinLicensePlate": r["checkinLicensePlate"],
     } for r in rows]
 
 
@@ -228,6 +236,28 @@ def delete_person(incident_name: str, *, person_id: int) -> bool:
         )
         conn.commit()
         return cur.rowcount > 0
+
+def update_checkin_info(
+    incident_name: str,
+    *,
+    person_id: int,
+    phone: str | None = None,
+    ec_name: str | None = None,
+    ec_phone: str | None = None,
+    license_plate: str | None = None,
+) -> bool:
+    """Save kiosk check-in contact info to a personnel record. Returns True if updated."""
+    with get_connection(incident_name) as conn:
+        cur = conn.execute(
+            """UPDATE personnel
+               SET checkin_phone = ?, checkin_ec_name = ?, checkin_ec_phone = ?,
+                   checkin_license_plate = ?, updated_at = datetime('now')
+               WHERE id = ?""",
+            (phone, ec_name, ec_phone, license_plate, person_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
 
 def confirm_kiosk_person(incident_name: str, person_id: int) -> bool:
     """Clear the KIOSK source flag — marks kiosk-added person as confirmed by staff."""

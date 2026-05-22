@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 
 from db.members_db import get_members_connection, run_members_migrations
 from db.database import get_connection
-from db.personnel_repo import update_person_status
+from db.personnel_repo import update_person_status, update_checkin_info
 from db.log_repo import insert_log
 
 bp = Blueprint("kiosk", __name__)
@@ -216,6 +216,7 @@ def kiosk_action():
 
     # 2. Find or create person in incident personnel
     person_id = None
+    is_new = False
     try:
         with get_connection(incident_name) as conn:
             if d4h_ref:
@@ -240,17 +241,28 @@ def kiosk_action():
                     (name, str(d4h_ref) if d4h_ref else None, d4h_member_ref, target_status)
                 )
                 person_id = cur.lastrowid
-                verb = "checked in" if target_status == "Checked In" else "checked out"
-                _log(incident_name, f'"{name}" {verb} via Kiosk (new)')
-                return jsonify({"ok": True, "personId": person_id, "addedToIncident": True})
+                is_new = True
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    # 3. Update existing person's status
+    # 3. Save check-in info to incident personnel record
+    try:
+        update_checkin_info(
+            incident_name, person_id=person_id,
+            phone=phone, ec_name=ec_name, ec_phone=ec_phone, license_plate=plate,
+        )
+    except Exception:
+        pass  # non-fatal
+
+    # 4. Update status (existing persons) or just log + return (new persons)
+    verb = "checked in" if target_status == "Checked In" else "checked out"
+    if is_new:
+        _log(incident_name, f'"{name}" {verb} via Kiosk (new)')
+        return jsonify({"ok": True, "personId": person_id, "addedToIncident": True})
+
     try:
         update_person_status(incident_name, person_id=person_id, status=target_status)
-        verb = "checked in" if target_status == "Checked In" else "checked out"
         _log(incident_name, f'"{name}" {verb} via Kiosk')
         return jsonify({"ok": True, "personId": person_id, "addedToIncident": False})
     except Exception as e:
