@@ -265,21 +265,20 @@
     }
     .field-edit-btn {
       margin-left: auto;
-      background: none;
-      border: none;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
       color: var(--accent);
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
-      padding: 0;
+      padding: 3px 10px;
+      white-space: nowrap;
     }
-    .field-edit-btn:hover { text-decoration: underline; }
+    .field-edit-btn:hover { border-color: var(--accent); background: #f0f5ff; }
     .field-display {
       font-size: 1rem;
-      padding: 11px 12px;
-      background: #f0f4ff;
-      border-radius: 8px;
-      border: 1.5px solid #c8d8f8;
+      padding: 2px 0;
       color: var(--text);
     }
     .field-display div + div { margin-top: 4px; }
@@ -445,23 +444,17 @@
             <div class="field-display" style="display:none"></div>
             <input type="tel" id="fieldPhone" class="field-input" autocomplete="tel" placeholder="Click to enter" />
           </div>
-          <div class="field-item" id="fiEcName">
+          <div class="field-item" id="fiEc">
             <div class="field-header">
-              <span class="field-name">Emergency Contact Name</span>
-              <span class="field-required" style="display:none">Required</span>
-              <button class="field-edit-btn" style="display:none">Edit</button>
+              <span class="field-name">Emergency Contact Information</span>
+              <span class="field-required" id="ecRequired" style="display:none">Required</span>
+              <button class="field-edit-btn" id="ecEditBtn" style="display:none">Edit</button>
             </div>
-            <div class="field-display" style="display:none"></div>
-            <input type="text" id="fieldEcName" class="field-input" autocomplete="off" placeholder="Click to enter" />
-          </div>
-          <div class="field-item" id="fiEcPhone">
-            <div class="field-header">
-              <span class="field-name">Emergency Contact Phone</span>
-              <span class="field-required" style="display:none">Required</span>
-              <button class="field-edit-btn" style="display:none">Edit</button>
+            <div class="field-display" id="ecDisplay" style="display:none"></div>
+            <div id="ecInputs" style="display:flex;flex-direction:column;gap:8px;">
+              <input type="text" id="fieldEcName" class="field-input" autocomplete="off" placeholder="Contact name" />
+              <input type="tel" id="fieldEcPhone" class="field-input" autocomplete="off" placeholder="Contact phone" />
             </div>
-            <div class="field-display" style="display:none"></div>
-            <input type="tel" id="fieldEcPhone" class="field-input" autocomplete="off" placeholder="Click to enter" />
           </div>
           <div class="field-item" id="fiPlate">
             <div class="field-header">
@@ -731,11 +724,41 @@
 
   function populateDetail(r) {
     const isMatched = !!selectedMember;
-    setField("fiName",   "fieldName",   r.name         || "", { readonly: isMatched });
-    setField("fiPhone",  "fieldPhone",  r.phone        || "");
-    setField("fiEcName", "fieldEcName", r.ecName       || "");
-    setField("fiEcPhone","fieldEcPhone",r.ecPhone      || "");
-    setField("fiPlate",  "fieldPlate",  r.licensePlate || "");
+    setField("fiName",  "fieldName",  r.name         || "", { readonly: isMatched });
+    setField("fiPhone", "fieldPhone", r.phone        || "");
+    setField("fiPlate", "fieldPlate", r.licensePlate || "");
+
+    // Emergency contacts — paired display
+    const ecName  = r.ecName  || "";
+    const ecPhone = r.ecPhone || "";
+    $("fieldEcName").value  = ecName;
+    $("fieldEcPhone").value = ecPhone;
+    if (ecName || ecPhone) {
+      const names  = ecName  ? ecName.split(" / ")  : [];
+      const phones = ecPhone ? ecPhone.split(" / ") : [];
+      const count  = Math.max(names.length, phones.length);
+      let html = "";
+      for (let i = 0; i < count; i++) {
+        const n = names[i]  || "";
+        const p = phones[i] || "";
+        html += `<div>${esc(n)}${n && p ? " — " : ""}${esc(p)}</div>`;
+      }
+      $("ecDisplay").innerHTML = html;
+      $("ecDisplay").style.display  = "";
+      $("ecInputs").style.display   = "none";
+      $("ecRequired").style.display = "none";
+      $("ecEditBtn").style.display  = "";
+      $("ecEditBtn").onclick = () => {
+        $("ecDisplay").style.display = "none";
+        $("ecEditBtn").style.display = "none";
+        $("ecInputs").style.display  = "flex";
+      };
+    } else {
+      $("ecDisplay").style.display  = "none";
+      $("ecEditBtn").style.display  = "none";
+      $("ecInputs").style.display   = "flex";
+      $("ecRequired").style.display = "";
+    }
   }
 
   $("backBtn").addEventListener("click", resetToSearch);
