@@ -24,8 +24,9 @@ def kiosk_search():
     if len(q) < 2:
         return jsonify([])
     run_members_migrations()
-    wild  = f"%{q}%"
-    start = f"{q}%"
+    wild       = f"%{q}%"
+    start_first = f"{q}%"
+    start_last  = f"% {q}%"
     with get_members_connection() as conn:
         rows = conn.execute("""
             SELECT id, name, d4h_ref, d4h_member_ref, phone, email,
@@ -33,10 +34,14 @@ def kiosk_search():
             FROM members
             WHERE name LIKE ? OR phone LIKE ? OR d4h_member_ref LIKE ? OR d4h_ref LIKE ?
             ORDER BY
-                CASE WHEN name LIKE ? THEN 0 ELSE 1 END,
+                CASE
+                    WHEN name LIKE ? THEN 0
+                    WHEN name LIKE ? THEN 1
+                    ELSE 2
+                END,
                 name COLLATE NOCASE
             LIMIT 25
-        """, (wild, wild, wild, wild, start)).fetchall()
+        """, (wild, wild, wild, wild, start_first, start_last)).fetchall()
     return jsonify([{
         "id":           r["id"],
         "name":         r["name"],
@@ -59,8 +64,9 @@ def kiosk_incident_search():
     q = (request.args.get("q") or "").strip()
     if not incident_name or len(q) < 2:
         return jsonify([])
-    wild  = f"%{q}%"
-    start = f"{q}%"
+    wild        = f"%{q}%"
+    start_first = f"{q}%"
+    start_last  = f"% {q}%"
     with get_connection(incident_name) as conn:
         rows = conn.execute("""
             SELECT id, name, d4h_ref, d4h_member_ref
@@ -68,10 +74,14 @@ def kiosk_incident_search():
             WHERE status = 'Checked In'
               AND (name LIKE ? OR d4h_member_ref LIKE ? OR d4h_ref LIKE ?)
             ORDER BY
-                CASE WHEN name LIKE ? THEN 0 ELSE 1 END,
+                CASE
+                    WHEN name LIKE ? THEN 0
+                    WHEN name LIKE ? THEN 1
+                    ELSE 2
+                END,
                 name COLLATE NOCASE
             LIMIT 25
-        """, (wild, wild, wild, start)).fetchall()
+        """, (wild, wild, wild, start_first, start_last)).fetchall()
     return jsonify([{
         "id":        r["id"],
         "name":      r["name"],
