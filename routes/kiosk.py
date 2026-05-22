@@ -240,7 +240,8 @@ def kiosk_action():
                     (name, str(d4h_ref) if d4h_ref else None, d4h_member_ref, target_status)
                 )
                 person_id = cur.lastrowid
-                _log(incident_name, f'Kiosk: "{name}" added and set to {target_status}')
+                verb = "checked in" if target_status == "Checked In" else "checked out"
+                _log(incident_name, f'"{name}" {verb} via Kiosk (new)')
                 return jsonify({"ok": True, "personId": person_id, "addedToIncident": True})
 
     except Exception as e:
@@ -249,7 +250,8 @@ def kiosk_action():
     # 3. Update existing person's status
     try:
         update_person_status(incident_name, person_id=person_id, status=target_status)
-        _log(incident_name, f'Kiosk: "{name}" set to {target_status}')
+        verb = "checked in" if target_status == "Checked In" else "checked out"
+        _log(incident_name, f'"{name}" {verb} via Kiosk')
         return jsonify({"ok": True, "personId": person_id, "addedToIncident": False})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

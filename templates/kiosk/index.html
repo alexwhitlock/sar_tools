@@ -695,41 +695,50 @@
   }
 
   function setField(itemId, inputId, value, { readonly = false } = {}) {
-    const item    = $(itemId);
-    const input   = $(inputId);
-    const display = item.querySelector(".field-display");
+    const item     = $(itemId);
+    const input    = $(inputId);
+    const display  = item.querySelector(".field-display");
     const reqBadge = item.querySelector(".field-required");
-    const editBtn = item.querySelector(".field-edit-btn");
+    const editBtn  = item.querySelector(".field-edit-btn");
 
     input.value = value || "";
 
-    if (value && !readonly) {
-      // Pre-filled and editable: show as static text + Edit button
-      display.innerHTML = value.split(" / ").map(v => `<div>${esc(v)}</div>`).join("");
-      display.style.display = "";
-      input.style.display = "none";
+    const showDisplay = (val) => {
+      display.innerHTML = val.split(" / ").map(v => `<div>${esc(v)}</div>`).join("");
+      display.style.display  = "";
+      input.style.display    = "none";
       reqBadge.style.display = "none";
-      editBtn.style.display = "";
-      editBtn.onclick = () => {
-        display.style.display = "none";
-        editBtn.style.display = "none";
-        input.style.display = "";
-        input.focus();
-      };
-    } else if (value && readonly) {
-      // Pre-filled and truly read-only (name for matched members): static text, no edit
-      display.innerHTML = value.split(" / ").map(v => `<div>${esc(v)}</div>`).join("");
-      display.style.display = "";
-      input.style.display = "none";
-      reqBadge.style.display = "none";
-      editBtn.style.display = "none";
-    } else {
-      // Empty: show input with Required label
-      display.style.display = "none";
-      input.style.display = "";
+      editBtn.style.display  = readonly ? "none" : "";
+      if (!readonly) {
+        editBtn.onclick = () => {
+          display.style.display = "none";
+          editBtn.style.display = "none";
+          input.style.display   = "";
+          input.focus();
+        };
+      }
+    };
+
+    const showInput = () => {
+      display.style.display  = "none";
+      input.style.display    = "";
       reqBadge.style.display = "";
-      editBtn.style.display = "none";
+      editBtn.style.display  = "none";
+    };
+
+    if (value) {
+      showDisplay(value);
+    } else {
+      showInput();
     }
+
+    // Enter key saves the field
+    input.onkeydown = (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const newVal = input.value.trim();
+      if (newVal) showDisplay(newVal); else showInput();
+    };
   }
 
   function populateDetail(r) {
@@ -739,36 +748,47 @@
     setField("fiPlate", "fieldPlate", r.licensePlate || "");
 
     // Emergency contacts — paired display
-    const ecName  = r.ecName  || "";
-    const ecPhone = r.ecPhone || "";
-    $("fieldEcName").value  = ecName;
-    $("fieldEcPhone").value = ecPhone;
-    if (ecName || ecPhone) {
-      const names  = ecName  ? ecName.split(" / ")  : [];
-      const phones = ecPhone ? ecPhone.split(" / ") : [];
-      const count  = Math.max(names.length, phones.length);
-      let html = "";
-      for (let i = 0; i < count; i++) {
-        const n = names[i]  || "";
-        const p = phones[i] || "";
-        html += `<div class="ec-row"><span>${esc(n)}</span><span>${esc(p)}</span></div>`;
+    function renderEc(ecName, ecPhone) {
+      $("fieldEcName").value  = ecName;
+      $("fieldEcPhone").value = ecPhone;
+      if (ecName || ecPhone) {
+        const names  = ecName  ? ecName.split(" / ")  : [];
+        const phones = ecPhone ? ecPhone.split(" / ") : [];
+        const count  = Math.max(names.length, phones.length);
+        let html = "";
+        for (let i = 0; i < count; i++) {
+          const n = names[i]  || "";
+          const p = phones[i] || "";
+          html += `<div class="ec-row"><span>${esc(n)}</span><span>${esc(p)}</span></div>`;
+        }
+        $("ecDisplay").innerHTML      = html;
+        $("ecDisplay").style.display  = "";
+        $("ecInputs").style.display   = "none";
+        $("ecRequired").style.display = "none";
+        $("ecEditBtn").style.display  = "";
+        $("ecEditBtn").onclick = () => {
+          $("ecDisplay").style.display = "none";
+          $("ecEditBtn").style.display = "none";
+          $("ecInputs").style.display  = "flex";
+          $("fieldEcName").focus();
+        };
+      } else {
+        $("ecDisplay").style.display  = "none";
+        $("ecEditBtn").style.display  = "none";
+        $("ecInputs").style.display   = "flex";
+        $("ecRequired").style.display = "";
       }
-      $("ecDisplay").innerHTML = html;
-      $("ecDisplay").style.display  = "";
-      $("ecInputs").style.display   = "none";
-      $("ecRequired").style.display = "none";
-      $("ecEditBtn").style.display  = "";
-      $("ecEditBtn").onclick = () => {
-        $("ecDisplay").style.display = "none";
-        $("ecEditBtn").style.display = "none";
-        $("ecInputs").style.display  = "flex";
-      };
-    } else {
-      $("ecDisplay").style.display  = "none";
-      $("ecEditBtn").style.display  = "none";
-      $("ecInputs").style.display   = "flex";
-      $("ecRequired").style.display = "";
     }
+
+    const saveEc = () => {
+      const n = $("fieldEcName").value.trim();
+      const p = $("fieldEcPhone").value.trim();
+      if (n || p) renderEc(n, p);
+    };
+    $("fieldEcName").onkeydown  = (e) => { if (e.key === "Enter") { e.preventDefault(); saveEc(); } };
+    $("fieldEcPhone").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveEc(); } };
+
+    renderEc(r.ecName || "", r.ecPhone || "");
   }
 
   $("backBtn").addEventListener("click", resetToSearch);
