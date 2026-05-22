@@ -194,6 +194,7 @@ def kiosk_action():
     ec_name            = (data.get("ecName") or "").strip() or None
     ec_phone           = (data.get("ecPhone") or "").strip() or None
     plate              = (data.get("licensePlate") or "").strip() or None
+    notes              = (data.get("notes") or "").strip() or None
 
     if not incident_name or not name:
         return jsonify({"error": "incidentName and name required"}), 400
@@ -280,7 +281,7 @@ def kiosk_action():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    # 3. Save check-in info to incident personnel record (check-in only)
+    # 3. Save check-in info and notes to incident personnel record (check-in only)
     if action == "checkin":
         try:
             update_checkin_info(
@@ -289,6 +290,15 @@ def kiosk_action():
             )
         except Exception:
             pass  # non-fatal
+        if notes:
+            try:
+                with get_connection(incident_name) as conn:
+                    conn.execute(
+                        "UPDATE personnel SET notes = ?, updated_at = datetime('now') WHERE id = ?",
+                        (notes, person_id),
+                    )
+            except Exception:
+                pass  # non-fatal
 
     # 4. Update status (existing persons) or just log + return (new persons)
     verb = "checked in" if target_status == "Checked In" else "checked out"

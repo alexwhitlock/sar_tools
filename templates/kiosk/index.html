@@ -389,8 +389,8 @@
       padding-right: 2px;
     }
     .result-row.selected {
-      border-color: var(--accent);
-      background: #e8f0fe;
+      border-color: var(--red);
+      background: #fdecea;
     }
     .checkout-empty {
       margin-top: 12px;
@@ -519,6 +519,14 @@
             <input type="text" id="fieldPlate" class="field-input" autocomplete="off" placeholder="Click to enter" style="text-transform:uppercase" />
           </div>
           <p class="plate-note">Plate is saved to your profile for future check-ins.</p>
+        </div>
+        <div class="field-item" id="fiNotes" style="margin-top:12px;">
+          <div class="field-header">
+            <span class="field-name">Notes</span>
+          </div>
+          <textarea id="fieldNotes" class="field-input" rows="3"
+            placeholder="Any specific notes for this incident, e.g. medical conditions"
+            style="resize:vertical;"></textarea>
         </div>
       </div>
       <div id="detailStatus" class="status-msg"></div>
@@ -798,6 +806,7 @@
     setField("fiName",  "fieldName",  r.name         || "", { readonly: isMatched });
     setField("fiPhone", "fieldPhone", r.phone        || "");
     setField("fiPlate", "fieldPlate", r.licensePlate || "");
+    $("fieldNotes").value = "";
 
     function renderEc(ecName, ecPhone) {
       $("fieldEcName").value  = ecName;
@@ -867,6 +876,7 @@
       ecName:       $("fieldEcName").value.trim()  || null,
       ecPhone:      $("fieldEcPhone").value.trim() || null,
       licensePlate: $("fieldPlate").value.trim().toUpperCase() || null,
+      notes:        $("fieldNotes").value.trim()   || null,
       memberId:     selectedMember?.id ?? null,
     };
 
