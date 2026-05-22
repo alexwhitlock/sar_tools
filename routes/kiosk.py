@@ -239,7 +239,7 @@ def admin_sync_d4h():
             if isinstance(val, list):
                 return _s(val[0]) if val else ""
             if isinstance(val, dict):
-                for k in ("value", "number", "text", "name"):
+                for k in ("value", "number", "phone", "text", "name"):
                     if val.get(k):
                         return _s(val[k])
             return ""
