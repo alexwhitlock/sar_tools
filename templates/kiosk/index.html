@@ -957,11 +957,14 @@
 
   $("checkoutSearch").addEventListener("input", filterCheckout);
 
-  // Dismiss keyboard whenever the user touches anywhere except the search input itself
+  // Dismiss keyboard when user taps off the search input or starts scrolling
   document.addEventListener("touchstart", (e) => {
     if (document.activeElement === $("checkoutSearch") && e.target !== $("checkoutSearch")) {
       $("checkoutSearch").blur();
     }
+  }, { passive: true });
+  document.addEventListener("touchmove", () => {
+    if (document.activeElement === $("checkoutSearch")) $("checkoutSearch").blur();
   }, { passive: true });
 
   $("confirmCheckoutBtn").addEventListener("click", async () => {
