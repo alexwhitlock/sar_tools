@@ -188,9 +188,6 @@ body {
   text-overflow: ellipsis;
 }
 
-.team-card-value.flash-icon {
-  color: #b45309;
-}
 
 /* ── Team status colors ── */
 .ts-oos         { background: #757575; border-color: #757575; }
@@ -477,15 +474,13 @@ function renderTeams(teams, assignments) {
     const css     = STATUS_CSS[t.status] || "ts-oos";
     const tlName  = t.teamLeaderName || null;
     const manualTl = t.manualTl || null;
-    const tlDisplay = tlName ? esc(tlName) : (manualTl ? `⚡ ${esc(manualTl)}` : "—");
-    const tlFlash  = !tlName && manualTl;
+    const tlDisplay = tlName ? esc(tlName) : (manualTl ? `${esc(manualTl)} ⚡` : "—");
 
     const asgnNums  = asgnByTeam[t.name] || [];
     const manAsgn   = t.manualAssignment || null;
     const asgnDisplay = asgnNums.length
       ? esc(asgnNums.join(", "))
-      : (manAsgn ? `⚡ ${esc(manAsgn)}` : "—");
-    const asgnFlash = !asgnNums.length && manAsgn;
+      : (manAsgn ? `${esc(manAsgn)} ⚡` : "—");
 
     const members = t.memberCount ?? 0;
 
@@ -498,11 +493,11 @@ function renderTeams(teams, assignments) {
         <div class="team-card-body">
           <div class="team-card-item">
             <span class="team-card-label">Leader</span>
-            <span class="team-card-value${tlFlash ? " flash-icon" : ""}">${tlDisplay}</span>
+            <span class="team-card-value">${tlDisplay}</span>
           </div>
           <div class="team-card-item">
             <span class="team-card-label">Assignment</span>
-            <span class="team-card-value${asgnFlash ? " flash-icon" : ""}">${asgnDisplay}</span>
+            <span class="team-card-value">${asgnDisplay}</span>
           </div>
           <div class="team-card-item">
             <span class="team-card-label">Members</span>
