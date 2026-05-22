@@ -194,8 +194,8 @@
     .search-input:focus { border-color: var(--accent); background: #fff; }
     .search-dismiss-btn {
       flex-shrink: 0;
-      min-width: 52px;
-      padding: 0 16px;
+      width: 44px;
+      padding: 0;
       border: 2px solid #8a8f99;
       border-radius: 8px;
       background: #e8e9eb;
@@ -204,7 +204,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
     }
     .search-dismiss-btn:active { background: #ccc; }
 
@@ -457,16 +456,23 @@
     <!-- SEARCH -->
     <div class="section visible" id="searchSection">
       <div class="card">
-        <input
-          type="search"
-          id="searchInput"
-          class="search-input"
-          placeholder="Search by name, phone, or member #"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="none"
-          inputmode="search"
-        />
+        <div class="search-row">
+          <input
+            type="search"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search by name, phone, or member #"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            inputmode="search"
+          />
+          <button type="button" id="searchDismiss" class="search-dismiss-btn" title="Dismiss keyboard">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+        </div>
         <div class="manual-row" id="manualEntryStatic" style="margin-top:8px;">Enter manually</div>
         <div class="search-results" id="searchResults"></div>
       </div>
@@ -717,6 +723,8 @@
   }
 
   let searchTimer = null;
+  $("searchDismiss").addEventListener("click", () => $("searchInput").blur());
+
   $("searchInput").addEventListener("input", () => {
     clearTimeout(searchTimer);
     const q = $("searchInput").value.trim();
@@ -981,6 +989,8 @@
   $("checkoutSearch").addEventListener("input", filterCheckout);
 
   $("checkoutSearchDismiss").addEventListener("click", () => $("checkoutSearch").blur());
+  $("checkoutList").addEventListener("scroll",  () => $("checkoutSearch").blur(), { passive: true });
+  $("searchResults").addEventListener("scroll",  () => $("searchInput").blur(), { passive: true });
 
   $("confirmCheckoutBtn").addEventListener("click", async () => {
     if (!selectedCheckoutPerson) return;
