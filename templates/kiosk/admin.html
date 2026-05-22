@@ -44,12 +44,19 @@
     }
     .page-title { font-size: 1.2rem; font-weight: 700; }
     .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: none;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
       color: var(--accent);
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 600;
+      padding: 7px 13px;
     }
-    .back-link:hover { text-decoration: underline; }
+    .back-link:hover { background: #f0f5ff; border-color: var(--accent); }
 
     .card {
       background: var(--card);
@@ -188,7 +195,7 @@
 <div id="app">
 
   <div class="page-header">
-    <a href="/checkin" class="back-link">← Kiosk</a>
+    <a href="/checkin" class="back-link"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Kiosk</a>
     <div class="page-title">Member Directory Admin</div>
   </div>
 
