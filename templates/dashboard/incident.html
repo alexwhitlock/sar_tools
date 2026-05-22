@@ -135,57 +135,58 @@ body {
   border: 1px solid transparent;
 }
 
-.team-card-header {
+.team-card-row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 3px 8px;
+  padding: 5px 8px;
   color: #fff;
 }
 
 .team-card-name {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   min-width: 1.1rem;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .team-card-status {
   font-size: 0.72rem;
   font-weight: 700;
-  opacity: 0.95;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.team-card-body {
+.team-card-details {
   display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  padding: 2px 8px 3px;
-  font-size: 0.75rem;
-  background: #fafafa;
-}
-
-.team-card-item {
-  display: flex;
-  gap: 0.3rem;
-  align-items: baseline;
+  gap: 0.8rem;
+  flex-shrink: 0;
   min-width: 0;
 }
 
-.team-card-label {
-  color: #94a3b8;
-  font-size: 0.65rem;
+.team-card-detail {
+  display: flex;
+  gap: 0.25rem;
+  align-items: baseline;
   white-space: nowrap;
+  font-size: 0.72rem;
+}
+
+.team-card-detail-label {
+  font-size: 0.6rem;
+  opacity: 0.7;
   flex-shrink: 0;
 }
 
-.team-card-value {
-  color: #1e293b;
-  font-weight: 600;
-  white-space: nowrap;
+/* TL name can be long — cap it and ellipsis */
+.team-card-detail-tl-value {
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
@@ -291,6 +292,27 @@ body {
   color: #94a3b8;
   font-size: 0.875rem;
   padding: 0.5rem 0;
+}
+
+/* ── Teams auto-scroll ── */
+@keyframes teams-scroll {
+  0%        { transform: translateY(0); }
+  /* pause at top */
+  10%       { transform: translateY(0); }
+  /* scroll to bottom */
+  85%       { transform: translateY(var(--scroll-dist)); }
+  /* pause at bottom */
+  95%       { transform: translateY(var(--scroll-dist)); }
+  /* snap back (hidden during reset) */
+  100%      { transform: translateY(0); }
+}
+
+#dashTeamsList.scrolling {
+  overflow: hidden;
+}
+
+#dashTeamsList.scrolling > .teams-scroll-inner {
+  animation: teams-scroll var(--scroll-duration, 20s) ease-in-out infinite;
 }
 
 /* ── No incident message ── */
@@ -467,10 +489,11 @@ function renderTeams(teams, assignments) {
 
   if (!teams.length) {
     listEl.innerHTML = `<div class="asgn-empty">No teams created yet.</div>`;
+    listEl.classList.remove("scrolling");
     return;
   }
 
-  listEl.innerHTML = teams.map(t => {
+  const cards = teams.map(t => {
     const css     = STATUS_CSS[t.status] || "ts-oos";
     const tlName  = t.teamLeaderName || null;
     const manualTl = t.manualTl || null;
@@ -486,26 +509,43 @@ function renderTeams(teams, assignments) {
 
     return `
       <div class="team-card ${css}">
-        <div class="team-card-header">
+        <div class="team-card-row">
           <span class="team-card-name">${esc(t.name)}</span>
           <span class="team-card-status">${esc(t.status)}</span>
-        </div>
-        <div class="team-card-body">
-          <div class="team-card-item">
-            <span class="team-card-label">Leader</span>
-            <span class="team-card-value">${tlDisplay}</span>
-          </div>
-          <div class="team-card-item">
-            <span class="team-card-label">Assignment</span>
-            <span class="team-card-value">${asgnDisplay}</span>
-          </div>
-          <div class="team-card-item">
-            <span class="team-card-label">Members</span>
-            <span class="team-card-value">${members}</span>
+          <div class="team-card-details">
+            <div class="team-card-detail">
+              <span class="team-card-detail-label">TL</span>
+              <span class="team-card-detail-tl-value">${tlDisplay}</span>
+            </div>
+            <div class="team-card-detail">
+              <span class="team-card-detail-label">Asgn</span>
+              <span>${asgnDisplay}</span>
+            </div>
+            <div class="team-card-detail">
+              <span class="team-card-detail-label">👥</span>
+              <span>${members}</span>
+            </div>
           </div>
         </div>
       </div>`;
   }).join("");
+
+  listEl.classList.remove("scrolling");
+  listEl.innerHTML = `<div class="teams-scroll-inner">${cards}</div>`;
+
+  // Activate auto-scroll only when content overflows the container
+  requestAnimationFrame(() => {
+    const inner     = listEl.querySelector(".teams-scroll-inner");
+    const overflow  = inner.scrollHeight - listEl.clientHeight;
+    if (overflow > 20) {
+      const pxPerSec  = 40;
+      const scrollSec = overflow / pxPerSec;
+      const totalSec  = Math.max(scrollSec / 0.75, 10); // 75% of animation is scrolling
+      listEl.style.setProperty("--scroll-dist", `-${overflow}px`);
+      listEl.style.setProperty("--scroll-duration", `${totalSec.toFixed(1)}s`);
+      listEl.classList.add("scrolling");
+    }
+  });
 }
 
 function renderAssignments(assignments) {
