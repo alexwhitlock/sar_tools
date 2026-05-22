@@ -430,21 +430,57 @@
     /* NFC */
     .nfc-toast {
       position: fixed;
-      top: 20px;
+      bottom: 88px;
       left: 50%;
-      transform: translateX(-50%);
-      background: rgba(40,40,40,0.92);
-      color: #fff;
-      padding: 10px 22px;
-      border-radius: 20px;
-      font-size: 0.95rem;
+      transform: translateX(-50%) translateY(12px);
+      width: min(360px, calc(100vw - 32px));
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      border-left: 5px solid var(--accent);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       z-index: 999;
       opacity: 0;
-      transition: opacity 0.2s;
+      transition: opacity 0.22s, transform 0.22s;
       pointer-events: none;
-      white-space: nowrap;
     }
-    .nfc-toast.show { opacity: 1; }
+    .nfc-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .nfc-toast.type-error   { border-left-color: var(--red); }
+    .nfc-toast.type-warning { border-left-color: #e09a1a; }
+    .nfc-toast.type-success { border-left-color: var(--green); }
+    .nfc-toast-icon {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e8f0fd;
+      color: var(--accent);
+    }
+    .nfc-toast.type-error   .nfc-toast-icon { background: #fdecea; color: var(--red); }
+    .nfc-toast.type-warning .nfc-toast-icon { background: #fef3cd; color: #b97f00; }
+    .nfc-toast.type-success .nfc-toast-icon { background: #d4f5e0; color: var(--green); }
+    .nfc-toast-body { flex: 1; min-width: 0; }
+    .nfc-toast-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .nfc-toast-msg {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      word-break: break-all;
+    }
     .nfc-link-btn {
       display: block;
       width: 100%;
@@ -626,7 +662,13 @@
   </div><!-- /kioskSection -->
 
 </div><!-- /app -->
-<div class="nfc-toast" id="nfcToast"></div>
+<div class="nfc-toast" id="nfcToast">
+  <div class="nfc-toast-icon" id="nfcToastIcon"></div>
+  <div class="nfc-toast-body">
+    <div class="nfc-toast-label" id="nfcToastLabel">NFC</div>
+    <div class="nfc-toast-msg" id="nfcToastMsg"></div>
+  </div>
+</div>
 <div class="offline-veil" id="offlineVeil"></div>
 
 <script>
@@ -1138,12 +1180,25 @@
 
   // ── NFC ──────────────────────────────────────────────────────────────────────
 
-  function showNfcToast(msg) {
-    const el = $("nfcToast");
+  function showNfcToast(msg, type = "info") {
+    const el    = $("nfcToast");
+    const icon  = $("nfcToastIcon");
+    const label = $("nfcToastLabel");
+    const msgEl = $("nfcToastMsg");
     clearTimeout(nfcToastTimer);
-    el.textContent = msg;
+    el.className = `nfc-toast type-${type}`;
+    const icons = {
+      info: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+      error: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+      warning: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      success: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>`,
+    };
+    const labels = { info: "NFC", error: "NFC Error", warning: "NFC", success: "NFC" };
+    icon.innerHTML  = icons[type] || icons.info;
+    label.textContent = labels[type] || "NFC";
+    msgEl.textContent = msg;
     el.classList.add("show");
-    nfcToastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+    nfcToastTimer = setTimeout(() => el.classList.remove("show"), 4500);
   }
 
   function updateLinkNfcBtn() {
@@ -1204,11 +1259,11 @@
       await reader.scan();
       setNfcPill("active");
       reader.addEventListener("reading", ({ serialNumber }) => handleNfcRead(serialNumber));
-      reader.addEventListener("readingerror", () => showNfcToast("NFC read error"));
+      reader.addEventListener("readingerror", () => showNfcToast("NFC read error", "error"));
     } catch (e) {
       console.warn("NFC unavailable:", e);
       setNfcPill("error");
-      showNfcToast(`NFC: ${e.message || "permission denied"}`);
+      showNfcToast(`NFC: ${e.message || "permission denied"}`, "error");
     }
   }
 
@@ -1224,8 +1279,8 @@
     try {
       const res  = await fetch(`/api/nfc/lookup?serial=${encodeURIComponent(serial)}&incidentName=${encodeURIComponent(incidentName)}`);
       const data = await res.json();
-      if (!data.found) { showNfcToast(`Unrecognized: ${serial}`); return; }
-      if (data.checkedIn) { showNfcToast(`${data.name} is already checked in`); return; }
+      if (!data.found) { showNfcToast(`Unrecognized: ${serial}`, "warning"); return; }
+      if (data.checkedIn) { showNfcToast(`${data.name} is already checked in`, "warning"); return; }
       selectedMember = { id: data.membersId, d4hRef: data.d4hRef, name: data.name };
       currentD4hRef  = data.d4hRef;
       populateDetail(data);
@@ -1234,7 +1289,7 @@
       clearMsg("nfcLinkStatus");
       updateLinkNfcBtn();
     } catch (e) {
-      showNfcToast("NFC read error");
+      showNfcToast("NFC read error", "error");
     }
   }
 
