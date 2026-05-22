@@ -178,7 +178,7 @@ def admin_sync_d4h():
             chunk = payload.get("results") or []
             if not chunk:
                 break
-            d4h_members.extend(chunk)
+            d4h_members.extend(m for m in chunk if m.get("status") != "RETIRED")
             total = payload.get("totalSize")
             if isinstance(total, int) and len(d4h_members) >= total:
                 break
