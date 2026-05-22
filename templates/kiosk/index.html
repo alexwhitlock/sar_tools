@@ -244,8 +244,14 @@
     .field-group {
       display: flex;
       flex-direction: column;
-      gap: 12px;
     }
+    .field-group .field-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .field-group .field-item:first-child { padding-top: 0; }
+    .field-group .field-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .field-group .plate-note { padding-top: 4px; }
     .field-item {
       display: flex;
       flex-direction: column;
@@ -282,6 +288,7 @@
       color: var(--text);
     }
     .field-display div + div { margin-top: 4px; }
+    .ec-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
     .field-input {
       width: 100%;
       font-size: 1rem;
@@ -333,15 +340,18 @@
     .submit-btn.checkout:hover { background: #1558b5; }
 
     .back-btn {
-      background: none;
-      border: none;
-      color: var(--accent);
-      font-size: 0.9rem;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
-      padding: 4px 0;
-      text-align: left;
+      padding: 10px 16px;
+      text-align: center;
+      width: 100%;
     }
+    .back-btn:hover { background: #f0f0f0; border-color: #aaa; }
 
     /* ── Status messages ── */
     .status-msg {
@@ -741,7 +751,7 @@
       for (let i = 0; i < count; i++) {
         const n = names[i]  || "";
         const p = phones[i] || "";
-        html += `<div>${esc(n)}${n && p ? " — " : ""}${esc(p)}</div>`;
+        html += `<div class="ec-row"><span>${esc(n)}</span><span>${esc(p)}</span></div>`;
       }
       $("ecDisplay").innerHTML = html;
       $("ecDisplay").style.display  = "";
