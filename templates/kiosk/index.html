@@ -377,6 +377,28 @@
     /* ── Section visibility ── */
     .section { display: none; }
     .section.visible { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Checkout list ── */
+    .checkout-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 52vh;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+    .result-row.selected {
+      border-color: var(--accent);
+      background: #e8f0fe;
+    }
+    .checkout-empty {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
@@ -431,6 +453,24 @@
         <div class="search-results" id="searchResults"></div>
       </div>
       <div id="searchStatus" class="status-msg"></div>
+    </div>
+
+    <!-- CHECKOUT SECTION -->
+    <div class="section" id="checkoutSection">
+      <div class="card">
+        <input
+          type="search"
+          id="checkoutSearch"
+          class="search-input"
+          placeholder="Filter by name…"
+          autocomplete="off"
+          autocorrect="off"
+        />
+        <div class="checkout-list" id="checkoutList"></div>
+        <p class="checkout-empty" id="checkoutEmpty" style="display:none">No one is checked in yet.</p>
+      </div>
+      <div id="checkoutStatus" class="status-msg"></div>
+      <button class="submit-btn checkout" id="confirmCheckoutBtn" disabled>Confirm Checkout</button>
     </div>
 
     <!-- DETAIL FORM -->
@@ -504,22 +544,22 @@
 (function () {
   const STORAGE_KEY = "kiosk_incident";
 
-  let incidentName  = "";
-  let action        = "checkin";
-  let selectedMember = null;
+  let incidentName           = "";
+  let action                 = "checkin";
+  let selectedMember         = null;
+  let selectedCheckoutPerson = null;
+  let checkoutAllPeople      = [];
 
   function $(id) { return document.getElementById(id); }
 
   // ── Section helpers ──
-  // Top-level: pickerSection vs kioskSection
   function showTop(id) {
     ["pickerSection", "kioskSection"].forEach(s => {
       $(s).classList.toggle("visible", s === id);
     });
   }
-  // Within kiosk: search / detail / success
   function showKiosk(id) {
-    ["searchSection", "detailSection", "successSection"].forEach(s => {
+    ["searchSection", "checkoutSection", "detailSection", "successSection"].forEach(s => {
       $(s).classList.toggle("visible", s === id);
     });
   }
@@ -576,7 +616,7 @@
     $("kioskTitle").style.display    = "none";
     $("headerIncident").classList.add("visible");
     showTop("kioskSection");
-    resetToSearch();  // also calls setManualStatic(true)
+    resetKiosk();
   }
 
   function unlockIncident() {
@@ -587,10 +627,9 @@
     $("incidentPicker").value = "";
     $("startBtn").disabled = true;
     showTop("pickerSection");
-    resetToSearch();
+    resetKiosk();
   }
 
-  // ── Change incident (two-step via confirm dialog) ──
   $("changeIncidentBtn").addEventListener("click", () => {
     if (!confirm("Change incident?\n\nThis will return to the incident picker. The current session will end.")) return;
     unlockIncident();
@@ -601,22 +640,45 @@
     action = "checkin";
     $("toggleCheckin").classList.add("active");
     $("toggleCheckout").classList.remove("active");
-    $("submitBtn").textContent = "Check In";
-    $("submitBtn").classList.remove("checkout");
-    resetToSearch();
+    resetKiosk();
   });
   $("toggleCheckout").addEventListener("click", () => {
     action = "checkout";
     $("toggleCheckout").classList.add("active");
     $("toggleCheckin").classList.remove("active");
-    $("submitBtn").textContent = "Check Out";
-    $("submitBtn").classList.add("checkout");
-    resetToSearch();
+    resetKiosk();
   });
 
-  // ── Search ──
+  // ── Reset ──
+  function resetKiosk() {
+    selectedMember = null;
+    selectedCheckoutPerson = null;
+    checkoutAllPeople = [];
+    clearMsg("searchStatus");
+    clearMsg("detailStatus");
+    clearMsg("checkoutStatus");
+    $("confirmCheckoutBtn").disabled = true;
+
+    if (action === "checkout") {
+      $("checkoutSearch").value = "";
+      $("checkoutList").innerHTML = "";
+      $("checkoutEmpty").style.display = "none";
+      showKiosk("checkoutSection");
+      if (incidentName) loadCheckoutList();
+    } else {
+      $("searchInput").value = "";
+      $("searchResults").innerHTML = "";
+      setManualStatic(true);
+      showKiosk("searchSection");
+      if ($("kioskSection").classList.contains("visible")) {
+        setTimeout(() => $("searchInput").focus(), 50);
+      }
+    }
+  }
+
+  // ── Check-in: search ──
   function setManualStatic(visible) {
-    $("manualEntryStatic").style.display = (action === "checkin" && visible) ? "" : "none";
+    $("manualEntryStatic").style.display = visible ? "" : "none";
   }
 
   let searchTimer = null;
@@ -636,12 +698,7 @@
 
   async function doSearch(q) {
     try {
-      let url;
-      if (action === "checkout") {
-        url = `/api/kiosk/incident-search?incidentName=${encodeURIComponent(incidentName)}&q=${encodeURIComponent(q)}`;
-      } else {
-        url = `/api/kiosk/search?q=${encodeURIComponent(q)}&incidentName=${encodeURIComponent(incidentName)}`;
-      }
+      const url = `/api/kiosk/search?q=${encodeURIComponent(q)}&incidentName=${encodeURIComponent(incidentName)}`;
       const res  = await fetch(url);
       const data = await res.json().catch(() => []);
       renderResults(data, q);
@@ -667,19 +724,11 @@
       if (!r.checkedIn) div.addEventListener("click", () => selectMember(r));
       container.appendChild(div);
     }
-    // Manual entry only available for check-in
-    if (action === "checkin") {
-      const manual = document.createElement("div");
-      manual.className = "manual-row";
-      manual.textContent = rows.length ? "Enter manually" : "Not found — enter manually";
-      manual.addEventListener("click", () => selectManual(q));
-      container.appendChild(manual);
-    } else if (!rows.length) {
-      const none = document.createElement("div");
-      none.style.cssText = "padding:10px 12px;color:var(--muted);font-size:0.9rem;text-align:center;";
-      none.textContent = "No checked-in personnel match that search.";
-      container.appendChild(none);
-    }
+    const manual = document.createElement("div");
+    manual.className = "manual-row";
+    manual.textContent = rows.length ? "Enter manually" : "Not found — enter manually";
+    manual.addEventListener("click", () => selectManual(q));
+    container.appendChild(manual);
   }
 
   function selectMember(r) {
@@ -697,6 +746,7 @@
     clearMsg("detailStatus");
   }
 
+  // ── Check-in: form fields ──
   function setField(itemId, inputId, value, { readonly = false } = {}) {
     const item     = $(itemId);
     const input    = $(inputId);
@@ -749,7 +799,6 @@
     setField("fiPhone", "fieldPhone", r.phone        || "");
     setField("fiPlate", "fieldPlate", r.licensePlate || "");
 
-    // Emergency contacts — paired display
     function renderEc(ecName, ecPhone) {
       $("fieldEcName").value  = ecName;
       $("fieldEcPhone").value = ecPhone;
@@ -798,22 +847,9 @@
     renderEc(r.ecName || "", r.ecPhone || "");
   }
 
-  $("backBtn").addEventListener("click", resetToSearch);
+  $("backBtn").addEventListener("click", resetKiosk);
 
-  function resetToSearch() {
-    selectedMember = null;
-    $("searchInput").value = "";
-    $("searchResults").innerHTML = "";
-    setManualStatic(true);
-    clearMsg("searchStatus");
-    clearMsg("detailStatus");
-    showKiosk("searchSection");
-    if ($("kioskSection").classList.contains("visible")) {
-      setTimeout(() => $("searchInput").focus(), 50);
-    }
-  }
-
-  // ── Submit ──
+  // ── Check-in: submit ──
   $("submitBtn").addEventListener("click", doSubmit);
 
   async function doSubmit() {
@@ -850,6 +886,83 @@
     }
   }
 
+  // ── Checkout: list + confirm ──
+  async function loadCheckoutList() {
+    $("checkoutList").innerHTML = '<p style="color:var(--muted);font-size:0.9rem;padding:10px 0;">Loading…</p>';
+    $("checkoutEmpty").style.display = "none";
+    try {
+      const res = await fetch(`/api/kiosk/checked-in?incidentName=${encodeURIComponent(incidentName)}`);
+      checkoutAllPeople = await res.json().catch(() => []);
+      renderCheckoutList(checkoutAllPeople);
+    } catch {
+      checkoutAllPeople = [];
+      renderCheckoutList([]);
+    }
+  }
+
+  function filterCheckout() {
+    const q = $("checkoutSearch").value.trim().toLowerCase();
+    renderCheckoutList(
+      q ? checkoutAllPeople.filter(p => p.name.toLowerCase().includes(q)) : checkoutAllPeople
+    );
+  }
+
+  function renderCheckoutList(people) {
+    const list  = $("checkoutList");
+    const empty = $("checkoutEmpty");
+    list.innerHTML = "";
+    if (!people.length) {
+      empty.style.display = "";
+      return;
+    }
+    empty.style.display = "none";
+    for (const p of people) {
+      const div = document.createElement("div");
+      div.className = "result-row" + (selectedCheckoutPerson?.id === p.id ? " selected" : "");
+      div.innerHTML = `
+        <div class="result-row-text">
+          <div class="result-name">${esc(p.name)}</div>
+          ${p.team ? `<div class="result-meta">Team ${esc(p.team)}</div>` : ""}
+        </div>
+      `;
+      div.addEventListener("click", () => selectCheckoutPerson(p));
+      list.appendChild(div);
+    }
+  }
+
+  function selectCheckoutPerson(person) {
+    selectedCheckoutPerson = person;
+    $("confirmCheckoutBtn").disabled = false;
+    filterCheckout();
+  }
+
+  $("checkoutSearch").addEventListener("input", filterCheckout);
+
+  $("confirmCheckoutBtn").addEventListener("click", async () => {
+    if (!selectedCheckoutPerson) return;
+    $("confirmCheckoutBtn").disabled = true;
+    clearMsg("checkoutStatus");
+    try {
+      const res = await fetch("/api/kiosk/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          incidentName,
+          action: "checkout",
+          name: selectedCheckoutPerson.name,
+          incidentPersonId: selectedCheckoutPerson.id,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+      showSuccess(selectedCheckoutPerson.name);
+    } catch (err) {
+      showMsg("checkoutStatus", `Failed: ${err.message}`, "error");
+      $("confirmCheckoutBtn").disabled = false;
+    }
+  });
+
+  // ── Success ──
   function showSuccess(name) {
     const verb = action === "checkin" ? "checked in" : "checked out";
     $("confirmIcon").textContent = action === "checkin" ? "✅" : "👋";
@@ -858,7 +971,7 @@
     showKiosk("successSection");
   }
 
-  $("doneBtn").addEventListener("click", resetToSearch);
+  $("doneBtn").addEventListener("click", resetKiosk);
 
   function esc(s) {
     return String(s ?? "")
@@ -883,15 +996,12 @@
   setInterval(checkHealth, 12000);
 
   // ── Boot ──
-  // If URL has ?incidentName= honour it (deep-link / dashboard copy), otherwise
-  // check localStorage for a previously-locked incident.
   const params = new URLSearchParams(location.search);
   const urlIncident = params.get("incidentName") || "";
 
   loadIncidents().then(() => {
     const saved = urlIncident || localStorage.getItem(STORAGE_KEY) || "";
     if (saved) {
-      // Only restore if that incident still exists in the picker
       const opt = Array.from($("incidentPicker").options).find(o => o.value === saved);
       if (opt) {
         $("incidentPicker").value = saved;

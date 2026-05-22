@@ -122,6 +122,29 @@ def kiosk_search():
     return jsonify(results)
 
 
+# ── Checked-in list (for checkout section) ───────────────────────────────────
+
+@bp.get("/api/kiosk/checked-in")
+def kiosk_checked_in():
+    """Return all Checked In personnel for checkout list (with team)."""
+    incident_name = (request.args.get("incidentName") or "").strip()
+    if not incident_name:
+        return jsonify([])
+    try:
+        with get_connection(incident_name) as conn:
+            rows = conn.execute("""
+                SELECT p.id, p.name, t.name AS team
+                FROM personnel p
+                LEFT JOIN team_members tm ON tm.personnel_id = p.id
+                LEFT JOIN teams t ON t.id = tm.team_id
+                WHERE p.status = 'Checked In'
+                ORDER BY p.name COLLATE NOCASE
+            """).fetchall()
+        return jsonify([{"id": r["id"], "name": r["name"], "team": r["team"]} for r in rows])
+    except Exception:
+        return jsonify([])
+
+
 # ── Incident personnel search (checkout mode) ────────────────────────────────
 
 @bp.get("/api/kiosk/incident-search")
@@ -161,20 +184,31 @@ def kiosk_incident_search():
 
 @bp.post("/api/kiosk/action")
 def kiosk_action():
-    data          = request.get_json() or {}
-    incident_name = (data.get("incidentName") or "").strip()
-    action        = (data.get("action") or "checkin").lower()
-    member_id     = data.get("memberId")
-    name          = (data.get("name") or "").strip()
-    phone         = (data.get("phone") or "").strip() or None
-    ec_name       = (data.get("ecName") or "").strip() or None
-    ec_phone      = (data.get("ecPhone") or "").strip() or None
-    plate         = (data.get("licensePlate") or "").strip() or None
+    data               = request.get_json() or {}
+    incident_name      = (data.get("incidentName") or "").strip()
+    action             = (data.get("action") or "checkin").lower()
+    member_id          = data.get("memberId")
+    incident_person_id = data.get("incidentPersonId")  # direct incident DB id (checkout fast path)
+    name               = (data.get("name") or "").strip()
+    phone              = (data.get("phone") or "").strip() or None
+    ec_name            = (data.get("ecName") or "").strip() or None
+    ec_phone           = (data.get("ecPhone") or "").strip() or None
+    plate              = (data.get("licensePlate") or "").strip() or None
 
     if not incident_name or not name:
         return jsonify({"error": "incidentName and name required"}), 400
 
     target_status = "Checked In" if action == "checkin" else "Checked Out"
+
+    # ── Checkout fast path: incident personnel id known, skip members DB ──────
+    if incident_person_id:
+        try:
+            update_person_status(incident_name, person_id=int(incident_person_id), status=target_status)
+            verb = "checked out" if target_status == "Checked Out" else "checked in"
+            _log(incident_name, f'"{name}" {verb} via Kiosk')
+            return jsonify({"ok": True, "personId": int(incident_person_id), "addedToIncident": False})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     run_members_migrations()
 
@@ -246,14 +280,15 @@ def kiosk_action():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    # 3. Save check-in info to incident personnel record
-    try:
-        update_checkin_info(
-            incident_name, person_id=person_id,
-            phone=phone, ec_name=ec_name, ec_phone=ec_phone, license_plate=plate,
-        )
-    except Exception:
-        pass  # non-fatal
+    # 3. Save check-in info to incident personnel record (check-in only)
+    if action == "checkin":
+        try:
+            update_checkin_info(
+                incident_name, person_id=person_id,
+                phone=phone, ec_name=ec_name, ec_phone=ec_phone, license_plate=plate,
+            )
+        except Exception:
+            pass  # non-fatal
 
     # 4. Update status (existing persons) or just log + return (new persons)
     verb = "checked in" if target_status == "Checked In" else "checked out"
