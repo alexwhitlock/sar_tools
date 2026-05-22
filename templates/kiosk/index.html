@@ -92,6 +92,18 @@
     }
     .settings-btn:hover { background: rgba(0,0,0,0.06); }
 
+    /* ── Offline veil ── */
+    .offline-veil {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(180, 180, 180, 0.55);
+      z-index: 100;
+      cursor: not-allowed;
+    }
+    .offline-veil.show { display: block; }
+    .kiosk-header { position: relative; z-index: 200; }
+
     /* ── Live/offline pill (matches .sync-pill in main tool) ── */
     .conn-pill {
       display: inline-flex;
@@ -434,6 +446,7 @@
   </div><!-- /kioskSection -->
 
 </div><!-- /app -->
+<div class="offline-veil" id="offlineVeil"></div>
 
 <script>
 (function () {
@@ -721,6 +734,7 @@
   function setOnline(yes) {
     pill.textContent = yes ? "LIVE" : "Offline";
     pill.className   = `conn-pill${yes ? "" : " offline"}`;
+    $("offlineVeil").classList.toggle("show", !yes);
   }
   async function checkHealth() {
     try {
