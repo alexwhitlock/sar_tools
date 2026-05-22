@@ -339,8 +339,8 @@
     }
     .submit-btn:hover   { background: #176e38; }
     .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
-    .submit-btn.checkout { background: var(--accent); }
-    .submit-btn.checkout:hover { background: #1558b5; }
+    .submit-btn.checkout { background: var(--red); }
+    .submit-btn.checkout:hover { background: #9b2c1f; }
     .submit-btn.checkout:disabled { background: #aaa; cursor: not-allowed; }
 
     .back-btn {
@@ -558,6 +558,7 @@
   let selectedMember         = null;
   let selectedCheckoutPerson = null;
   let checkoutAllPeople      = [];
+  let autoResetTimer         = null;
 
   function $(id) { return document.getElementById(id); }
 
@@ -660,6 +661,7 @@
 
   // ── Reset ──
   function resetKiosk() {
+    clearTimeout(autoResetTimer);
     selectedMember = null;
     selectedCheckoutPerson = null;
     checkoutAllPeople = [];
@@ -985,6 +987,8 @@
     $("confirmMsg").textContent  = `${name} ${verb}!`;
     $("confirmSub").textContent  = incidentName;
     showKiosk("successSection");
+    clearTimeout(autoResetTimer);
+    autoResetTimer = setTimeout(resetKiosk, 2000);
   }
 
   $("doneBtn").addEventListener("click", resetKiosk);
