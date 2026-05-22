@@ -187,15 +187,29 @@ def admin_sync_d4h():
         run_members_migrations()
         added, updated, conflicts = [], [], []
 
+        def _s(val):
+            """Coerce a D4H field value to a plain stripped string."""
+            if not val:
+                return ""
+            if isinstance(val, str):
+                return val.strip()
+            if isinstance(val, list):
+                return _s(val[0]) if val else ""
+            if isinstance(val, dict):
+                for k in ("value", "number", "text", "name"):
+                    if val.get(k):
+                        return _s(val[k])
+            return ""
+
         with get_members_connection() as conn:
             for m in d4h_members:
                 d4h_ref = str(m.get("id") or "").strip()
                 if not d4h_ref:
                     continue
-                name       = (m.get("name") or m.get("fullName") or m.get("displayName") or "").strip()
-                member_ref = (m.get("ref") or "").strip() or None
-                d4h_phone  = (m.get("mobilephone") or m.get("phone") or "").strip() or None
-                d4h_email  = (m.get("email") or "").strip() or None
+                name       = _s(m.get("name")) or _s(m.get("fullName")) or _s(m.get("displayName"))
+                member_ref = _s(m.get("ref")) or None
+                d4h_phone  = _s(m.get("mobilephone")) or _s(m.get("phone")) or None
+                d4h_email  = _s(m.get("email")) or None
 
                 existing = conn.execute(
                     "SELECT id, name, phone, email, local_modified FROM members WHERE d4h_ref=?",
