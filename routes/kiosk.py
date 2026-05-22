@@ -255,7 +255,7 @@ def admin_sync_d4h():
                 d4h_email  = _s(m.get("email")) or None
 
                 existing = conn.execute(
-                    "SELECT id, name, phone, email, local_modified FROM members WHERE d4h_ref=?",
+                    "SELECT id, name, phone, email, d4h_member_ref FROM members WHERE d4h_ref=?",
                     (d4h_ref,)
                 ).fetchone()
 
@@ -265,30 +265,46 @@ def admin_sync_d4h():
                         VALUES (?, ?, ?, ?, ?)
                     """, (name, d4h_ref, member_ref, d4h_phone, d4h_email))
                     added.append(name)
-                elif existing["local_modified"]:
-                    local_differs = (
-                        existing["name"] != name or
-                        (d4h_phone and existing["phone"] != d4h_phone) or
-                        (d4h_email and existing["email"] != d4h_email)
-                    )
-                    if local_differs:
+                else:
+                    # Field-level logic:
+                    #   local empty  + D4H has value  → auto-fill silently
+                    #   both present + values differ   → conflict for review
+                    fills = {}
+                    conflict_fields = {}
+
+                    def _check(field, local_val, d4h_val):
+                        if not d4h_val:
+                            return
+                        if not local_val:
+                            fills[field] = d4h_val
+                        elif local_val != d4h_val:
+                            conflict_fields[field] = {"local": local_val, "d4h": d4h_val}
+
+                    _check("name",          existing["name"],          name)
+                    _check("phone",         existing["phone"],         d4h_phone)
+                    _check("email",         existing["email"],         d4h_email)
+                    if member_ref and existing["d4h_member_ref"] != member_ref:
+                        fills["d4h_member_ref"] = member_ref
+
+                    if fills:
+                        set_clause = ", ".join(f"{k}=?" for k in fills)
+                        conn.execute(
+                            f"UPDATE members SET {set_clause}, updated_at=datetime('now') WHERE d4h_ref=?",
+                            [*fills.values(), d4h_ref]
+                        )
+                        updated.append(existing["name"])
+
+                    if conflict_fields:
                         conflicts.append({
                             "id":         existing["id"],
                             "d4hRef":     d4h_ref,
-                            "localName":  existing["name"],  "d4hName":  name,
-                            "localPhone": existing["phone"], "d4hPhone": d4h_phone,
-                            "localEmail": existing["email"], "d4hEmail": d4h_email,
+                            "localName":  existing["name"],
+                            "d4hName":    conflict_fields.get("name",  {}).get("d4h",   name),
+                            "localPhone": existing["phone"],
+                            "d4hPhone":   conflict_fields.get("phone", {}).get("d4h",   None),
+                            "localEmail": existing["email"],
+                            "d4hEmail":   conflict_fields.get("email", {}).get("d4h",   None),
                         })
-                else:
-                    if existing["name"] != name:
-                        updated.append({"old": existing["name"], "new": name})
-                    conn.execute("""
-                        UPDATE members
-                        SET name=?, d4h_member_ref=?,
-                            phone=COALESCE(?, phone), email=COALESCE(?, email),
-                            updated_at=datetime('now')
-                        WHERE d4h_ref=?
-                    """, (name, member_ref, d4h_phone, d4h_email, d4h_ref))
 
         return jsonify({
             "ok":         True,
