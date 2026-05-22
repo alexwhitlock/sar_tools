@@ -244,6 +244,15 @@ def admin_sync_d4h():
                         return _s(val[k])
             return ""
 
+        def _fmt_phone(raw):
+            """Format a phone number as XXX-XXX-XXXX, stripping leading +1/1."""
+            digits = "".join(c for c in (raw or "") if c.isdigit())
+            if len(digits) == 11 and digits.startswith("1"):
+                digits = digits[1:]
+            if len(digits) == 10:
+                return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+            return raw or ""  # return as-is if unrecognised format
+
         with get_members_connection() as conn:
             for m in d4h_members:
                 d4h_ref = str(m.get("id") or "").strip()
@@ -251,7 +260,7 @@ def admin_sync_d4h():
                     continue
                 name       = _s(m.get("name")) or _s(m.get("fullName")) or _s(m.get("displayName"))
                 member_ref = _s(m.get("ref")) or None
-                d4h_phone  = _s(m.get("mobile")) or _s(m.get("mobilephone")) or _s(m.get("phone")) or None
+                d4h_phone  = _fmt_phone(_s(m.get("mobile")) or _s(m.get("mobilephone")) or _s(m.get("phone"))) or None
                 d4h_email  = _s(m.get("email")) or None
 
                 existing = conn.execute(
