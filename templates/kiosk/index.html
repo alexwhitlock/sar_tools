@@ -426,6 +426,60 @@
       text-align: center;
       padding: 8px;
     }
+    /* ── D4H sync modal ── */
+    .sync-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sync-backdrop.hidden { display: none; }
+    .sync-card {
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+      padding: 28px 24px 20px;
+      width: min(340px, calc(100vw - 32px));
+    }
+    .sync-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .sync-card p {
+      font-size: 0.92rem;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.45;
+    }
+    .sync-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .sync-buttons button {
+      flex: 1;
+      padding: 12px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.97rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #syncNowBtn  { background: var(--accent); color: #fff; }
+    #syncSkipBtn { background: #f0f1f3; color: var(--text); }
+    #syncNowBtn:disabled { opacity: 0.6; cursor: default; }
+    #syncModalStatus {
+      margin-top: 12px;
+      font-size: 0.88rem;
+      text-align: center;
+      min-height: 1.2em;
+      color: var(--muted);
+    }
+    #syncModalStatus.ok  { color: var(--green); }
+    #syncModalStatus.err { color: var(--red); }
   </style>
 </head>
 <body>
@@ -439,7 +493,7 @@
       <button class="change-btn" id="changeIncidentBtn">Change</button>
     </div>
     <span class="conn-pill offline" id="connPill">Offline</span>
-    <a href="/checkin/admin" class="settings-btn" title="Admin / Settings">⚙</a>
+    <a href="/checkin/admin" class="settings-btn" id="settingsBtn" title="Admin / Settings">⚙</a>
   </div>
 
   <!-- ══ PICKER SECTION ══ -->
@@ -589,6 +643,19 @@
 </div><!-- /app -->
 <div class="offline-veil" id="offlineVeil"></div>
 
+<!-- D4H sync modal -->
+<div class="sync-backdrop hidden" id="syncBackdrop">
+  <div class="sync-card">
+    <h3>Sync D4H Database?</h3>
+    <p>Would you like to sync the member database with D4H before starting check-in?</p>
+    <div class="sync-buttons">
+      <button id="syncNowBtn">Sync Now</button>
+      <button id="syncSkipBtn">Skip</button>
+    </div>
+    <div id="syncModalStatus"></div>
+  </div>
+</div>
+
 <script>
 (function () {
   const STORAGE_KEY = "kiosk_incident";
@@ -659,7 +726,7 @@
     lockIncident(val);
   });
 
-  function lockIncident(name) {
+  function lockIncident(name, { skipSyncPrompt = false } = {}) {
     incidentName = name;
     localStorage.setItem(STORAGE_KEY, name);
     $("lockedIncidentName").textContent = name;
@@ -667,6 +734,7 @@
     $("headerIncident").classList.add("visible");
     showTop("kioskSection");
     resetKiosk();
+    if (!skipSyncPrompt && !isLocked) showSyncModal();
   }
 
   function unlockIncident() {
@@ -1066,8 +1134,47 @@
   setInterval(checkHealth, 12000);
 
   // ── Boot ──
-  const params = new URLSearchParams(location.search);
+  const params      = new URLSearchParams(location.search);
   const urlIncident = params.get("incidentName") || "";
+  const isLocked    = !!urlIncident;
+
+  if (isLocked) {
+    $("changeIncidentBtn").style.display = "none";
+    $("settingsBtn").style.display       = "none";
+  }
+
+  // ── D4H sync modal ──
+  function showSyncModal() {
+    $("syncBackdrop").classList.remove("hidden");
+    $("syncModalStatus").textContent = "";
+    $("syncModalStatus").className   = "";
+    $("syncNowBtn").disabled = false;
+  }
+  function hideSyncModal() {
+    $("syncBackdrop").classList.add("hidden");
+  }
+  $("syncSkipBtn").addEventListener("click", hideSyncModal);
+  $("syncNowBtn").addEventListener("click", async () => {
+    $("syncNowBtn").disabled = true;
+    const status = $("syncModalStatus");
+    status.textContent = "Syncing…";
+    status.className   = "";
+    try {
+      const res  = await fetch("/api/kiosk/admin/sync-d4h", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        status.textContent = `Done — ${data.added} added, ${data.updated} updated`;
+        status.className   = "ok";
+      } else {
+        status.textContent = `Error: ${data.error || "unknown"}`;
+        status.className   = "err";
+      }
+    } catch (e) {
+      status.textContent = `Failed: ${e.message}`;
+      status.className   = "err";
+    }
+    setTimeout(hideSyncModal, 2200);
+  });
 
   loadIncidents().then(() => {
     const saved = urlIncident || localStorage.getItem(STORAGE_KEY) || "";
@@ -1075,7 +1182,7 @@
       const opt = Array.from($("incidentPicker").options).find(o => o.value === saved);
       if (opt) {
         $("incidentPicker").value = saved;
-        lockIncident(saved);
+        lockIncident(saved, { skipSyncPrompt: true });
         return;
       }
     }

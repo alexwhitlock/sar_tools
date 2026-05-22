@@ -3,6 +3,7 @@ Requests==2.32.5
 gunicorn
 gevent
 fpdf2
+qrcode
 staticmap
 Pillow
 mgrs

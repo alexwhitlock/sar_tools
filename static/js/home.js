@@ -151,8 +151,10 @@ function updateDashboardLinks() {
 
   const kioskLink    = $("dashboardKioskLink");
   const kioskCopyBtn = $("dashboardKioskCopy");
+  const kioskQrBtn   = $("dashboardKioskQr");
   if (kioskLink)    { kioskLink.href = kioskUrl || "#"; kioskLink.classList.toggle("disabled", !kioskUrl); }
   if (kioskCopyBtn) kioskCopyBtn.disabled = !kioskUrl;
+  if (kioskQrBtn)   kioskQrBtn.disabled   = !kioskUrl;
 
   const hint = $("dashboardHint");
   if (hint) hint.style.display = (dashUrl || kioskUrl) ? "none" : "";
@@ -455,6 +457,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   wireCopyBtn("dashboardIncidentCopy", inc => `${location.origin}/dashboard?incidentName=${encodeURIComponent(inc)}`);
   wireCopyBtn("dashboardKioskCopy",    inc => `${location.origin}/checkin?incidentName=${encodeURIComponent(inc)}`);
+
+  $("dashboardKioskQr")?.addEventListener("click", () => {
+    const inc = getCurrentIncident();
+    if (!inc) return;
+    window.open(`/checkin/qr?incidentName=${encodeURIComponent(inc)}`, "_blank");
+  });
 
   // D4H — lookup on button click or Enter key
   async function doD4hLookup() {

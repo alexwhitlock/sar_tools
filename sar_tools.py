@@ -108,6 +108,93 @@ def checkin_admin():
     return render_template("kiosk/admin.html")
 
 
+@app.route("/checkin/qr")
+def checkin_qr():
+    import io
+    import qrcode
+    import qrcode.image.svg
+    from urllib.parse import quote
+    from flask import request as req
+
+    incident = req.args.get("incidentName", "").strip()
+    if not incident:
+        return "incidentName is required", 400
+
+    base = req.host_url.rstrip("/")
+    check_in_url = f"{base}/checkin?incidentName={quote(incident)}"
+
+    factory = qrcode.image.svg.SvgPathImage
+    img = qrcode.make(check_in_url, image_factory=factory, box_size=10, border=2)
+    svg_io = io.BytesIO()
+    img.save(svg_io)
+    svg = svg_io.getvalue().decode("utf-8")
+    # Strip XML declaration so it embeds cleanly
+    svg = svg[svg.index("<svg"):]
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>{incident} — Sign In</title>
+  <style>
+    @page {{ margin: 0.75in; }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #fff;
+      color: #111;
+      padding: 40px 24px;
+    }}
+    h1 {{
+      font-size: 2.2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 32px;
+      line-height: 1.2;
+    }}
+    .qr-wrap {{
+      width: min(320px, 80vw);
+      height: min(320px, 80vw);
+    }}
+    .qr-wrap svg {{
+      width: 100%;
+      height: 100%;
+    }}
+    p {{
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #444;
+      margin-top: 28px;
+      letter-spacing: 0.02em;
+    }}
+    .url {{
+      font-size: 0.7rem;
+      color: #999;
+      margin-top: 16px;
+      word-break: break-all;
+      text-align: center;
+    }}
+    @media print {{
+      .no-print {{ display: none; }}
+    }}
+  </style>
+</head>
+<body>
+  <h1>{incident}</h1>
+  <div class="qr-wrap">{svg}</div>
+  <p>Sign In</p>
+  <div class="url">{check_in_url}</div>
+  <script>window.print();</script>
+</body>
+</html>"""
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 @app.after_request
 def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
