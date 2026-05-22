@@ -341,6 +341,7 @@
     .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
     .submit-btn.checkout { background: var(--accent); }
     .submit-btn.checkout:hover { background: #1558b5; }
+    .submit-btn.checkout:disabled { background: #aaa; cursor: not-allowed; }
 
     .back-btn {
       background: none;
@@ -941,8 +942,13 @@
   }
 
   function selectCheckoutPerson(person) {
-    selectedCheckoutPerson = person;
-    $("confirmCheckoutBtn").disabled = false;
+    if (selectedCheckoutPerson?.id === person.id) {
+      selectedCheckoutPerson = null;
+      $("confirmCheckoutBtn").disabled = true;
+    } else {
+      selectedCheckoutPerson = person;
+      $("confirmCheckoutBtn").disabled = false;
+    }
     filterCheckout();
   }
 
