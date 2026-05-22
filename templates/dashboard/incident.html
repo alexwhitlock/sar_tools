@@ -319,7 +319,7 @@ body {
 /* ── Teams pager ── */
 .teams-page {
   opacity: 1;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.8s ease;
 }
 
 .teams-page.fading {
@@ -510,8 +510,8 @@ function esc(s) {
 
 // ── Teams pager ──
 const teamPager = { pages: [], current: 0, timer: null, _fadeTimer: null };
-const PAGE_INTERVAL_MS = 6000;
-const FADE_MS = 350;
+const PAGE_INTERVAL_MS = 12000;
+const FADE_MS = 800;
 
 function updateDots(current, total) {
   const el = document.getElementById("dashTeamsDots");
