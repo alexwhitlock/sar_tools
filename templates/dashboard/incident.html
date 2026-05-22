@@ -316,9 +316,37 @@ body {
   padding: 0.5rem 0;
 }
 
-/* ── Teams auto-scroll (JS-driven so data updates don't interrupt) ── */
-#dashTeamsList.scrolling {
-  overflow: hidden;
+/* ── Teams pager ── */
+.teams-page {
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+
+.teams-page.fading {
+  opacity: 0;
+}
+
+.teams-pager-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0 6px;
+  flex-shrink: 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.teams-pager-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+.teams-pager-dot.active {
+  background: #475569;
 }
 
 /* ── No incident message ── */
@@ -362,14 +390,22 @@ body {
 .dash-footer-label { color: #64748b; }
 .dash-footer-value { color: #e2e8f0; font-weight: 600; }
 
-.dash-sync-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #22c55e;
-  flex-shrink: 0;
+.dash-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: #3db86a;
+  color: #fff;
 }
-.dash-sync-dot.offline { background: #ef4444; }
+
+.dash-sync-pill.offline {
+  background: #e05c4a;
+}
 </style>
 </head>
 <body>
@@ -387,17 +423,11 @@ body {
 
 <div class="dash-footer">
   <div class="dash-footer-item">
-    <div class="dash-sync-dot" id="dashSyncDot"></div>
-    <span class="dash-footer-label">Synced</span>
-    <span class="dash-footer-value" id="dashSyncTime">—</span>
+    <span class="dash-sync-pill" id="dashSyncPill">LIVE</span>
   </div>
   <div class="dash-footer-item">
     <span class="dash-footer-label">Personnel checked in</span>
     <span class="dash-footer-value" id="dashPersonnelCount">—</span>
-  </div>
-  <div class="dash-footer-item" id="dashUsersItem" style="display:none">
-    <span class="dash-footer-label">Active users</span>
-    <span class="dash-footer-value" id="dashUsersCount">—</span>
   </div>
 </div>
 
@@ -441,6 +471,7 @@ function buildLayout() {
         <span class="dash-panel-count" id="dashTeamsCount"></span>
       </div>
       <div class="dash-panel-body" id="dashTeamsList"></div>
+      <div class="teams-pager-dots" id="dashTeamsDots" style="display:none"></div>
     </div>
     <div class="dash-panel dash-asgn-col">
       <div class="dash-panel-header">
@@ -476,25 +507,55 @@ function esc(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function nowHHMMSS() {
-  const n = new Date();
-  return `${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}:${String(n.getSeconds()).padStart(2,"0")}`;
+
+// ── Teams pager ──
+const teamPager = { pages: [], current: 0, timer: null, _fadeTimer: null };
+const PAGE_INTERVAL_MS = 6000;
+const FADE_MS = 350;
+
+function updateDots(current, total) {
+  const el = document.getElementById("dashTeamsDots");
+  if (!el) return;
+  if (total <= 1) { el.style.display = "none"; return; }
+  el.style.display = "flex";
+  el.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<div class="teams-pager-dot${i === current ? " active" : ""}"></div>`
+  ).join("");
 }
 
-// ── Teams scroll state (persists across data updates) ──
-const teamScroll = { pos: 0, height: 0, active: false, raf: null, _lastTs: null };
-const SCROLL_PX_PER_SEC = 17;
+function showPage(idx, animate) {
+  const listEl = document.getElementById("dashTeamsList");
+  if (!listEl || !teamPager.pages.length) return;
+  if (teamPager._fadeTimer) { clearTimeout(teamPager._fadeTimer); teamPager._fadeTimer = null; }
+  const pageEl = listEl.querySelector(".teams-page");
 
-function teamsScrollStep(ts) {
-  if (!teamScroll.active) return;
-  if (teamScroll._lastTs == null) teamScroll._lastTs = ts;
-  const dt = Math.min((ts - teamScroll._lastTs) / 1000, 0.1);
-  teamScroll._lastTs = ts;
-  teamScroll.pos += SCROLL_PX_PER_SEC * dt;
-  if (teamScroll.pos >= teamScroll.height) teamScroll.pos -= teamScroll.height;
-  const inner = document.querySelector("#dashTeamsList .teams-scroll-inner");
-  if (inner) inner.style.transform = `translateY(-${teamScroll.pos.toFixed(2)}px)`;
-  teamScroll.raf = requestAnimationFrame(teamsScrollStep);
+  function setContent() {
+    const html = teamPager.pages[idx] || "";
+    if (pageEl) { pageEl.innerHTML = html; pageEl.classList.remove("fading"); }
+    else { listEl.innerHTML = `<div class="teams-page">${html}</div>`; }
+    updateDots(idx, teamPager.pages.length);
+  }
+
+  if (animate && pageEl) {
+    pageEl.classList.add("fading");
+    teamPager._fadeTimer = setTimeout(() => { setContent(); teamPager._fadeTimer = null; }, FADE_MS);
+  } else {
+    setContent();
+  }
+}
+
+function startPager() {
+  if (teamPager.timer) return;
+  teamPager.timer = setInterval(() => {
+    if (teamPager.pages.length <= 1) return;
+    teamPager.current = (teamPager.current + 1) % teamPager.pages.length;
+    showPage(teamPager.current, true);
+  }, PAGE_INTERVAL_MS);
+}
+
+function stopPager() {
+  if (teamPager.timer) { clearInterval(teamPager.timer); teamPager.timer = null; }
+  if (teamPager._fadeTimer) { clearTimeout(teamPager._fadeTimer); teamPager._fadeTimer = null; }
 }
 
 // ── Render ──
@@ -515,14 +576,13 @@ function renderTeams(teams, assignments) {
   countEl.textContent = `${active.length} active · ${teams.length} total`;
 
   if (!teams.length) {
-    teamScroll.active = false;
-    if (teamScroll.raf) { cancelAnimationFrame(teamScroll.raf); teamScroll.raf = null; }
-    listEl.classList.remove("scrolling");
+    stopPager();
+    updateDots(0, 0);
     listEl.innerHTML = `<div class="asgn-empty">No teams created yet.</div>`;
     return;
   }
 
-  const cards = teams.map(t => {
+  const cards = teams.map(t => {  // array of card HTML strings
     const css     = STATUS_CSS[t.status] || "ts-oos";
     const tlName  = t.teamLeaderName || null;
     const manualTl = t.manualTl || null;
@@ -551,45 +611,36 @@ function renderTeams(teams, assignments) {
               <span>${asgnDisplay}</span>
             </div>
             <div class="team-card-detail team-card-detail-members">
-              <svg width="10" height="10" viewBox="0 0 16 16" fill="#fff"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg>
+              <span class="team-card-detail-label" style="display:flex;align-items:center;"><svg width="9" height="9" viewBox="0 0 16 16" fill="#fff" style="opacity:0.65"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg></span>
               <span>${members}</span>
             </div>
           </div>
         </div>
       </div>`;
-  }).join("");
+  }); // array — not joined, pager slices and joins per-page
 
-  const separator = `<div class="teams-scroll-separator"></div>`;
-  const wasScrolling = teamScroll.active;
-  const prevPos     = teamScroll.pos;
+  // Measure one card to calculate how many fit per page
+  const probe = document.createElement("div");
+  probe.style.cssText = `position:fixed;top:-9999px;left:0;width:${listEl.clientWidth}px;pointer-events:none;`;
+  probe.innerHTML = cards[0];
+  document.body.appendChild(probe);
+  const cardH = Math.max(1, (probe.firstElementChild?.offsetHeight ?? 40) + 3);
+  document.body.removeChild(probe);
 
-  // Rebuild DOM — the running RAF loop will pick up the new element automatically
-  listEl.innerHTML = `<div class="teams-scroll-inner">${cards}${separator}</div>`;
+  const perPage = Math.max(1, Math.floor(listEl.clientHeight / cardH));
+  const pages = [];
+  for (let i = 0; i < cards.length; i += perPage) {
+    pages.push(cards.slice(i, i + perPage).join(""));
+  }
 
-  requestAnimationFrame(() => {
-    const inner = listEl.querySelector(".teams-scroll-inner");
-    if (!inner) return;
-    const oneHeight = inner.scrollHeight; // one copy height (cards + separator)
+  teamPager.pages = pages;
+  if (teamPager.current >= pages.length) teamPager.current = 0;
 
-    if (oneHeight > listEl.clientHeight + 20) {
-      inner.innerHTML += inner.innerHTML; // duplicate for seamless loop
-      teamScroll.height = oneHeight;
-      // Resume from same position so scroll appears uninterrupted
-      teamScroll.pos = wasScrolling ? (prevPos % oneHeight) : 0;
-      inner.style.transform = `translateY(-${teamScroll.pos.toFixed(2)}px)`;
-      listEl.classList.add("scrolling");
-      if (!teamScroll.active) {
-        teamScroll.active = true;
-        teamScroll._lastTs = null;
-        teamScroll.raf = requestAnimationFrame(teamsScrollStep);
-      }
-    } else {
-      teamScroll.active = false;
-      if (teamScroll.raf) { cancelAnimationFrame(teamScroll.raf); teamScroll.raf = null; }
-      listEl.classList.remove("scrolling");
-      inner.style.transform = "";
-    }
-  });
+  // Refresh content without animation (data update, not page advance)
+  showPage(teamPager.current, false);
+
+  if (pages.length > 1 && !teamPager.timer) startPager();
+  else if (pages.length <= 1) stopPager();
 }
 
 function renderAssignments(assignments) {
@@ -670,30 +721,21 @@ async function fetchAll() {
   renderAssignments(assignments);
   renderPersonnel(personnel);
 
-  const syncEl = document.getElementById("dashSyncTime");
-  if (syncEl) syncEl.textContent = nowHHMMSS();
 }
 
 // ── SSE ──
 function initDashboard() {
   fetchAll();
 
-  const banner  = document.getElementById("dashOfflineBanner");
-  const dot     = document.getElementById("dashSyncDot");
-  const usersEl = document.getElementById("dashUsersCount");
-  const usersItem = document.getElementById("dashUsersItem");
+  const banner = document.getElementById("dashOfflineBanner");
+  const pill   = document.getElementById("dashSyncPill");
 
   const sse = new EventSource(`/api/sync/stream?incidentName=${enc(INCIDENT)}`);
 
   sse.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    dot.classList.remove("offline");
+    if (pill) { pill.textContent = "LIVE"; pill.classList.remove("offline"); }
     banner.classList.remove("visible");
-
-    if (msg.users !== undefined) {
-      usersEl.textContent = msg.users;
-      usersItem.style.display = "";
-    }
 
     if (msg.type === "init" || msg.type === "sync") {
       _settings = null;
@@ -702,7 +744,7 @@ function initDashboard() {
   };
 
   sse.onerror = () => {
-    dot.classList.add("offline");
+    if (pill) { pill.textContent = "Offline"; pill.classList.add("offline"); }
     banner.classList.add("visible");
   };
 }
