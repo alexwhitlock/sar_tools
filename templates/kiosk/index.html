@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>Check-in Kiosk</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -732,13 +735,12 @@
       showInput();
     }
 
-    // Enter key saves the field
-    input.onkeydown = (e) => {
-      if (e.key !== "Enter") return;
-      e.preventDefault();
+    const trySave = () => {
       const newVal = input.value.trim();
       if (newVal) showDisplay(newVal); else showInput();
     };
+    input.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); trySave(); } };
+    input.onblur    = trySave;
   }
 
   function populateDetail(r) {
@@ -785,8 +787,13 @@
       const p = $("fieldEcPhone").value.trim();
       if (n || p) renderEc(n, p);
     };
+    const ecBlur = (sibling) => () => {
+      setTimeout(() => { if (document.activeElement !== sibling) saveEc(); }, 100);
+    };
     $("fieldEcName").onkeydown  = (e) => { if (e.key === "Enter") { e.preventDefault(); saveEc(); } };
     $("fieldEcPhone").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); saveEc(); } };
+    $("fieldEcName").onblur  = ecBlur($("fieldEcPhone"));
+    $("fieldEcPhone").onblur = ecBlur($("fieldEcName"));
 
     renderEc(r.ecName || "", r.ecPhone || "");
   }
