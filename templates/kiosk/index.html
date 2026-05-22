@@ -41,10 +41,44 @@
     .kiosk-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 8px;
       padding: 0 2px;
+      min-height: 36px;
     }
-    .kiosk-title { font-size: 1.2rem; font-weight: 700; }
+    .kiosk-title {
+      flex: 1;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    /* Incident slot (replaces title when locked) */
+    .header-incident {
+      flex: 1;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .header-incident.visible { display: flex; }
+    .header-incident-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .change-btn {
+      flex-shrink: 0;
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 9px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .change-btn:hover { border-color: var(--red); color: var(--red); background: #fff5f5; }
     .settings-btn {
       background: none;
       border: none;
@@ -83,45 +117,6 @@
     .conn-pill.offline { background: #e0e0e0; color: #555; }
     .conn-pill.offline::before { background: #999; }
 
-    /* ── Locked incident bar ── */
-    .incident-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--card);
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      box-shadow: var(--shadow);
-    }
-    .incident-bar-name {
-      flex: 1;
-      font-weight: 600;
-      font-size: 0.95rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .incident-bar-label {
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-      margin-bottom: 1px;
-    }
-    .change-btn {
-      flex-shrink: 0;
-      background: none;
-      border: 1.5px solid var(--border);
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--muted);
-      cursor: pointer;
-    }
-    .change-btn:hover { border-color: var(--red); color: var(--red); background: #fff5f5; }
 
     /* ── Card ── */
     .card {
@@ -327,11 +322,13 @@
 
   <!-- Header (always visible) -->
   <div class="kiosk-header">
-    <div class="kiosk-title">Check-in Kiosk</div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="conn-pill offline" id="connPill">Offline</span>
-      <a href="/checkin/admin" class="settings-btn" title="Admin / Settings">⚙</a>
+    <div class="kiosk-title" id="kioskTitle">Check-in Kiosk</div>
+    <div class="header-incident" id="headerIncident">
+      <div class="header-incident-name" id="lockedIncidentName"></div>
+      <button class="change-btn" id="changeIncidentBtn">Change</button>
     </div>
+    <span class="conn-pill offline" id="connPill">Offline</span>
+    <a href="/checkin/admin" class="settings-btn" title="Admin / Settings">⚙</a>
   </div>
 
   <!-- ══ PICKER SECTION ══ -->
@@ -348,15 +345,6 @@
 
   <!-- ══ KIOSK SECTION (shown once incident locked) ══ -->
   <div class="section" id="kioskSection">
-
-    <!-- Locked incident bar -->
-    <div class="incident-bar">
-      <div>
-        <div class="incident-bar-label">Incident</div>
-        <div class="incident-bar-name" id="lockedIncidentName"></div>
-      </div>
-      <button class="change-btn" id="changeIncidentBtn">Change</button>
-    </div>
 
     <!-- Check In / Check Out toggle -->
     <div class="toggle-group">
@@ -506,20 +494,27 @@
     incidentName = name;
     localStorage.setItem(STORAGE_KEY, name);
     $("lockedIncidentName").textContent = name;
+    $("kioskTitle").style.display    = "none";
+    $("headerIncident").classList.add("visible");
     showTop("kioskSection");
+    resetToSearch();
+  }
+
+  function unlockIncident() {
+    incidentName = "";
+    localStorage.removeItem(STORAGE_KEY);
+    $("kioskTitle").style.display = "";
+    $("headerIncident").classList.remove("visible");
+    $("incidentPicker").value = "";
+    $("startBtn").disabled = true;
+    showTop("pickerSection");
     resetToSearch();
   }
 
   // ── Change incident (two-step via confirm dialog) ──
   $("changeIncidentBtn").addEventListener("click", () => {
-    if (!confirm(`Change incident?\n\nThis will return to the incident picker. The current session will end.`)) return;
-    incidentName = "";
-    localStorage.removeItem(STORAGE_KEY);
-    // Re-sync the picker selection to blank
-    $("incidentPicker").value = "";
-    $("startBtn").disabled = true;
-    showTop("pickerSection");
-    resetToSearch();
+    if (!confirm("Change incident?\n\nThis will return to the incident picker. The current session will end.")) return;
+    unlockIncident();
   });
 
   // ── Check In / Check Out toggle ──
