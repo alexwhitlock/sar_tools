@@ -474,6 +474,7 @@
       <div class="header-incident-name" id="lockedIncidentName"></div>
       <button class="change-btn" id="changeIncidentBtn">Change</button>
     </div>
+    <span id="nfcPill" style="display:none;font-size:0.7rem;padding:3px 8px;border-radius:10px;background:#e0e0e0;color:#888;">NFC</span>
     <span class="conn-pill offline" id="connPill">Offline</span>
     <a href="/checkin/admin" class="settings-btn" title="Admin / Settings">⚙</a>
   </div>
@@ -709,7 +710,7 @@
     $("headerIncident").classList.add("visible");
     showTop("kioskSection");
     resetKiosk();
-    startNfcScanning();
+    if ("NDEFReader" in window) setNfcPill("idle");
   }
 
   function unlockIncident() {
@@ -1164,14 +1165,50 @@
     updateLinkNfcBtn();
   });
 
+  function setNfcPill(state) {
+    const el = $("nfcPill");
+    if (!el) return;
+    el.onclick = null;
+    if (state === "active") {
+      el.style.display = "";
+      el.textContent = "NFC ●";
+      el.style.background = "#d4edda";
+      el.style.color = "#1a6b2e";
+      el.style.cursor = "default";
+    } else if (state === "idle") {
+      el.style.display = "";
+      el.textContent = "NFC — tap to enable";
+      el.style.background = "#e0e0e0";
+      el.style.color = "#555";
+      el.style.cursor = "pointer";
+      el.onclick = startNfcScanning;
+    } else if (state === "error") {
+      el.style.display = "";
+      el.textContent = "NFC ✕ — tap to retry";
+      el.style.background = "#fdecea";
+      el.style.color = "#9b2c1f";
+      el.style.cursor = "pointer";
+      el.onclick = startNfcScanning;
+    } else {
+      el.style.display = "none";
+    }
+  }
+
   async function startNfcScanning() {
-    if (!("NDEFReader" in window)) return;
+    if (!("NDEFReader" in window)) {
+      setNfcPill("error");
+      return;
+    }
     try {
       const reader = new NDEFReader();
       await reader.scan();
+      setNfcPill("active");
       reader.addEventListener("reading", ({ serialNumber }) => handleNfcRead(serialNumber));
+      reader.addEventListener("readingerror", () => showNfcToast("NFC read error"));
     } catch (e) {
       console.warn("NFC unavailable:", e);
+      setNfcPill("error");
+      showNfcToast(`NFC: ${e.message || "permission denied"}`);
     }
   }
 
