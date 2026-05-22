@@ -42,4 +42,6 @@ def run_members_migrations():
             CREATE INDEX IF NOT EXISTS idx_members_d4h_ref ON members (d4h_ref);
             CREATE INDEX IF NOT EXISTS idx_members_phone   ON members (phone);
         """)
-        conn.execute("ALTER TABLE members DROP COLUMN IF EXISTS email")
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(members)").fetchall()}
+        if "email" in cols:
+            conn.execute("ALTER TABLE members DROP COLUMN email")
