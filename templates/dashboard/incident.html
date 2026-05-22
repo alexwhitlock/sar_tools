@@ -65,6 +65,11 @@ body {
   gap: 0.65rem;
   padding: 0.65rem;
   min-height: 0;
+  transition: opacity 0.6s;
+}
+
+body.dash-offline .dash-main {
+  opacity: 0.35;
 }
 
 /* ── Section panels ── */
@@ -578,7 +583,7 @@ function renderTeams(teams, assignments) {
               <span>${asgnDisplay}</span>
             </div>
             <div class="team-card-detail team-card-detail-members">
-              <span class="team-card-detail-label"><svg width="9" height="9" viewBox="0 0 16 16" fill="#fff" style="display:block;opacity:0.65;margin:0 auto;position:relative;top:-4px;"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg></span>
+              <span class="team-card-detail-label"><svg width="9" height="9" viewBox="0 0 16 16" fill="#fff" style="display:block;opacity:0.65;margin:0 auto;position:relative;top:-2px;"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg></span>
               <span>${members}</span>
             </div>
           </div>
@@ -710,6 +715,7 @@ function initDashboard() {
   sse.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (pill) { pill.textContent = "LIVE"; pill.classList.remove("offline"); }
+    document.body.classList.remove("dash-offline");
 
     if (msg.type === "init" || msg.type === "sync") {
       _settings = null;
@@ -719,6 +725,7 @@ function initDashboard() {
 
   sse.onerror = () => {
     if (pill) { pill.textContent = "Offline"; pill.classList.add("offline"); }
+    document.body.classList.add("dash-offline");
   };
 }
 </script>
