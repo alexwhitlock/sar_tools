@@ -136,6 +136,30 @@ function updateLinkCheckboxVisibility() {
   if (exportBtn) exportBtn.disabled = !hasIncident;
   const renameBtn = $("incidentRenameBtn");
   if (renameBtn) renameBtn.disabled = !hasIncident;
+  updateDashboardLinks();
+}
+
+function updateDashboardLinks() {
+  const incident = getCurrentIncident();
+  const url = incident
+    ? `/dashboard?incidentName=${encodeURIComponent(incident)}`
+    : null;
+
+  const link    = $("dashboardIncidentLink");
+  const copyBtn = $("dashboardIncidentCopy");
+  const hint    = $("dashboardHint");
+
+  if (link) {
+    if (url) {
+      link.href = url;
+      link.classList.remove("disabled");
+    } else {
+      link.href = "#";
+      link.classList.add("disabled");
+    }
+  }
+  if (copyBtn) copyBtn.disabled = !url;
+  if (hint)    hint.style.display = url ? "none" : "";
 }
 
 // ===============================
@@ -418,6 +442,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       $("mapIdLookupBtn").disabled = false;
       clearOpPeriods();
     }
+  });
+
+  // Dashboard copy button
+  $("dashboardIncidentCopy")?.addEventListener("click", () => {
+    const incident = getCurrentIncident();
+    if (!incident) return;
+    const url = `${location.origin}/dashboard?incidentName=${encodeURIComponent(incident)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = $("dashboardIncidentCopy");
+      const orig = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
   });
 
   // D4H — lookup on button click or Enter key

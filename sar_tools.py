@@ -90,6 +90,11 @@ def help_files(filename):
     return send_from_directory("help", filename)
 
 
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard/incident.html")
+
+
 @app.after_request
 def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
