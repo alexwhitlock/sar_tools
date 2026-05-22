@@ -634,9 +634,13 @@ function renderTeams(teams, assignments) {
     return out;
   }
 
-  // First pass without dots, second pass if dots will appear (they take ~20px)
-  let pages = buildPages(listEl.clientHeight);
-  if (pages.length > 1) pages = buildPages(listEl.clientHeight - 20);
+  // Recover the full panel body height regardless of whether dots are currently shown
+  const dotsEl = document.getElementById("dashTeamsDots");
+  const fullH = listEl.clientHeight + (dotsEl?.offsetHeight ?? 0);
+
+  // First pass with full height; if dots are needed, second pass reserving their space
+  let pages = buildPages(fullH);
+  if (pages.length > 1) pages = buildPages(fullH - 20);
 
   teamPager.pages = pages;
   if (teamPager.current >= pages.length) teamPager.current = 0;
