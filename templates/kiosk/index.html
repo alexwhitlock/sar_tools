@@ -1224,7 +1224,7 @@
     try {
       const res  = await fetch(`/api/nfc/lookup?serial=${encodeURIComponent(serial)}&incidentName=${encodeURIComponent(incidentName)}`);
       const data = await res.json();
-      if (!data.found) { showNfcToast("Unrecognized tag"); return; }
+      if (!data.found) { showNfcToast(`Unrecognized: ${serial}`); return; }
       if (data.checkedIn) { showNfcToast(`${data.name} is already checked in`); return; }
       selectedMember = { id: data.membersId, d4hRef: data.d4hRef, name: data.name };
       currentD4hRef  = data.d4hRef;
@@ -1249,11 +1249,11 @@
       });
       const data = await res.json();
       if (data.status === "linked") {
-        showMsg("nfcLinkStatus", "Tag linked successfully", "info");
+        showMsg("nfcLinkStatus", `Linked: ${serial}`, "info");
       } else if (data.status === "already_this") {
-        showMsg("nfcLinkStatus", "This tag is already linked to this person", "info");
+        showMsg("nfcLinkStatus", `Already linked: ${serial}`, "info");
       } else if (data.status === "already_other") {
-        showMsg("nfcLinkStatus", `This tag is already linked to ${data.name}`, "error");
+        showMsg("nfcLinkStatus", `Already linked to ${data.name}: ${serial}`, "error");
       }
     } catch (e) {
       showMsg("nfcLinkStatus", "Failed to link tag", "error");
