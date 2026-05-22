@@ -189,10 +189,29 @@
       border-radius: 8px;
       cursor: pointer;
       transition: border-color 0.1s, background 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .result-row:active, .result-row:hover { border-color: var(--accent); background: #f0f5ff; }
+    .result-row.already-in { background: #f0f0f0; border-color: #ccc; opacity: 0.75; cursor: default; }
+    .result-row.already-in:hover { background: #f0f0f0; border-color: #ccc; }
+    .result-row-text { flex: 1; min-width: 0; }
     .result-name { font-weight: 600; font-size: 1rem; }
     .result-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .result-checked-in {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      color: var(--green);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .result-checked-in svg { display: block; }
 
     .manual-row {
       padding: 11px 12px;
@@ -359,6 +378,7 @@
           autocapitalize="none"
           inputmode="search"
         />
+        <div class="manual-row" id="manualEntryStatic" style="margin-top:8px;">Enter manually</div>
         <div class="search-results" id="searchResults"></div>
       </div>
       <div id="searchStatus" class="status-msg"></div>
@@ -491,7 +511,7 @@
     $("kioskTitle").style.display    = "none";
     $("headerIncident").classList.add("visible");
     showTop("kioskSection");
-    resetToSearch();
+    resetToSearch();  // also calls setManualStatic(true)
   }
 
   function unlockIncident() {
@@ -530,13 +550,24 @@
   });
 
   // ── Search ──
+  function setManualStatic(visible) {
+    $("manualEntryStatic").style.display = (action === "checkin" && visible) ? "" : "none";
+  }
+
   let searchTimer = null;
   $("searchInput").addEventListener("input", () => {
     clearTimeout(searchTimer);
     const q = $("searchInput").value.trim();
-    if (q.length < 2) { $("searchResults").innerHTML = ""; return; }
+    if (q.length < 2) {
+      $("searchResults").innerHTML = "";
+      setManualStatic(true);
+      return;
+    }
+    setManualStatic(false);
     searchTimer = setTimeout(() => doSearch(q), 220);
   });
+
+  $("manualEntryStatic").addEventListener("click", () => selectManual($("searchInput").value.trim()));
 
   async function doSearch(q) {
     try {
@@ -544,7 +575,7 @@
       if (action === "checkout") {
         url = `/api/kiosk/incident-search?incidentName=${encodeURIComponent(incidentName)}&q=${encodeURIComponent(q)}`;
       } else {
-        url = `/api/kiosk/search?q=${encodeURIComponent(q)}`;
+        url = `/api/kiosk/search?q=${encodeURIComponent(q)}&incidentName=${encodeURIComponent(incidentName)}`;
       }
       const res  = await fetch(url);
       const data = await res.json().catch(() => []);
@@ -557,17 +588,30 @@
     container.innerHTML = "";
     for (const r of rows) {
       const div = document.createElement("div");
-      div.className = "result-row";
+      div.className = "result-row" + (r.checkedIn ? " already-in" : "");
       const meta = [r.memberRef, r.phone].filter(Boolean).join(" · ");
-      div.innerHTML = `<div class="result-name">${esc(r.name)}</div>${meta ? `<div class="result-meta">${esc(meta)}</div>` : ""}`;
-      div.addEventListener("click", () => selectMember(r));
+      div.innerHTML = `
+        <div class="result-row-text">
+          <div class="result-name">${esc(r.name)}</div>
+          ${meta ? `<div class="result-meta">${esc(meta)}</div>` : ""}
+        </div>
+        ${r.checkedIn ? `
+        <div class="result-checked-in">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="9" cy="9" r="8.5" stroke="currentColor"/>
+            <path d="M5 9l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Already<br>checked in
+        </div>` : ""}
+      `;
+      if (!r.checkedIn) div.addEventListener("click", () => selectMember(r));
       container.appendChild(div);
     }
     // Manual entry only available for check-in
     if (action === "checkin") {
       const manual = document.createElement("div");
       manual.className = "manual-row";
-      manual.textContent = "Not found — enter manually";
+      manual.textContent = rows.length ? "Enter manually" : "Not found — enter manually";
       manual.addEventListener("click", () => selectManual(q));
       container.appendChild(manual);
     } else if (!rows.length) {
@@ -609,6 +653,7 @@
     selectedMember = null;
     $("searchInput").value = "";
     $("searchResults").innerHTML = "";
+    setManualStatic(true);
     clearMsg("searchStatus");
     clearMsg("detailStatus");
     showKiosk("searchSection");

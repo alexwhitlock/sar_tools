@@ -20,11 +20,12 @@ def _log(incident_name, message):
 
 @bp.get("/api/kiosk/search")
 def kiosk_search():
-    q = (request.args.get("q") or "").strip()
+    q             = (request.args.get("q") or "").strip()
+    incident_name = (request.args.get("incidentName") or "").strip()
     if len(q) < 2:
         return jsonify([])
     run_members_migrations()
-    wild       = f"%{q}%"
+    wild        = f"%{q}%"
     start_first = f"{q}%"
     start_last  = f"% {q}%"
     with get_members_connection() as conn:
@@ -42,7 +43,45 @@ def kiosk_search():
                 name COLLATE NOCASE
             LIMIT 25
         """, (wild, wild, wild, wild, start_first, start_last)).fetchall()
-    return jsonify([{
+
+    # Build set of d4h_refs (and names) that are already Checked In in the incident,
+    # and also fetch incident personnel that match the search query (to supplement results).
+    checked_in_refs  = set()
+    checked_in_names = set()
+    incident_rows    = []
+    if incident_name:
+        try:
+            with get_connection(incident_name) as iconn:
+                ci_rows = iconn.execute(
+                    "SELECT name, d4h_ref FROM personnel WHERE status='Checked In'"
+                ).fetchall()
+                for p in ci_rows:
+                    if p["d4h_ref"]:
+                        checked_in_refs.add(str(p["d4h_ref"]))
+                    checked_in_names.add((p["name"] or "").strip().lower())
+
+                incident_rows = iconn.execute("""
+                    SELECT id, name, d4h_ref, d4h_member_ref, status
+                    FROM personnel
+                    WHERE name LIKE ?
+                    ORDER BY
+                        CASE
+                            WHEN name LIKE ? THEN 0
+                            WHEN name LIKE ? THEN 1
+                            ELSE 2
+                        END,
+                        name COLLATE NOCASE
+                    LIMIT 25
+                """, (wild, start_first, start_last)).fetchall()
+        except Exception:
+            pass
+
+    def is_checked_in(r):
+        if r["d4h_ref"] and str(r["d4h_ref"]) in checked_in_refs:
+            return True
+        return (r["name"] or "").strip().lower() in checked_in_names
+
+    results = [{
         "id":           r["id"],
         "name":         r["name"],
         "d4hRef":       r["d4h_ref"],
@@ -52,7 +91,37 @@ def kiosk_search():
         "ecName":       r["emergency_contact_name"],
         "ecPhone":      r["emergency_contact_phone"],
         "licensePlate": r["license_plate"],
-    } for r in rows])
+        "checkedIn":    is_checked_in(r),
+    } for r in rows]
+
+    # Append incident-only people not already covered by the members directory results
+    covered_refs  = {str(r["d4h_ref"]) for r in rows if r["d4h_ref"]}
+    covered_names = {(r["name"] or "").strip().lower() for r in rows}
+    for p in incident_rows:
+        ref    = str(p["d4h_ref"]) if p["d4h_ref"] else None
+        p_name = (p["name"] or "").strip()
+        p_name_l = p_name.lower()
+        if ref and ref in covered_refs:
+            continue
+        if p_name_l in covered_names:
+            continue
+        results.append({
+            "id":           None,
+            "name":         p_name,
+            "d4hRef":       p["d4h_ref"],
+            "memberRef":    p["d4h_member_ref"],
+            "phone":        None,
+            "email":        None,
+            "ecName":       None,
+            "ecPhone":      None,
+            "licensePlate": None,
+            "checkedIn":    p["status"] == "Checked In",
+        })
+        covered_names.add(p_name_l)
+        if ref:
+            covered_refs.add(ref)
+
+    return jsonify(results)
 
 
 # ── Incident personnel search (checkout mode) ────────────────────────────────
