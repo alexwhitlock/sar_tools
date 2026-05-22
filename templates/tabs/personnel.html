@@ -132,7 +132,6 @@
       <button type="button" class="menu-item" data-action="undo-check-in" role="menuitem">Undo Check In</button>
       <button type="button" class="menu-item" data-action="check-out" role="menuitem">Check Out</button>
       <button type="button" class="menu-item" data-action="confirm-kiosk" role="menuitem">Confirm (Kiosk)</button>
-      <button type="button" class="menu-item" data-action="checkin-info" role="menuitem">Check-in Info</button>
       <button type="button" class="menu-item" data-action="edit" role="menuitem">Edit</button>
       <button type="button" class="menu-item danger" data-action="delete" role="menuitem">Delete</button>
     </div>
@@ -157,6 +156,24 @@
           <label>Notes
             <textarea id="personNotes" rows="3" placeholder="Optional notes"></textarea>
           </label>
+
+          <details id="checkinInfoDetails" class="quick-add-section">
+            <summary class="quick-add-summary">Check-in Info</summary>
+            <div class="quick-add-body">
+              <label>Phone
+                <input id="checkinPhone" type="text" placeholder="e.g. 555-123-4567" />
+              </label>
+              <label>Emergency Contact — Name
+                <input id="checkinEcName" type="text" placeholder="e.g. Jane Doe" />
+              </label>
+              <label>Emergency Contact — Phone
+                <input id="checkinEcPhone" type="text" placeholder="e.g. 555-987-6543" />
+              </label>
+              <label>License Plate
+                <input id="checkinPlate" type="text" placeholder="e.g. ABC-1234" />
+              </label>
+            </div>
+          </details>
         </div>
 
         <div id="personModalError" class="modal-error hidden"></div>
@@ -185,35 +202,6 @@
         <div class="modal-footer">
           <button type="button" id="conflictModalCancel">Cancel</button>
           <button type="button" id="conflictModalImport">OK</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Check-in Info Modal -->
-    <div id="checkinInfoModalBackdrop" class="modal-backdrop hidden" aria-hidden="true">
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="checkinInfoModalTitle">
-        <div class="modal-header">
-          <div id="checkinInfoModalTitle" class="modal-title">Check-in Information</div>
-          <button type="button" id="checkinInfoModalClose" class="modal-close" aria-label="Close">✕</button>
-        </div>
-        <div class="modal-body">
-          <label>Phone
-            <input id="checkinPhone" type="text" placeholder="e.g. 555-123-4567" />
-          </label>
-          <label>Emergency Contact — Name
-            <input id="checkinEcName" type="text" placeholder="e.g. Jane Doe" />
-          </label>
-          <label>Emergency Contact — Phone
-            <input id="checkinEcPhone" type="text" placeholder="e.g. 555-987-6543" />
-          </label>
-          <label>License Plate
-            <input id="checkinPlate" type="text" placeholder="e.g. ABC-1234" />
-          </label>
-        </div>
-        <div id="checkinInfoModalError" class="modal-error hidden"></div>
-        <div class="modal-footer">
-          <button type="button" id="checkinInfoModalCancel">Cancel</button>
-          <button type="button" id="checkinInfoModalSave">Save</button>
         </div>
       </div>
     </div>

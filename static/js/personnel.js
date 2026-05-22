@@ -87,9 +87,10 @@ function getPersonKey(p) {
 
 function renderCheckinInfoCell(p) {
   const lines = [];
-  if (p.checkinPhone)        lines.push(`Ph: ${escapeHtml(p.checkinPhone)}`);
-  if (p.checkinEcName)       lines.push(`EC: ${escapeHtml(p.checkinEcName)}`);
-  if (p.checkinLicensePlate) lines.push(`Pl: ${escapeHtml(p.checkinLicensePlate)}`);
+  if (p.checkinPhone) lines.push(`Phone: ${escapeHtml(p.checkinPhone)}`);
+  const ecParts = [p.checkinEcName, p.checkinEcPhone].filter(Boolean).map(escapeHtml);
+  if (ecParts.length) lines.push(`Emrg: ${ecParts.join(" / ")}`);
+  if (p.checkinLicensePlate) lines.push(`Plate: ${escapeHtml(p.checkinLicensePlate)}`);
   if (!lines.length) return `<span class="checkin-info-cell" style="color:#bbb;">—</span>`;
   return `<div class="checkin-info-cell">${lines.join("<br>")}</div>`;
 }
@@ -286,6 +287,16 @@ async function openPersonModal(mode, person = null) {
   titleEl.textContent = mode === "add" ? "Add Person" : "Edit Person";
   nameInput.value = person?.name ?? "";
   if (notesInput) notesInput.value = person?.notes ?? "";
+
+  // Populate (or clear) the check-in info collapsible
+  const ciDetails = document.getElementById("checkinInfoDetails");
+  if (ciDetails) {
+    ciDetails.open = false;
+    document.getElementById("checkinPhone").value   = person?.checkinPhone        ?? "";
+    document.getElementById("checkinEcName").value  = person?.checkinEcName       ?? "";
+    document.getElementById("checkinEcPhone").value = person?.checkinEcPhone      ?? "";
+    document.getElementById("checkinPlate").value   = person?.checkinLicensePlate ?? "";
+  }
 
   // Populate team dropdown
   if (teamSelect) {
@@ -817,16 +828,6 @@ function wireMenuAndModal() {
       return;
     }
 
-    if (action === "checkin-info") {
-      const person = findPersonInCache(activePersonKey);
-      if (!person) {
-        personnelMessage.show("Could not find that person record.", "error");
-        return;
-      }
-      openCheckinInfoModal(person);
-      return;
-    }
-
     if (action === "edit") {
       const person = findPersonInCache(activePersonKey);
       if (!person) {
@@ -872,7 +873,6 @@ function wireMenuAndModal() {
       closeMenu();
       closePersonModal();
       closeConflictModal();
-      closeCheckinInfoModal();
     }
   });
 
@@ -924,6 +924,17 @@ function wireMenuAndModal() {
       } else {
         const person = findPersonInCache(activePersonKey);
         await apiUpdatePerson({ incidentName, personKey: activePersonKey, name, notes, expectedUpdatedAt: person?.updatedAt });
+
+        // Save check-in info fields if the section exists
+        const ciPhone = document.getElementById("checkinPhone")?.value.trim() || null;
+        const ciEcName = document.getElementById("checkinEcName")?.value.trim() || null;
+        const ciEcPhone = document.getElementById("checkinEcPhone")?.value.trim() || null;
+        const ciPlate = document.getElementById("checkinPlate")?.value.trim() || null;
+        await fetch("/api/personnel/checkin-info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ incidentName, personKey: activePersonKey, phone: ciPhone, ecName: ciEcName, ecPhone: ciEcPhone, licensePlate: ciPlate }),
+        });
       }
 
       // Apply team assignment change
@@ -1154,78 +1165,6 @@ function wireConflictModal() {
 }
 
 /* ===============================
-   Check-in Info Modal
-   =============================== */
-
-function openCheckinInfoModal(person) {
-  const backdrop = document.getElementById("checkinInfoModalBackdrop");
-  if (!backdrop) return;
-
-  activePersonKey = getPersonKey(person);
-
-  document.getElementById("checkinPhone").value   = person.checkinPhone        ?? "";
-  document.getElementById("checkinEcName").value  = person.checkinEcName       ?? "";
-  document.getElementById("checkinEcPhone").value = person.checkinEcPhone      ?? "";
-  document.getElementById("checkinPlate").value   = person.checkinLicensePlate ?? "";
-
-  const errEl = document.getElementById("checkinInfoModalError");
-  if (errEl) errEl.classList.add("hidden");
-
-  backdrop.classList.remove("hidden");
-  backdrop.setAttribute("aria-hidden", "false");
-  document.getElementById("checkinPhone").focus();
-}
-
-function closeCheckinInfoModal() {
-  const backdrop = document.getElementById("checkinInfoModalBackdrop");
-  if (!backdrop) return;
-  backdrop.classList.add("hidden");
-  backdrop.setAttribute("aria-hidden", "true");
-}
-
-function wireCheckinInfoModal() {
-  const backdrop  = document.getElementById("checkinInfoModalBackdrop");
-  const closeBtn  = document.getElementById("checkinInfoModalClose");
-  const cancelBtn = document.getElementById("checkinInfoModalCancel");
-  const saveBtn   = document.getElementById("checkinInfoModalSave");
-  if (!backdrop || !closeBtn || !cancelBtn || !saveBtn) return;
-
-  closeBtn.addEventListener("click",  closeCheckinInfoModal);
-  cancelBtn.addEventListener("click", closeCheckinInfoModal);
-  backdrop.addEventListener("click",  (e) => { if (e.target === backdrop) closeCheckinInfoModal(); });
-
-  saveBtn.addEventListener("click", async () => {
-    const incidentName = requireIncidentOrError();
-    if (!incidentName) return;
-
-    const phone        = document.getElementById("checkinPhone").value.trim() || null;
-    const ecName       = document.getElementById("checkinEcName").value.trim() || null;
-    const ecPhone      = document.getElementById("checkinEcPhone").value.trim() || null;
-    const licensePlate = document.getElementById("checkinPlate").value.trim() || null;
-    const errEl        = document.getElementById("checkinInfoModalError");
-
-    try {
-      const resp = await fetch("/api/personnel/checkin-info", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          incidentName,
-          personKey: activePersonKey,
-          phone, ecName, ecPhone, licensePlate,
-        }),
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
-      closeCheckinInfoModal();
-      await loadPersonnel();
-      personnelMessage.show("Check-in info saved.", "info");
-    } catch (err) {
-      if (errEl) { errEl.textContent = `Failed: ${err.message}`; errEl.classList.remove("hidden"); }
-    }
-  });
-}
-
-/* ===============================
    Init
    =============================== */
 
@@ -1300,7 +1239,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // menu + modal wiring
   wireMenuAndModal();
   wireConflictModal();
-  wireCheckinInfoModal();
 });
 
 window.addEventListener("sar:offline", () => {
