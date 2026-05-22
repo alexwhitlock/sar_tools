@@ -92,30 +92,22 @@
     }
     .settings-btn:hover { background: rgba(0,0,0,0.06); }
 
-    /* ── Live/offline pill ── */
+    /* ── Live/offline pill (matches .sync-pill in main tool) ── */
     .conn-pill {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 3px 9px;
-      border-radius: 99px;
+      justify-content: center;
+      padding: 0.2rem 0.75rem;
+      border-radius: 999px;
       font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      transition: background 0.3s, color 0.3s;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      line-height: 1;
+      background: #3db86a;
+      color: #fff;
     }
-    .conn-pill::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .conn-pill.live    { background: #d4edda; color: #155724; }
-    .conn-pill.live::before    { background: #28a745; }
-    .conn-pill.offline { background: #e0e0e0; color: #555; }
-    .conn-pill.offline::before { background: #999; }
+    .conn-pill.offline { background: #e05c4a; }
 
 
     /* ── Card ── */
@@ -151,6 +143,8 @@
       color: var(--text);
       box-shadow: var(--shadow);
     }
+    #toggleCheckin.active  { background: #d4edda; color: #155724; }
+    #toggleCheckout.active { background: #fde8e6; color: #9b2c1f; }
 
     /* ── Incident picker ── */
     .picker-label {
@@ -546,7 +540,13 @@
 
   async function doSearch(q) {
     try {
-      const res  = await fetch(`/api/kiosk/search?q=${encodeURIComponent(q)}`);
+      let url;
+      if (action === "checkout") {
+        url = `/api/kiosk/incident-search?incidentName=${encodeURIComponent(incidentName)}&q=${encodeURIComponent(q)}`;
+      } else {
+        url = `/api/kiosk/search?q=${encodeURIComponent(q)}`;
+      }
+      const res  = await fetch(url);
       const data = await res.json().catch(() => []);
       renderResults(data, q);
     } catch { renderResults([], q); }
@@ -563,11 +563,19 @@
       div.addEventListener("click", () => selectMember(r));
       container.appendChild(div);
     }
-    const manual = document.createElement("div");
-    manual.className = "manual-row";
-    manual.textContent = "Not found — enter manually";
-    manual.addEventListener("click", () => selectManual(q));
-    container.appendChild(manual);
+    // Manual entry only available for check-in
+    if (action === "checkin") {
+      const manual = document.createElement("div");
+      manual.className = "manual-row";
+      manual.textContent = "Not found — enter manually";
+      manual.addEventListener("click", () => selectManual(q));
+      container.appendChild(manual);
+    } else if (!rows.length) {
+      const none = document.createElement("div");
+      none.style.cssText = "padding:10px 12px;color:var(--muted);font-size:0.9rem;text-align:center;";
+      none.textContent = "No checked-in personnel match that search.";
+      container.appendChild(none);
+    }
   }
 
   function selectMember(r) {
@@ -666,8 +674,8 @@
   // ── Live/offline pill ──
   const pill = $("connPill");
   function setOnline(yes) {
-    pill.textContent = yes ? "Live" : "Offline";
-    pill.className   = `conn-pill ${yes ? "live" : "offline"}`;
+    pill.textContent = yes ? "LIVE" : "Offline";
+    pill.className   = `conn-pill${yes ? "" : " offline"}`;
   }
   async function checkHealth() {
     try {

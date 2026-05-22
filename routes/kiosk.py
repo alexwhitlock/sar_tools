@@ -24,16 +24,19 @@ def kiosk_search():
     if len(q) < 2:
         return jsonify([])
     run_members_migrations()
-    wild = f"%{q}%"
+    wild  = f"%{q}%"
+    start = f"{q}%"
     with get_members_connection() as conn:
         rows = conn.execute("""
             SELECT id, name, d4h_ref, d4h_member_ref, phone, email,
                    emergency_contact_name, emergency_contact_phone, license_plate
             FROM members
             WHERE name LIKE ? OR phone LIKE ? OR d4h_member_ref LIKE ? OR d4h_ref LIKE ?
-            ORDER BY name COLLATE NOCASE
+            ORDER BY
+                CASE WHEN name LIKE ? THEN 0 ELSE 1 END,
+                name COLLATE NOCASE
             LIMIT 25
-        """, (wild, wild, wild, wild)).fetchall()
+        """, (wild, wild, wild, wild, start)).fetchall()
     return jsonify([{
         "id":           r["id"],
         "name":         r["name"],
@@ -44,6 +47,36 @@ def kiosk_search():
         "ecName":       r["emergency_contact_name"],
         "ecPhone":      r["emergency_contact_phone"],
         "licensePlate": r["license_plate"],
+    } for r in rows])
+
+
+# ── Incident personnel search (checkout mode) ────────────────────────────────
+
+@bp.get("/api/kiosk/incident-search")
+def kiosk_incident_search():
+    """Search checked-in personnel in the incident DB (used for checkout flow)."""
+    incident_name = (request.args.get("incidentName") or "").strip()
+    q = (request.args.get("q") or "").strip()
+    if not incident_name or len(q) < 2:
+        return jsonify([])
+    wild  = f"%{q}%"
+    start = f"{q}%"
+    with get_connection(incident_name) as conn:
+        rows = conn.execute("""
+            SELECT id, name, d4h_ref, d4h_member_ref
+            FROM personnel
+            WHERE status = 'Checked In'
+              AND (name LIKE ? OR d4h_member_ref LIKE ? OR d4h_ref LIKE ?)
+            ORDER BY
+                CASE WHEN name LIKE ? THEN 0 ELSE 1 END,
+                name COLLATE NOCASE
+            LIMIT 25
+        """, (wild, wild, wild, start)).fetchall()
+    return jsonify([{
+        "id":        r["id"],
+        "name":      r["name"],
+        "d4hRef":    r["d4h_ref"],
+        "memberRef": r["d4h_member_ref"],
     } for r in rows])
 
 
@@ -208,7 +241,7 @@ def admin_sync_d4h():
                     continue
                 name       = _s(m.get("name")) or _s(m.get("fullName")) or _s(m.get("displayName"))
                 member_ref = _s(m.get("ref")) or None
-                d4h_phone  = _s(m.get("mobilephone")) or _s(m.get("phone")) or None
+                d4h_phone  = _s(m.get("mobile")) or _s(m.get("mobilephone")) or _s(m.get("phone")) or None
                 d4h_email  = _s(m.get("email")) or None
 
                 existing = conn.execute(
