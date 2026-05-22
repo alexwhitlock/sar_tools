@@ -214,16 +214,14 @@
     .result-checked-in {
       flex-shrink: 0;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 2px;
+      gap: 4px;
       color: var(--green);
-      font-size: 0.68rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      text-align: center;
       white-space: nowrap;
     }
-    .result-checked-in svg { display: block; }
 
     .manual-row {
       padding: 11px 12px;
@@ -608,14 +606,7 @@
           <div class="result-name">${esc(r.name)}</div>
           ${meta ? `<div class="result-meta">${esc(meta)}</div>` : ""}
         </div>
-        ${r.checkedIn ? `
-        <div class="result-checked-in">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="9" cy="9" r="8.5" stroke="currentColor"/>
-            <path d="M5 9l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Already<br>checked in
-        </div>` : ""}
+        ${r.checkedIn ? `<div class="result-checked-in">Already checked in</div>` : ""}
       `;
       if (!r.checkedIn) div.addEventListener("click", () => selectMember(r));
       container.appendChild(div);
