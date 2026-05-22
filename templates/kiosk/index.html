@@ -295,6 +295,7 @@
     .field-input {
       width: 100%;
       font-size: 1rem;
+      font-family: inherit;
       padding: 11px 12px;
       border: 1.5px solid var(--border);
       border-radius: 8px;
@@ -477,8 +478,8 @@
     <!-- DETAIL FORM -->
     <div class="section" id="detailSection">
       <button class="back-btn" id="backBtn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="vertical-align:-2px;margin-right:5px"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to search</button>
+      <div style="font-size:1.15rem;font-weight:700;padding:0 2px;">Please confirm your information</div>
       <div class="card">
-        <div class="form-section-title">Your Information</div>
         <div class="field-group">
           <div class="field-item" id="fiName">
             <div class="field-header">
@@ -526,7 +527,7 @@
             <span class="field-name">Notes</span>
           </div>
           <textarea id="fieldNotes" class="field-input" rows="3"
-            placeholder="Any specific notes for this incident, e.g. medical conditions"
+            placeholder="Any specific notes for this incident, e.g. need to leave by 4pm, medical conditions, etc..."
             style="resize:vertical;"></textarea>
         </div>
       </div>
