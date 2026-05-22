@@ -957,9 +957,12 @@
 
   $("checkoutSearch").addEventListener("input", filterCheckout);
 
-  // Dismiss keyboard when user touches/clicks into the list to scroll
-  $("checkoutList").addEventListener("touchstart", () => $("checkoutSearch").blur(), { passive: true });
-  $("checkoutList").addEventListener("mousedown",  () => $("checkoutSearch").blur());
+  // Dismiss keyboard whenever the user touches anywhere except the search input itself
+  document.addEventListener("touchstart", (e) => {
+    if (document.activeElement === $("checkoutSearch") && e.target !== $("checkoutSearch")) {
+      $("checkoutSearch").blur();
+    }
+  }, { passive: true });
 
   $("confirmCheckoutBtn").addEventListener("click", async () => {
     if (!selectedCheckoutPerson) return;
