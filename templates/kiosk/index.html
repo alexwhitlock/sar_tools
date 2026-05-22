@@ -426,6 +426,42 @@
       text-align: center;
       padding: 8px;
     }
+
+    /* NFC */
+    .nfc-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(40,40,40,0.92);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .nfc-toast.show { opacity: 1; }
+    .nfc-link-btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      cursor: pointer;
+      text-align: center;
+    }
+    .nfc-link-btn.linking {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -572,6 +608,8 @@
       </div>
       <div id="detailStatus" class="status-msg"></div>
       <button class="submit-btn" id="submitBtn">Check In</button>
+      <button class="nfc-link-btn" id="linkNfcBtn" style="display:none">Link NFC Tag</button>
+      <div id="nfcLinkStatus" class="status-msg"></div>
     </div>
 
     <!-- SUCCESS -->
@@ -587,6 +625,7 @@
   </div><!-- /kioskSection -->
 
 </div><!-- /app -->
+<div class="nfc-toast" id="nfcToast"></div>
 <div class="offline-veil" id="offlineVeil"></div>
 
 <script>
@@ -599,6 +638,9 @@
   let selectedCheckoutPerson = null;
   let checkoutAllPeople      = [];
   let autoResetTimer         = null;
+  let nfcLinkingMode         = false;
+  let currentD4hRef          = null;
+  let nfcToastTimer          = null;
 
   function $(id) { return document.getElementById(id); }
 
@@ -667,6 +709,7 @@
     $("headerIncident").classList.add("visible");
     showTop("kioskSection");
     resetKiosk();
+    startNfcScanning();
   }
 
   function unlockIncident() {
@@ -711,6 +754,10 @@
     $("confirmCheckoutBtn").disabled = true;
     $("searchDismiss").disabled = true;
     $("checkoutSearchDismiss").disabled = true;
+    nfcLinkingMode = false;
+    currentD4hRef = null;
+    clearMsg("nfcLinkStatus");
+    updateLinkNfcBtn();
 
     if (action === "checkout") {
       $("checkoutSearch").value = "";
@@ -789,17 +836,23 @@
 
   function selectMember(r) {
     selectedMember = r;
+    currentD4hRef = r.d4hRef || null;
     populateDetail(r);
     showKiosk("detailSection");
     clearMsg("detailStatus");
+    clearMsg("nfcLinkStatus");
+    updateLinkNfcBtn();
   }
 
   function selectManual(name) {
     selectedMember = null;
+    currentD4hRef = null;
     populateDetail({ name });
     $("fieldName").readOnly = false;
     showKiosk("detailSection");
     clearMsg("detailStatus");
+    clearMsg("nfcLinkStatus");
+    updateLinkNfcBtn();
   }
 
   // ── Check-in: form fields ──
@@ -1081,6 +1134,94 @@
     }
     showTop("pickerSection");
   });
+
+  // ── NFC ──────────────────────────────────────────────────────────────────────
+
+  function showNfcToast(msg) {
+    const el = $("nfcToast");
+    clearTimeout(nfcToastTimer);
+    el.textContent = msg;
+    el.classList.add("show");
+    nfcToastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+  }
+
+  function updateLinkNfcBtn() {
+    const btn = $("linkNfcBtn");
+    if (!currentD4hRef) { btn.style.display = "none"; return; }
+    btn.style.display = "";
+    if (nfcLinkingMode) {
+      btn.textContent = "Waiting for tag… (Cancel)";
+      btn.classList.add("linking");
+    } else {
+      btn.textContent = "Link NFC Tag";
+      btn.classList.remove("linking");
+    }
+  }
+
+  $("linkNfcBtn").addEventListener("click", () => {
+    nfcLinkingMode = !nfcLinkingMode;
+    clearMsg("nfcLinkStatus");
+    updateLinkNfcBtn();
+  });
+
+  async function startNfcScanning() {
+    if (!("NDEFReader" in window)) return;
+    try {
+      const reader = new NDEFReader();
+      await reader.scan();
+      reader.addEventListener("reading", ({ serialNumber }) => handleNfcRead(serialNumber));
+    } catch (e) {
+      console.warn("NFC unavailable:", e);
+    }
+  }
+
+  async function handleNfcRead(serial) {
+    if (nfcLinkingMode) {
+      await doNfcLink(serial);
+    } else {
+      await doNfcLookup(serial);
+    }
+  }
+
+  async function doNfcLookup(serial) {
+    try {
+      const res  = await fetch(`/api/nfc/lookup?serial=${encodeURIComponent(serial)}&incidentName=${encodeURIComponent(incidentName)}`);
+      const data = await res.json();
+      if (!data.found) { showNfcToast("Unrecognized tag"); return; }
+      if (data.checkedIn) { showNfcToast(`${data.name} is already checked in`); return; }
+      selectedMember = { id: data.membersId, d4hRef: data.d4hRef, name: data.name };
+      currentD4hRef  = data.d4hRef;
+      populateDetail(data);
+      showKiosk("detailSection");
+      clearMsg("detailStatus");
+      clearMsg("nfcLinkStatus");
+      updateLinkNfcBtn();
+    } catch (e) {
+      showNfcToast("NFC read error");
+    }
+  }
+
+  async function doNfcLink(serial) {
+    nfcLinkingMode = false;
+    updateLinkNfcBtn();
+    try {
+      const res  = await fetch("/api/nfc/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serial, d4hRef: currentD4hRef }),
+      });
+      const data = await res.json();
+      if (data.status === "linked") {
+        showMsg("nfcLinkStatus", "Tag linked successfully", "info");
+      } else if (data.status === "already_this") {
+        showMsg("nfcLinkStatus", "This tag is already linked to this person", "info");
+      } else if (data.status === "already_other") {
+        showMsg("nfcLinkStatus", `This tag is already linked to ${data.name}`, "error");
+      }
+    } catch (e) {
+      showMsg("nfcLinkStatus", "Failed to link tag", "error");
+    }
+  }
 
 })();
 </script>

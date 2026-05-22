@@ -49,6 +49,9 @@ app.register_blueprint(system_bp)
 from routes.kiosk import bp as kiosk_bp
 app.register_blueprint(kiosk_bp)
 
+from routes.nfc import bp as nfc_bp
+app.register_blueprint(nfc_bp)
+
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 

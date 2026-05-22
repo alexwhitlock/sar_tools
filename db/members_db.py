@@ -42,6 +42,16 @@ def run_members_migrations():
             CREATE INDEX IF NOT EXISTS idx_members_d4h_ref ON members (d4h_ref);
             CREATE INDEX IF NOT EXISTS idx_members_phone   ON members (phone);
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS nfc_tags (
+                tag_serial TEXT PRIMARY KEY,
+                d4h_ref    TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_nfc_tags_d4h_ref ON nfc_tags (d4h_ref)"
+        )
         cols = {row[1] for row in conn.execute("PRAGMA table_info(members)").fetchall()}
         if "email" in cols:
             conn.execute("ALTER TABLE members DROP COLUMN email")
