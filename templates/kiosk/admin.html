@@ -220,7 +220,6 @@
             <th>Name</th>
             <th>Member #</th>
             <th>Phone</th>
-            <th>Email</th>
             <th>Plate</th>
             <th></th>
           </tr>
@@ -281,7 +280,6 @@
         <td>${esc(r.name)}${modBadge}</td>
         <td>${esc(r.d4h_member_ref ?? "")}</td>
         <td>${esc(r.phone ?? "")}</td>
-        <td>${esc(r.email ?? "")}</td>
         <td>${esc(r.license_plate ?? "")}</td>
         <td><button class="del-btn" data-id="${r.id}">Delete</button></td>
       `;
@@ -352,9 +350,6 @@
     if (c.d4hPhone && c.localPhone !== c.d4hPhone) {
       rows.push(`<div class="diff-label">Phone</div><div class="diff-local">${esc(c.localPhone ?? "—")}</div><div class="diff-d4h">${esc(c.d4hPhone)}</div>`);
     }
-    if (c.d4hEmail && c.localEmail !== c.d4hEmail) {
-      rows.push(`<div class="diff-label">Email</div><div class="diff-local">${esc(c.localEmail ?? "—")}</div><div class="diff-d4h">${esc(c.d4hEmail)}</div>`);
-    }
 
     div.innerHTML = `
       <div class="conflict-name">${esc(c.localName)}</div>
@@ -380,7 +375,6 @@
               useD4H,
               d4hName:  c.d4hName,
               d4hPhone: c.d4hPhone,
-              d4hEmail: c.d4hEmail,
             }),
           });
           div.remove();

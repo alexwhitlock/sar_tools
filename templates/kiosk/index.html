@@ -246,14 +246,44 @@
       flex-direction: column;
       gap: 12px;
     }
-    .field-label {
+    .field-item {
       display: flex;
       flex-direction: column;
       gap: 5px;
+    }
+    .field-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 0.9rem;
       font-weight: 500;
     }
-    .field-label input {
+    .field-required {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #c0392b;
+    }
+    .field-edit-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+    .field-edit-btn:hover { text-decoration: underline; }
+    .field-display {
+      font-size: 1rem;
+      padding: 11px 12px;
+      background: #f0f4ff;
+      border-radius: 8px;
+      border: 1.5px solid #c8d8f8;
+      color: var(--text);
+    }
+    .field-display div + div { margin-top: 4px; }
+    .field-input {
       width: 100%;
       font-size: 1rem;
       padding: 11px 12px;
@@ -262,8 +292,8 @@
       outline: none;
       background: #fafafa;
     }
-    .field-label input:focus  { border-color: var(--accent); background: #fff; }
-    .field-label input:disabled { background: #f0f0f0; color: #888; }
+    .field-input:focus  { border-color: var(--accent); background: #fff; }
+    .field-input:disabled { background: #f0f0f0; color: #888; }
     .plate-note {
       font-size: 0.76rem;
       color: var(--muted);
@@ -397,30 +427,51 @@
       <div class="card">
         <div class="form-section-title">Your Information</div>
         <div class="field-group">
-          <label class="field-label">
-            Name
-            <input type="text" id="fieldName" autocomplete="name" />
-          </label>
-          <label class="field-label">
-            Phone
-            <input type="tel" id="fieldPhone" autocomplete="tel" placeholder="Optional" />
-          </label>
-          <label class="field-label">
-            Email
-            <input type="email" id="fieldEmail" autocomplete="email" placeholder="Optional" />
-          </label>
-          <label class="field-label">
-            Emergency Contact Name
-            <input type="text" id="fieldEcName" autocomplete="off" placeholder="Optional" />
-          </label>
-          <label class="field-label">
-            Emergency Contact Phone
-            <input type="tel" id="fieldEcPhone" autocomplete="off" placeholder="Optional" />
-          </label>
-          <label class="field-label">
-            License Plate
-            <input type="text" id="fieldPlate" autocomplete="off" placeholder="e.g. ABC 123" style="text-transform:uppercase" />
-          </label>
+          <div class="field-item" id="fiName">
+            <div class="field-header">
+              <span class="field-name">Name</span>
+              <span class="field-required" style="display:none">Required</span>
+              <button class="field-edit-btn" style="display:none">Edit</button>
+            </div>
+            <div class="field-display" style="display:none"></div>
+            <input type="text" id="fieldName" class="field-input" autocomplete="name" placeholder="Click to enter" />
+          </div>
+          <div class="field-item" id="fiPhone">
+            <div class="field-header">
+              <span class="field-name">Phone</span>
+              <span class="field-required" style="display:none">Required</span>
+              <button class="field-edit-btn" style="display:none">Edit</button>
+            </div>
+            <div class="field-display" style="display:none"></div>
+            <input type="tel" id="fieldPhone" class="field-input" autocomplete="tel" placeholder="Click to enter" />
+          </div>
+          <div class="field-item" id="fiEcName">
+            <div class="field-header">
+              <span class="field-name">Emergency Contact Name</span>
+              <span class="field-required" style="display:none">Required</span>
+              <button class="field-edit-btn" style="display:none">Edit</button>
+            </div>
+            <div class="field-display" style="display:none"></div>
+            <input type="text" id="fieldEcName" class="field-input" autocomplete="off" placeholder="Click to enter" />
+          </div>
+          <div class="field-item" id="fiEcPhone">
+            <div class="field-header">
+              <span class="field-name">Emergency Contact Phone</span>
+              <span class="field-required" style="display:none">Required</span>
+              <button class="field-edit-btn" style="display:none">Edit</button>
+            </div>
+            <div class="field-display" style="display:none"></div>
+            <input type="tel" id="fieldEcPhone" class="field-input" autocomplete="off" placeholder="Click to enter" />
+          </div>
+          <div class="field-item" id="fiPlate">
+            <div class="field-header">
+              <span class="field-name">License Plate</span>
+              <span class="field-required" style="display:none">Required</span>
+              <button class="field-edit-btn" style="display:none">Edit</button>
+            </div>
+            <div class="field-display" style="display:none"></div>
+            <input type="text" id="fieldPlate" class="field-input" autocomplete="off" placeholder="Click to enter" style="text-transform:uppercase" />
+          </div>
           <p class="plate-note">Plate is saved to your profile for future check-ins.</p>
         </div>
       </div>
@@ -640,14 +691,51 @@
     clearMsg("detailStatus");
   }
 
+  function setField(itemId, inputId, value, { readonly = false } = {}) {
+    const item    = $(itemId);
+    const input   = $(inputId);
+    const display = item.querySelector(".field-display");
+    const reqBadge = item.querySelector(".field-required");
+    const editBtn = item.querySelector(".field-edit-btn");
+
+    input.value = value || "";
+
+    if (value && !readonly) {
+      // Pre-filled and editable: show as static text + Edit button
+      display.innerHTML = value.split(" / ").map(v => `<div>${esc(v)}</div>`).join("");
+      display.style.display = "";
+      input.style.display = "none";
+      reqBadge.style.display = "none";
+      editBtn.style.display = "";
+      editBtn.onclick = () => {
+        display.style.display = "none";
+        editBtn.style.display = "none";
+        input.style.display = "";
+        input.focus();
+      };
+    } else if (value && readonly) {
+      // Pre-filled and truly read-only (name for matched members): static text, no edit
+      display.innerHTML = value.split(" / ").map(v => `<div>${esc(v)}</div>`).join("");
+      display.style.display = "";
+      input.style.display = "none";
+      reqBadge.style.display = "none";
+      editBtn.style.display = "none";
+    } else {
+      // Empty: show input with Required label
+      display.style.display = "none";
+      input.style.display = "";
+      reqBadge.style.display = "";
+      editBtn.style.display = "none";
+    }
+  }
+
   function populateDetail(r) {
-    $("fieldName").value    = r.name         || "";
-    $("fieldPhone").value   = r.phone        || "";
-    $("fieldEmail").value   = r.email        || "";
-    $("fieldEcName").value  = r.ecName       || "";
-    $("fieldEcPhone").value = r.ecPhone      || "";
-    $("fieldPlate").value   = r.licensePlate || "";
-    $("fieldName").readOnly = !!selectedMember;
+    const isMatched = !!selectedMember;
+    setField("fiName",   "fieldName",   r.name         || "", { readonly: isMatched });
+    setField("fiPhone",  "fieldPhone",  r.phone        || "");
+    setField("fiEcName", "fieldEcName", r.ecName       || "");
+    setField("fiEcPhone","fieldEcPhone",r.ecPhone      || "");
+    setField("fiPlate",  "fieldPlate",  r.licensePlate || "");
   }
 
   $("backBtn").addEventListener("click", resetToSearch);
@@ -680,7 +768,6 @@
       action,
       name,
       phone:        $("fieldPhone").value.trim()   || null,
-      email:        $("fieldEmail").value.trim()   || null,
       ecName:       $("fieldEcName").value.trim()  || null,
       ecPhone:      $("fieldEcPhone").value.trim() || null,
       licensePlate: $("fieldPlate").value.trim().toUpperCase() || null,

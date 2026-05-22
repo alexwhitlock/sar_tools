@@ -30,7 +30,7 @@ def kiosk_search():
     start_last  = f"% {q}%"
     with get_members_connection() as conn:
         rows = conn.execute("""
-            SELECT id, name, d4h_ref, d4h_member_ref, phone, email,
+            SELECT id, name, d4h_ref, d4h_member_ref, phone,
                    emergency_contact_name, emergency_contact_phone, license_plate
             FROM members
             WHERE name LIKE ? OR phone LIKE ? OR d4h_member_ref LIKE ? OR d4h_ref LIKE ?
@@ -87,7 +87,6 @@ def kiosk_search():
         "d4hRef":       r["d4h_ref"],
         "memberRef":    r["d4h_member_ref"],
         "phone":        r["phone"],
-        "email":        r["email"],
         "ecName":       r["emergency_contact_name"],
         "ecPhone":      r["emergency_contact_phone"],
         "licensePlate": r["license_plate"],
@@ -111,7 +110,6 @@ def kiosk_search():
             "d4hRef":       p["d4h_ref"],
             "memberRef":    p["d4h_member_ref"],
             "phone":        None,
-            "email":        None,
             "ecName":       None,
             "ecPhone":      None,
             "licensePlate": None,
@@ -169,7 +167,6 @@ def kiosk_action():
     member_id     = data.get("memberId")
     name          = (data.get("name") or "").strip()
     phone         = (data.get("phone") or "").strip() or None
-    email         = (data.get("email") or "").strip() or None
     ec_name       = (data.get("ecName") or "").strip() or None
     ec_phone      = (data.get("ecPhone") or "").strip() or None
     plate         = (data.get("licensePlate") or "").strip() or None
@@ -188,10 +185,10 @@ def kiosk_action():
         with get_members_connection() as conn:
             conn.execute("""
                 UPDATE members
-                SET phone=?, email=?, emergency_contact_name=?, emergency_contact_phone=?,
+                SET phone=?, emergency_contact_name=?, emergency_contact_phone=?,
                     license_plate=?, local_modified=1, updated_at=datetime('now')
                 WHERE id=?
-            """, (phone, email, ec_name, ec_phone, plate, member_id))
+            """, (phone, ec_name, ec_phone, plate, member_id))
             row = conn.execute(
                 "SELECT d4h_ref, d4h_member_ref FROM members WHERE id=?", (member_id,)
             ).fetchone()
@@ -206,16 +203,16 @@ def kiosk_action():
             if existing:
                 conn.execute("""
                     UPDATE members
-                    SET phone=?, email=?, emergency_contact_name=?, emergency_contact_phone=?,
+                    SET phone=?, emergency_contact_name=?, emergency_contact_phone=?,
                         license_plate=?, local_modified=1, updated_at=datetime('now')
                     WHERE id=?
-                """, (phone, email, ec_name, ec_phone, plate, existing["id"]))
+                """, (phone, ec_name, ec_phone, plate, existing["id"]))
             else:
                 conn.execute("""
-                    INSERT INTO members (name, phone, email, emergency_contact_name,
+                    INSERT INTO members (name, phone, emergency_contact_name,
                         emergency_contact_phone, license_plate, local_modified)
-                    VALUES (?, ?, ?, ?, ?, ?, 1)
-                """, (name, phone, email, ec_name, ec_phone, plate))
+                    VALUES (?, ?, ?, ?, ?, 1)
+                """, (name, phone, ec_name, ec_phone, plate))
 
     # 2. Find or create person in incident personnel
     person_id = None
@@ -265,7 +262,7 @@ def admin_members():
     run_members_migrations()
     with get_members_connection() as conn:
         rows = conn.execute("""
-            SELECT id, name, d4h_ref, d4h_member_ref, phone, email,
+            SELECT id, name, d4h_ref, d4h_member_ref, phone,
                    emergency_contact_name, emergency_contact_phone, license_plate,
                    local_modified, updated_at
             FROM members ORDER BY name COLLATE NOCASE
@@ -330,23 +327,36 @@ def admin_sync_d4h():
                 name       = _s(m.get("name")) or _s(m.get("fullName")) or _s(m.get("displayName"))
                 member_ref = _s(m.get("ref")) or None
                 d4h_phone  = _fmt_phone(_s(m.get("mobile")) or _s(m.get("mobilephone")) or _s(m.get("phone"))) or None
-                d4h_email  = _s(m.get("email")) or None
+
+                # Extract up to two emergency contacts, store concatenated with " / "
+                ec_parts = []
+                for ec_dict in [
+                    m.get("primaryEmergencyContact") or {},
+                    m.get("secondaryEmergencyContact") or {},
+                ]:
+                    ec_n = (ec_dict.get("name") or "").strip()
+                    if ec_n:
+                        ec_p = _fmt_phone((ec_dict.get("primaryPhone") or "").strip())
+                        ec_parts.append((ec_n, ec_p))
+                d4h_ec_name  = " / ".join(n for n, p in ec_parts) or None
+                d4h_ec_phone = " / ".join(p for n, p in ec_parts) or None
 
                 existing = conn.execute(
-                    "SELECT id, name, phone, email, d4h_member_ref FROM members WHERE d4h_ref=?",
+                    """SELECT id, name, phone, d4h_member_ref,
+                              emergency_contact_name, emergency_contact_phone
+                       FROM members WHERE d4h_ref=?""",
                     (d4h_ref,)
                 ).fetchone()
 
                 if not existing:
                     conn.execute("""
-                        INSERT INTO members (name, d4h_ref, d4h_member_ref, phone, email)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (name, d4h_ref, member_ref, d4h_phone, d4h_email))
+                        INSERT INTO members
+                            (name, d4h_ref, d4h_member_ref, phone,
+                             emergency_contact_name, emergency_contact_phone)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (name, d4h_ref, member_ref, d4h_phone, d4h_ec_name, d4h_ec_phone))
                     added.append(name)
                 else:
-                    # Field-level logic:
-                    #   local empty  + D4H has value  → auto-fill silently
-                    #   both present + values differ   → conflict for review
                     fills = {}
                     conflict_fields = {}
 
@@ -358,9 +368,10 @@ def admin_sync_d4h():
                         elif local_val != d4h_val:
                             conflict_fields[field] = {"local": local_val, "d4h": d4h_val}
 
-                    _check("name",          existing["name"],          name)
-                    _check("phone",         existing["phone"],         d4h_phone)
-                    _check("email",         existing["email"],         d4h_email)
+                    _check("name",                    existing["name"],                    name)
+                    _check("phone",                   existing["phone"],                   d4h_phone)
+                    _check("emergency_contact_name",  existing["emergency_contact_name"],  d4h_ec_name)
+                    _check("emergency_contact_phone", existing["emergency_contact_phone"], d4h_ec_phone)
                     if member_ref and existing["d4h_member_ref"] != member_ref:
                         fills["d4h_member_ref"] = member_ref
 
@@ -377,11 +388,9 @@ def admin_sync_d4h():
                             "id":         existing["id"],
                             "d4hRef":     d4h_ref,
                             "localName":  existing["name"],
-                            "d4hName":    conflict_fields.get("name",  {}).get("d4h",   name),
+                            "d4hName":    conflict_fields.get("name",  {}).get("d4h", name),
                             "localPhone": existing["phone"],
-                            "d4hPhone":   conflict_fields.get("phone", {}).get("d4h",   None),
-                            "localEmail": existing["email"],
-                            "d4hEmail":   conflict_fields.get("email", {}).get("d4h",   None),
+                            "d4hPhone":   conflict_fields.get("phone", {}).get("d4h", None),
                         })
 
         return jsonify({
@@ -407,9 +416,11 @@ def admin_resolve_conflict():
         if use_d4h:
             conn.execute("""
                 UPDATE members
-                SET name=?, phone=?, email=?, local_modified=0, updated_at=datetime('now')
+                SET name=?, phone=?, emergency_contact_name=?, emergency_contact_phone=?,
+                    local_modified=0, updated_at=datetime('now')
                 WHERE id=?
-            """, (data.get("d4hName"), data.get("d4hPhone"), data.get("d4hEmail"), member_id))
+            """, (data.get("d4hName"), data.get("d4hPhone"),
+                  data.get("d4hEcName"), data.get("d4hEcPhone"), member_id))
         else:
             conn.execute(
                 "UPDATE members SET local_modified=0, updated_at=datetime('now') WHERE id=?",

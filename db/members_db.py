@@ -31,7 +31,6 @@ def run_members_migrations():
                 d4h_ref                 TEXT UNIQUE,
                 d4h_member_ref          TEXT,
                 phone                   TEXT,
-                email                   TEXT,
                 emergency_contact_name  TEXT,
                 emergency_contact_phone TEXT,
                 license_plate           TEXT,
@@ -43,3 +42,4 @@ def run_members_migrations():
             CREATE INDEX IF NOT EXISTS idx_members_d4h_ref ON members (d4h_ref);
             CREATE INDEX IF NOT EXISTS idx_members_phone   ON members (phone);
         """)
+        conn.execute("ALTER TABLE members DROP COLUMN IF EXISTS email")
