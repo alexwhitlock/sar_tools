@@ -141,25 +141,21 @@ function updateLinkCheckboxVisibility() {
 
 function updateDashboardLinks() {
   const incident = getCurrentIncident();
-  const url = incident
-    ? `/dashboard?incidentName=${encodeURIComponent(incident)}`
-    : null;
+  const dashUrl  = incident ? `/dashboard?incidentName=${encodeURIComponent(incident)}` : null;
+  const kioskUrl = incident ? `/checkin?incidentName=${encodeURIComponent(incident)}`   : null;
 
   const link    = $("dashboardIncidentLink");
   const copyBtn = $("dashboardIncidentCopy");
-  const hint    = $("dashboardHint");
+  if (link)    { link.href = dashUrl || "#"; link.classList.toggle("disabled", !dashUrl); }
+  if (copyBtn) copyBtn.disabled = !dashUrl;
 
-  if (link) {
-    if (url) {
-      link.href = url;
-      link.classList.remove("disabled");
-    } else {
-      link.href = "#";
-      link.classList.add("disabled");
-    }
-  }
-  if (copyBtn) copyBtn.disabled = !url;
-  if (hint)    hint.style.display = url ? "none" : "";
+  const kioskLink    = $("dashboardKioskLink");
+  const kioskCopyBtn = $("dashboardKioskCopy");
+  if (kioskLink)    { kioskLink.href = kioskUrl || "#"; kioskLink.classList.toggle("disabled", !kioskUrl); }
+  if (kioskCopyBtn) kioskCopyBtn.disabled = !kioskUrl;
+
+  const hint = $("dashboardHint");
+  if (hint) hint.style.display = (dashUrl || kioskUrl) ? "none" : "";
 }
 
 // ===============================
@@ -444,18 +440,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Dashboard copy button
-  $("dashboardIncidentCopy")?.addEventListener("click", () => {
-    const incident = getCurrentIncident();
-    if (!incident) return;
-    const url = `${location.origin}/dashboard?incidentName=${encodeURIComponent(incident)}`;
-    navigator.clipboard.writeText(url).then(() => {
-      const btn = $("dashboardIncidentCopy");
-      const orig = btn.textContent;
-      btn.textContent = "Copied!";
-      setTimeout(() => { btn.textContent = orig; }, 1500);
+  // Dashboard copy buttons
+  function wireCopyBtn(btnId, buildUrl) {
+    $(btnId)?.addEventListener("click", () => {
+      const incident = getCurrentIncident();
+      if (!incident) return;
+      navigator.clipboard.writeText(buildUrl(incident)).then(() => {
+        const btn = $(btnId);
+        const orig = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      });
     });
-  });
+  }
+  wireCopyBtn("dashboardIncidentCopy", inc => `${location.origin}/dashboard?incidentName=${encodeURIComponent(inc)}`);
+  wireCopyBtn("dashboardKioskCopy",    inc => `${location.origin}/checkin?incidentName=${encodeURIComponent(inc)}`);
 
   // D4H — lookup on button click or Enter key
   async function doD4hLookup() {

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Kiosk Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f4f5f7;
+      --card:      #ffffff;
+      --border:    #d0d3d8;
+      --accent:    #1a73e8;
+      --green:     #1e8a45;
+      --red:       #c0392b;
+      --text:      #1a1a1a;
+      --muted:     #666;
+      --radius:    10px;
+      --shadow:    0 2px 8px rgba(0,0,0,0.10);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    #app {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 16px 12px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-title { font-size: 1.2rem; font-weight: 700; }
+    .back-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      padding: 9px 16px;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #1558b5; }
+    .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+    .btn-danger  { background: var(--red);    color: #fff; }
+    .btn-danger:hover  { background: #9b2b22; }
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { background: #f0f0f0; }
+
+    /* ── Status message ── */
+    .status-msg {
+      padding: 10px 14px;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: none;
+    }
+    .status-msg.show { display: block; }
+    .status-msg.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status-msg.error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .status-msg.info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+    /* ── Members table ── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th {
+      text-align: left;
+      font-weight: 600;
+      padding: 6px 8px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+      color: var(--muted);
+    }
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7f8fa; }
+
+    .modified-badge {
+      display: inline-block;
+      background: #ff8f00;
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    .del-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--red);
+      font-size: 0.8rem;
+      padding: 2px 4px;
+    }
+    .del-btn:hover { text-decoration: underline; }
+
+    /* ── Conflict cards ── */
+    .conflict-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .conflict-card {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .conflict-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .conflict-row-diff {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr;
+      gap: 4px 10px;
+      font-size: 0.82rem;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .diff-label { color: var(--muted); font-weight: 600; }
+    .diff-local { color: #1a1a1a; }
+    .diff-d4h   { color: var(--accent); }
+    .conflict-actions { display: flex; gap: 8px; }
+
+    .empty-note {
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div class="page-header">
+    <a href="/checkin" class="back-link">← Kiosk</a>
+    <div class="page-title">Member Directory Admin</div>
+  </div>
+
+  <!-- D4H Sync -->
+  <div class="card">
+    <div class="section-title">D4H Sync</div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px;">
+      Pull the full member roster from D4H into the local directory. Only new members will be added;
+      locally-edited records with differences will be shown below for review.
+    </p>
+    <button class="btn btn-primary" id="syncBtn">Sync from D4H</button>
+    <div id="syncStatus" class="status-msg" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- Conflict resolution -->
+  <div class="card" id="conflictCard" style="display:none;">
+    <div class="section-title">Conflicts — local edits differ from D4H</div>
+    <div class="conflict-list" id="conflictList"></div>
+  </div>
+
+  <!-- Members table -->
+  <div class="card">
+    <div class="section-title">All Members (<span id="memberCount">0</span>)</div>
+    <div id="memberStatus" class="status-msg" style="margin-bottom:10px;"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Member #</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Plate</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="memberBody"></tbody>
+      </table>
+    </div>
+    <p class="empty-note" id="membersEmpty" style="display:none;">No members yet. Run D4H sync to populate.</p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+
+  function showMsg(id, text, type) {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = `status-msg show ${type}`;
+  }
+  function clearMsg(id) {
+    const el = $(id);
+    if (el) el.className = "status-msg";
+  }
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
+  // ── Load members ──
+  async function loadMembers() {
+    try {
+      const res = await fetch("/api/kiosk/admin/members");
+      const rows = await res.json().catch(() => []);
+      renderMembers(rows);
+    } catch (e) {
+      showMsg("memberStatus", `Failed to load: ${e.message}`, "error");
+    }
+  }
+
+  function renderMembers(rows) {
+    const tbody = $("memberBody");
+    const empty = $("membersEmpty");
+    $("memberCount").textContent = rows.length;
+    tbody.innerHTML = "";
+    if (!rows.length) {
+      if (empty) empty.style.display = "";
+      return;
+    }
+    if (empty) empty.style.display = "none";
+    for (const r of rows) {
+      const tr = document.createElement("tr");
+      const modBadge = r.local_modified ? '<span class="modified-badge">edited</span>' : "";
+      tr.innerHTML = `
+        <td>${esc(r.name)}${modBadge}</td>
+        <td>${esc(r.d4h_member_ref ?? "")}</td>
+        <td>${esc(r.phone ?? "")}</td>
+        <td>${esc(r.email ?? "")}</td>
+        <td>${esc(r.license_plate ?? "")}</td>
+        <td><button class="del-btn" data-id="${r.id}">Delete</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  $("memberBody").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".del-btn");
+    if (!btn) return;
+    if (!confirm("Delete this member from the local directory?")) return;
+    const id = btn.dataset.id;
+    try {
+      await fetch(`/api/kiosk/admin/member/${id}`, { method: "DELETE" });
+      await loadMembers();
+    } catch (err) {
+      showMsg("memberStatus", `Delete failed: ${err.message}`, "error");
+    }
+  });
+
+  // ── D4H Sync ──
+  $("syncBtn").addEventListener("click", async () => {
+    $("syncBtn").disabled = true;
+    showMsg("syncStatus", "Syncing…", "info");
+    clearConflicts();
+    try {
+      const res = await fetch("/api/kiosk/admin/sync-d4h", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+
+      let msg = `Added ${data.added}, updated ${data.updated}.`;
+      if (data.conflicts?.length) msg += ` ${data.conflicts.length} conflict(s) need review.`;
+      showMsg("syncStatus", msg, data.conflicts?.length ? "info" : "success");
+
+      if (data.conflicts?.length) renderConflicts(data.conflicts);
+      await loadMembers();
+    } catch (e) {
+      showMsg("syncStatus", `Sync failed: ${e.message}`, "error");
+    } finally {
+      $("syncBtn").disabled = false;
+    }
+  });
+
+  // ── Conflicts ──
+  function clearConflicts() {
+    $("conflictList").innerHTML = "";
+    $("conflictCard").style.display = "none";
+  }
+
+  function renderConflicts(conflicts) {
+    const list = $("conflictList");
+    list.innerHTML = "";
+    for (const c of conflicts) {
+      list.appendChild(buildConflictCard(c));
+    }
+    $("conflictCard").style.display = "";
+  }
+
+  function buildConflictCard(c) {
+    const div = document.createElement("div");
+    div.className = "conflict-card";
+    div.dataset.id = c.id;
+
+    const rows = [];
+    if (c.localName !== c.d4hName) {
+      rows.push(`<div class="diff-label">Name</div><div class="diff-local">${esc(c.localName)}</div><div class="diff-d4h">${esc(c.d4hName)}</div>`);
+    }
+    if (c.d4hPhone && c.localPhone !== c.d4hPhone) {
+      rows.push(`<div class="diff-label">Phone</div><div class="diff-local">${esc(c.localPhone ?? "—")}</div><div class="diff-d4h">${esc(c.d4hPhone)}</div>`);
+    }
+    if (c.d4hEmail && c.localEmail !== c.d4hEmail) {
+      rows.push(`<div class="diff-label">Email</div><div class="diff-local">${esc(c.localEmail ?? "—")}</div><div class="diff-d4h">${esc(c.d4hEmail)}</div>`);
+    }
+
+    div.innerHTML = `
+      <div class="conflict-name">${esc(c.localName)}</div>
+      <div class="conflict-row-diff">
+        <div class="diff-label"></div><strong style="font-size:0.75rem;color:var(--muted)">Local</strong><strong style="font-size:0.75rem;color:var(--accent)">D4H</strong>
+        ${rows.join("")}
+      </div>
+      <div class="conflict-actions">
+        <button class="btn btn-ghost" style="font-size:0.8rem;padding:6px 12px;" data-action="keep">Keep Local</button>
+        <button class="btn btn-primary" style="font-size:0.8rem;padding:6px 12px;" data-action="use-d4h">Use D4H</button>
+      </div>
+    `;
+
+    div.querySelectorAll("[data-action]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const useD4H = btn.dataset.action === "use-d4h";
+        try {
+          await fetch("/api/kiosk/admin/resolve-conflict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              memberId: c.id,
+              useD4H,
+              d4hName:  c.d4hName,
+              d4hPhone: c.d4hPhone,
+              d4hEmail: c.d4hEmail,
+            }),
+          });
+          div.remove();
+          if (!$("conflictList").children.length) clearConflicts();
+          await loadMembers();
+        } catch (err) {
+          alert(`Failed: ${err.message}`);
+        }
+      });
+    });
+
+    return div;
+  }
+
+  // ── Boot ──
+  loadMembers();
+})();
+</script>
+</body>
+</html>

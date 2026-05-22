@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Check-in Kiosk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f4f5f7;
+      --card:      #ffffff;
+      --border:    #d0d3d8;
+      --accent:    #1a73e8;
+      --green:     #1e8a45;
+      --red:       #c0392b;
+      --text:      #1a1a1a;
+      --muted:     #666;
+      --radius:    10px;
+      --shadow:    0 2px 8px rgba(0,0,0,0.10);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    #app {
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 16px 12px 32px;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ── Header ── */
+    .kiosk-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px;
+    }
+    .kiosk-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .kiosk-incident {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      color: var(--muted);
+      font-size: 1.3rem;
+      line-height: 1;
+      border-radius: 6px;
+    }
+    .settings-btn:hover { background: rgba(0,0,0,0.06); }
+
+    /* ── Toggle (Check In / Check Out) ── */
+    .toggle-group {
+      display: flex;
+      background: var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .toggle-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+    }
+    .toggle-btn.active {
+      background: var(--card);
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    /* ── Search ── */
+    .search-wrap {
+      position: relative;
+    }
+    .search-input {
+      width: 100%;
+      font-size: 1.05rem;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      background: #fafafa;
+    }
+    .search-input:focus { border-color: var(--accent); background: #fff; }
+
+    .search-results {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .result-row {
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.1s, background 0.1s;
+    }
+    .result-row:hover { border-color: var(--accent); background: #f0f5ff; }
+    .result-name { font-weight: 600; font-size: 1rem; }
+    .result-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+    .manual-row {
+      padding: 10px 12px;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .manual-row:hover { background: #f0f5ff; border-color: var(--accent); }
+
+    /* ── Form fields ── */
+    .form-section-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .field-label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    .field-label input {
+      font-size: 1rem;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      background: #fafafa;
+    }
+    .field-label input:focus { border-color: var(--accent); background: #fff; }
+    .field-label input:disabled {
+      background: #f0f0f0;
+      color: #888;
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .plate-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: -4px;
+    }
+
+    /* ── Submit button ── */
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--green);
+      color: #fff;
+      transition: background 0.15s;
+    }
+    .submit-btn:hover { background: #176e38; }
+    .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+    .submit-btn.checkout { background: var(--accent); }
+    .submit-btn.checkout:hover { background: #1558b5; }
+
+    /* ── Back link ── */
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 0;
+      text-align: left;
+    }
+
+    /* ── Status message ── */
+    .status-msg {
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: none;
+    }
+    .status-msg.show { display: block; }
+    .status-msg.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status-msg.error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .status-msg.info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+    /* ── Confirmation screen ── */
+    .confirm-icon {
+      font-size: 3rem;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .confirm-msg {
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .confirm-sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Sections controlled by JS ── */
+    .section { display: none; }
+    .section.visible { display: flex; flex-direction: column; gap: 14px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div class="kiosk-header">
+    <div>
+      <div class="kiosk-title">Check-in Kiosk</div>
+      <div class="kiosk-incident" id="headerIncident"></div>
+    </div>
+    <a href="/checkin/admin" class="settings-btn" title="Admin / Settings">⚙</a>
+  </div>
+
+  <!-- Action toggle -->
+  <div class="toggle-group">
+    <button class="toggle-btn active" id="toggleCheckin">Check In</button>
+    <button class="toggle-btn" id="toggleCheckout">Check Out</button>
+  </div>
+
+  <!-- SEARCH SECTION -->
+  <div class="section visible" id="searchSection">
+    <div class="card">
+      <input
+        type="search"
+        id="searchInput"
+        class="search-input"
+        placeholder="Search by name, phone, or member #"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        inputmode="search"
+      />
+      <div class="search-results" id="searchResults"></div>
+    </div>
+    <div id="searchStatus" class="status-msg"></div>
+  </div>
+
+  <!-- DETAIL / CONFIRM SECTION -->
+  <div class="section" id="detailSection">
+    <button class="back-btn" id="backBtn">← Back to search</button>
+    <div class="card">
+      <div class="form-section-title">Your Information</div>
+      <div class="field-group">
+        <label class="field-label">
+          Name
+          <input type="text" id="fieldName" autocomplete="name" />
+        </label>
+        <div class="field-row">
+          <label class="field-label">
+            Phone
+            <input type="tel" id="fieldPhone" autocomplete="tel" placeholder="Optional" />
+          </label>
+          <label class="field-label">
+            Email
+            <input type="email" id="fieldEmail" autocomplete="email" placeholder="Optional" />
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field-label">
+            EC Name
+            <input type="text" id="fieldEcName" autocomplete="off" placeholder="Optional" />
+          </label>
+          <label class="field-label">
+            EC Phone
+            <input type="tel" id="fieldEcPhone" autocomplete="off" placeholder="Optional" />
+          </label>
+        </div>
+        <label class="field-label">
+          License Plate
+          <input type="text" id="fieldPlate" autocomplete="off" placeholder="e.g. ABC 123" style="text-transform:uppercase" />
+        </label>
+        <p class="plate-note">Plate is saved to your member profile for future check-ins.</p>
+      </div>
+    </div>
+    <div id="detailStatus" class="status-msg"></div>
+    <button class="submit-btn" id="submitBtn">Check In</button>
+  </div>
+
+  <!-- SUCCESS SECTION -->
+  <div class="section" id="successSection">
+    <div class="card">
+      <div class="confirm-icon" id="confirmIcon">✅</div>
+      <div class="confirm-msg" id="confirmMsg">Checked in!</div>
+      <div class="confirm-sub" id="confirmSub"></div>
+    </div>
+    <button class="submit-btn" id="doneBtn" style="background:#555;">Done (another person)</button>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  // ── State ──
+  let incidentName = "";
+  let action = "checkin"; // "checkin" | "checkout"
+  let selectedMember = null; // { id, name, phone, email, ecName, ecPhone, licensePlate, d4hRef, memberRef }
+
+  // ── Init ──
+  const params = new URLSearchParams(location.search);
+  incidentName = params.get("incidentName") || "";
+  document.getElementById("headerIncident").textContent = incidentName || "No incident";
+
+  // ── Helpers ──
+  function $(id) { return document.getElementById(id); }
+  function showSection(id) {
+    ["searchSection", "detailSection", "successSection"].forEach(s => {
+      const el = $(s);
+      if (el) el.classList.toggle("visible", s === id);
+    });
+  }
+  function showMsg(id, text, type) {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = `status-msg show ${type}`;
+  }
+  function clearMsg(id) {
+    const el = $(id);
+    if (el) el.className = "status-msg";
+  }
+
+  // ── Toggle ──
+  $("toggleCheckin").addEventListener("click", () => {
+    action = "checkin";
+    $("toggleCheckin").classList.add("active");
+    $("toggleCheckout").classList.remove("active");
+    $("submitBtn").textContent = "Check In";
+    $("submitBtn").classList.remove("checkout");
+    resetToSearch();
+  });
+  $("toggleCheckout").addEventListener("click", () => {
+    action = "checkout";
+    $("toggleCheckout").classList.add("active");
+    $("toggleCheckin").classList.remove("active");
+    $("submitBtn").textContent = "Check Out";
+    $("submitBtn").classList.add("checkout");
+    resetToSearch();
+  });
+
+  // ── Search ──
+  let searchTimer = null;
+  $("searchInput").addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    const q = $("searchInput").value.trim();
+    if (q.length < 2) {
+      $("searchResults").innerHTML = "";
+      return;
+    }
+    searchTimer = setTimeout(() => doSearch(q), 220);
+  });
+
+  async function doSearch(q) {
+    try {
+      const res = await fetch(`/api/kiosk/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json().catch(() => []);
+      renderResults(data, q);
+    } catch {
+      renderResults([], q);
+    }
+  }
+
+  function renderResults(rows, q) {
+    const container = $("searchResults");
+    container.innerHTML = "";
+
+    for (const r of rows) {
+      const div = document.createElement("div");
+      div.className = "result-row";
+      const meta = [r.memberRef, r.phone].filter(Boolean).join(" · ");
+      div.innerHTML = `<div class="result-name">${esc(r.name)}</div>${meta ? `<div class="result-meta">${esc(meta)}</div>` : ""}`;
+      div.addEventListener("click", () => selectMember(r));
+      container.appendChild(div);
+    }
+
+    // Manual entry option
+    const manual = document.createElement("div");
+    manual.className = "manual-row";
+    manual.textContent = `Not found — enter manually`;
+    manual.addEventListener("click", () => selectManual(q));
+    container.appendChild(manual);
+  }
+
+  function selectMember(r) {
+    selectedMember = r;
+    populateDetail(r);
+    showSection("detailSection");
+    clearMsg("detailStatus");
+  }
+
+  function selectManual(name) {
+    selectedMember = null;
+    populateDetail({ name });
+    $("fieldName").readOnly = false;
+    showSection("detailSection");
+    clearMsg("detailStatus");
+  }
+
+  function populateDetail(r) {
+    $("fieldName").value   = r.name        || "";
+    $("fieldPhone").value  = r.phone       || "";
+    $("fieldEmail").value  = r.email       || "";
+    $("fieldEcName").value = r.ecName      || "";
+    $("fieldEcPhone").value= r.ecPhone     || "";
+    $("fieldPlate").value  = r.licensePlate|| "";
+    $("fieldName").readOnly = !!selectedMember;
+  }
+
+  // ── Back ──
+  $("backBtn").addEventListener("click", resetToSearch);
+
+  function resetToSearch() {
+    selectedMember = null;
+    $("searchInput").value = "";
+    $("searchResults").innerHTML = "";
+    clearMsg("searchStatus");
+    clearMsg("detailStatus");
+    showSection("searchSection");
+    $("searchInput").focus();
+  }
+
+  // ── Submit ──
+  $("submitBtn").addEventListener("click", doSubmit);
+
+  async function doSubmit() {
+    if (!incidentName) {
+      showMsg("detailStatus", "No incident name — add ?incidentName=... to the URL.", "error");
+      return;
+    }
+    const name = $("fieldName").value.trim();
+    if (!name) {
+      showMsg("detailStatus", "Name is required.", "error");
+      return;
+    }
+
+    $("submitBtn").disabled = true;
+    clearMsg("detailStatus");
+
+    const body = {
+      incidentName,
+      action,
+      name,
+      phone:       $("fieldPhone").value.trim()  || null,
+      email:       $("fieldEmail").value.trim()  || null,
+      ecName:      $("fieldEcName").value.trim() || null,
+      ecPhone:     $("fieldEcPhone").value.trim()|| null,
+      licensePlate:$("fieldPlate").value.trim().toUpperCase() || null,
+      memberId:    selectedMember?.id ?? null,
+    };
+
+    try {
+      const res = await fetch("/api/kiosk/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+      showSuccess(name);
+    } catch (err) {
+      showMsg("detailStatus", `Failed: ${err.message}`, "error");
+    } finally {
+      $("submitBtn").disabled = false;
+    }
+  }
+
+  function showSuccess(name) {
+    const verb = action === "checkin" ? "checked in" : "checked out";
+    $("confirmIcon").textContent = action === "checkin" ? "✅" : "👋";
+    $("confirmMsg").textContent  = `${name} ${verb}!`;
+    $("confirmSub").textContent  = incidentName;
+    showSection("successSection");
+  }
+
+  $("doneBtn").addEventListener("click", resetToSearch);
+
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+  }
+
+  // Focus search on load
+  $("searchInput").focus();
+})();
+</script>
+</body>
+</html>

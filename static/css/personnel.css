@@ -425,6 +425,25 @@
 .conflict-row.action-remove { border-color: #b71c1c; background: #fce8e8; }
 
 /* ===============================
+   Source badge (KIOSK)
+   =============================== */
+
+.source-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+}
+
+.kiosk-badge {
+  background: #e65100;
+  color: #fff;
+}
+
+/* ===============================
    Print / PDF
    =============================== */
 

@@ -229,6 +229,17 @@ def delete_person(incident_name: str, *, person_id: int) -> bool:
         conn.commit()
         return cur.rowcount > 0
 
+def confirm_kiosk_person(incident_name: str, person_id: int) -> bool:
+    """Clear the KIOSK source flag — marks kiosk-added person as confirmed by staff."""
+    with get_connection(incident_name) as conn:
+        cur = conn.execute(
+            "UPDATE personnel SET source='MANUAL', updated_at=datetime('now') WHERE id=? AND source='KIOSK'",
+            (person_id,)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
 def upsert_people_from_d4h(
     incident_name: str,
     people: Iterable[Tuple],

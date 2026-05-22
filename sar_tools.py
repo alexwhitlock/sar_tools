@@ -46,6 +46,9 @@ app.register_blueprint(pdf_bp)
 from routes.system import bp as system_bp
 app.register_blueprint(system_bp)
 
+from routes.kiosk import bp as kiosk_bp
+app.register_blueprint(kiosk_bp)
+
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
@@ -93,6 +96,16 @@ def help_files(filename):
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard/incident.html")
+
+
+@app.route("/checkin")
+def checkin():
+    return render_template("kiosk/index.html")
+
+
+@app.route("/checkin/admin")
+def checkin_admin():
+    return render_template("kiosk/admin.html")
 
 
 @app.after_request

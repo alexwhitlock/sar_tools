@@ -95,7 +95,7 @@ function renderPersonnelRow(p) {
     <td>${escapeHtml(p.name)}</td>
     <td>${escapeHtml(p.team)}</td>
     <td>${escapeHtml(status)}</td>
-    <td>${escapeHtml(p.source)}</td>
+    <td>${p.source === "KIOSK" ? '<span class="source-badge kiosk-badge">KIOSK</span>' : escapeHtml(p.source)}</td>
     <td class="col-d4href">${escapeHtml(p.d4hMemberRef)}</td>
     <td class="col-notes" title="${escapeHtml(p.notes ?? "")}">${escapeHtml(p.notes ?? "")}</td>
     <td class="actions-cell">
@@ -221,6 +221,7 @@ function openMenu(anchorBtn, personKey) {
   showIf("check-in",      status === "Added" || status === "Checked Out");
   showIf("undo-check-in", status === "Checked In" && previousStatus === "Added");
   showIf("check-out",     status === "Checked In");
+  showIf("confirm-kiosk", person?.source === "KIOSK");
 
   const rect = anchorBtn.getBoundingClientRect();
 
@@ -773,6 +774,27 @@ function wireMenuAndModal() {
         } else {
           personnelMessage.show(`Failed to update status: ${err.message}`, "error");
         }
+      }
+      return;
+    }
+
+    if (action === "confirm-kiosk") {
+      const person = findPersonInCache(activePersonKey);
+      const label = person?.name ? `"${person.name}"` : "this person";
+      if (!window.confirm(`Confirm kiosk check-in for ${label}?`)) return;
+      try {
+        personnelMessage.show("Confirming…", "info");
+        const resp = await fetch("/api/personnel/confirm-kiosk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ incidentName, personKey: activePersonKey }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || data.ok === false) throw new Error(data.error || "Confirm failed");
+        await loadPersonnel();
+        personnelMessage.show("Kiosk check-in confirmed.", "info");
+      } catch (err) {
+        personnelMessage.show(`Failed to confirm: ${err.message}`, "error");
       }
       return;
     }

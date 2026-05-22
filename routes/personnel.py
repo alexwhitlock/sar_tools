@@ -16,6 +16,7 @@ from db.personnel_repo import (
     find_name_matches,
     find_name_matches_batch,
     link_d4h_to_person,
+    confirm_kiosk_person,
     VALID_STATUSES,
 )
 from db.log_repo import insert_log
@@ -218,6 +219,24 @@ def api_personnel_status():
         return jsonify({"ok": True})
     except ConflictError:
         return jsonify({"ok": False, "error": "conflict"}), 409
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.post("/api/personnel/confirm-kiosk")
+def api_personnel_confirm_kiosk():
+    data = request.get_json(force=True) or {}
+    incident_name = (data.get("incidentName") or "").strip()
+    person_key = data.get("personKey")
+    if not incident_name or person_key in (None, ""):
+        return jsonify({"ok": False, "error": "incidentName and personKey required"}), 400
+    try:
+        name = get_person_name(incident_name, int(person_key)) or str(person_key)
+        ok = confirm_kiosk_person(incident_name, person_id=int(person_key))
+        if not ok:
+            return jsonify({"ok": False, "error": "person not found or not KIOSK source"}), 404
+        _log(incident_name, f'Personnel "{name}" kiosk check-in confirmed')
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
