@@ -58,19 +58,6 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* ── Offline banner ── */
-.dash-offline-banner {
-  display: none;
-  background: #dc2626;
-  color: #fff;
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.8rem;
-  padding: 0.25rem;
-  flex-shrink: 0;
-}
-.dash-offline-banner.visible { display: block; }
-
 /* ── Main ── */
 .dash-main {
   flex: 1;
@@ -368,27 +355,14 @@ body {
   font-size: 0.9rem;
 }
 
-/* ── Footer ── */
-.dash-footer {
-  background: #1e293b;
-  color: #cbd5e1;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  padding: 0 1.5rem;
-  flex-shrink: 0;
-  font-size: 0.78rem;
-  gap: 2rem;
-}
-
-.dash-footer-item {
+.dash-header-item {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.dash-footer-label { color: #64748b; }
-.dash-footer-value { color: #e2e8f0; font-weight: 600; }
+.dash-header-label { color: #64748b; font-size: 0.78rem; }
+.dash-header-value { color: #e2e8f0; font-weight: 600; font-size: 0.78rem; }
 
 .dash-sync-pill {
   display: inline-flex;
@@ -411,25 +385,18 @@ body {
 <body>
 
 <div class="dash-header">
-  <div class="dash-logo">SAR Tools</div>
   <div class="dash-incident" id="dashIncidentName">—</div>
+  <div class="dash-header-item">
+    <span class="dash-header-label">Personnel checked in</span>
+    <span class="dash-header-value" id="dashPersonnelCount">—</span>
+  </div>
+  <span class="dash-sync-pill" id="dashSyncPill">LIVE</span>
   <div class="dash-clock" id="dashClock"></div>
 </div>
-
-<div class="dash-offline-banner" id="dashOfflineBanner">Connection lost — attempting to reconnect…</div>
 
 <div class="dash-main" id="dashMain">
 </div>
 
-<div class="dash-footer">
-  <div class="dash-footer-item">
-    <span class="dash-sync-pill" id="dashSyncPill">LIVE</span>
-  </div>
-  <div class="dash-footer-item">
-    <span class="dash-footer-label">Personnel checked in</span>
-    <span class="dash-footer-value" id="dashPersonnelCount">—</span>
-  </div>
-</div>
 
 <script>
 const params      = new URLSearchParams(location.search);
@@ -611,7 +578,7 @@ function renderTeams(teams, assignments) {
               <span>${asgnDisplay}</span>
             </div>
             <div class="team-card-detail team-card-detail-members">
-              <span class="team-card-detail-label" style="display:flex;align-items:center;"><svg width="9" height="9" viewBox="0 0 16 16" fill="#fff" style="opacity:0.65"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg></span>
+              <span class="team-card-detail-label"><svg width="9" height="9" viewBox="0 0 16 16" fill="#fff" style="display:block;opacity:0.65;margin:0 auto;"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg></span>
               <span>${members}</span>
             </div>
           </div>
@@ -736,15 +703,13 @@ async function fetchAll() {
 function initDashboard() {
   fetchAll();
 
-  const banner = document.getElementById("dashOfflineBanner");
-  const pill   = document.getElementById("dashSyncPill");
+  const pill = document.getElementById("dashSyncPill");
 
   const sse = new EventSource(`/api/sync/stream?incidentName=${enc(INCIDENT)}`);
 
   sse.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (pill) { pill.textContent = "LIVE"; pill.classList.remove("offline"); }
-    banner.classList.remove("visible");
 
     if (msg.type === "init" || msg.type === "sync") {
       _settings = null;
@@ -754,7 +719,6 @@ function initDashboard() {
 
   sse.onerror = () => {
     if (pill) { pill.textContent = "Offline"; pill.classList.add("offline"); }
-    banner.classList.add("visible");
   };
 }
 </script>
