@@ -627,11 +627,16 @@ function renderTeams(teams, assignments) {
   const cardH = Math.max(1, (probe.firstElementChild?.offsetHeight ?? 40) + 3);
   document.body.removeChild(probe);
 
-  const perPage = Math.max(1, Math.floor(listEl.clientHeight / cardH));
-  const pages = [];
-  for (let i = 0; i < cards.length; i += perPage) {
-    pages.push(cards.slice(i, i + perPage).join(""));
+  function buildPages(availH) {
+    const pp = Math.max(1, Math.floor(availH / cardH));
+    const out = [];
+    for (let i = 0; i < cards.length; i += pp) out.push(cards.slice(i, i + pp).join(""));
+    return out;
   }
+
+  // First pass without dots, second pass if dots will appear (they take ~20px)
+  let pages = buildPages(listEl.clientHeight);
+  if (pages.length > 1) pages = buildPages(listEl.clientHeight - 20);
 
   teamPager.pages = pages;
   if (teamPager.current >= pages.length) teamPager.current = 0;
