@@ -162,28 +162,42 @@ body {
 
 .team-card-details {
   display: flex;
-  gap: 0.8rem;
   flex-shrink: 0;
-  min-width: 0;
 }
 
 .team-card-detail {
   display: flex;
-  gap: 0.25rem;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: flex-start;
   white-space: nowrap;
   font-size: 0.72rem;
+  padding: 0 0.55rem;
+  border-left: 1px solid rgba(255,255,255,0.25);
 }
 
 .team-card-detail-label {
-  font-size: 0.6rem;
-  opacity: 0.7;
-  flex-shrink: 0;
+  font-size: 0.55rem;
+  opacity: 0.65;
+  line-height: 1;
+  margin-bottom: 1px;
 }
 
-/* TL name can be long — cap it and ellipsis */
+.team-card-detail-tl {
+  width: 110px;
+}
+
+.team-card-detail-asgn {
+  width: 52px;
+}
+
+.team-card-detail-members {
+  width: 34px;
+  align-items: center;
+}
+
+/* TL name ellipsis */
 .team-card-detail-tl-value {
-  max-width: 110px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -457,6 +471,11 @@ const STATUS_CSS = {
   "Retired":                   "ts-retired",
 };
 
+const STATUS_LABEL = {
+  "Travelling to Assignment":  "Travelling To",
+  "Returning from Assignment": "Returning From",
+};
+
 const ASGN_STATUSES = ["DRAFT", "PREPARED", "INPROGRESS", "COMPLETED"];
 const ASGN_COLORS   = { DRAFT: "#5596fd", PREPARED: "#f68c21", INPROGRESS: "#ec3f3b", COMPLETED: "#901cfc" };
 const ASGN_LABELS   = { DRAFT: "Draft", PREPARED: "Prepared", INPROGRESS: "In Progress", COMPLETED: "Completed" };
@@ -511,18 +530,18 @@ function renderTeams(teams, assignments) {
       <div class="team-card ${css}">
         <div class="team-card-row">
           <span class="team-card-name">${esc(t.name)}</span>
-          <span class="team-card-status">${esc(t.status)}</span>
+          <span class="team-card-status">${esc(STATUS_LABEL[t.status] ?? t.status)}</span>
           <div class="team-card-details">
-            <div class="team-card-detail">
+            <div class="team-card-detail team-card-detail-tl">
               <span class="team-card-detail-label">TL</span>
               <span class="team-card-detail-tl-value">${tlDisplay}</span>
             </div>
-            <div class="team-card-detail">
+            <div class="team-card-detail team-card-detail-asgn">
               <span class="team-card-detail-label">Asgn</span>
               <span>${asgnDisplay}</span>
             </div>
-            <div class="team-card-detail">
-              <span class="team-card-detail-label">👥</span>
+            <div class="team-card-detail team-card-detail-members">
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="#000" style="opacity:0.55"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg>
               <span>${members}</span>
             </div>
           </div>
