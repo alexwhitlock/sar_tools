@@ -167,9 +167,8 @@ body {
 
 .team-card-detail {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 3px;
+  flex-direction: column;
+  align-items: flex-start;
   white-space: nowrap;
   font-size: 0.72rem;
   padding: 0 0.5rem;
@@ -179,11 +178,11 @@ body {
   font-size: 0.55rem;
   opacity: 0.65;
   line-height: 1;
-  flex-shrink: 0;
+  margin-bottom: 1px;
 }
 
 .team-card-detail-tl {
-  width: 135px;
+  width: 150px;
 }
 
 .team-card-detail-asgn {
@@ -192,11 +191,12 @@ body {
 
 .team-card-detail-members {
   width: 36px;
+  align-items: center;
 }
 
 /* TL name ellipsis */
 .team-card-detail-tl-value {
-  flex: 1;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -483,7 +483,7 @@ function nowHHMMSS() {
 
 // ── Teams scroll state (persists across data updates) ──
 const teamScroll = { pos: 0, height: 0, active: false, raf: null, _lastTs: null };
-const SCROLL_PX_PER_SEC = 35;
+const SCROLL_PX_PER_SEC = 17;
 
 function teamsScrollStep(ts) {
   if (!teamScroll.active) return;
@@ -544,15 +544,15 @@ function renderTeams(teams, assignments) {
           <div class="team-card-details">
             <div class="team-card-detail team-card-detail-tl">
               <span class="team-card-detail-label">TL</span>
-              <span class="team-card-detail-tl-value"> ${tlDisplay}</span>
+              <span class="team-card-detail-tl-value">${tlDisplay}</span>
             </div>
             <div class="team-card-detail team-card-detail-asgn">
               <span class="team-card-detail-label">Asgn</span>
-              <span> ${asgnDisplay}</span>
+              <span>${asgnDisplay}</span>
             </div>
             <div class="team-card-detail team-card-detail-members">
               <svg width="10" height="10" viewBox="0 0 16 16" fill="#fff"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2 2H6a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4z"/></svg>
-              <span> ${members}</span>
+              <span>${members}</span>
             </div>
           </div>
         </div>
