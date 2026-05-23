@@ -49,6 +49,8 @@ app.register_blueprint(system_bp)
 from routes.kiosk import bp as kiosk_bp
 app.register_blueprint(kiosk_bp)
 
+from routes.snapshot import snapshot_incident_async, snapshot_all_async
+
 # ================= Load Config File =================
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
@@ -202,11 +204,36 @@ def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
 
+
+@app.after_request
+def trigger_snapshot(resp):
+    from flask import request as req
+    if req.method == "GET":
+        return resp
+    if not (200 <= resp.status_code < 300):
+        return resp
+    try:
+        names = set()
+        body = req.get_json(silent=True) or {}
+        for key in ("incidentName", "newName"):
+            v = (body.get(key) or "").strip()
+            if v:
+                names.add(v)
+        v = (req.args.get("incidentName") or "").strip()
+        if v:
+            names.add(v)
+        for name in names:
+            snapshot_incident_async(name)
+    except Exception:
+        pass
+    return resp
+
 # ================= Startup =================
 
 def open_browser():
     webbrowser.open("http://localhost:5000")
 
 if __name__ == "__main__":
+    snapshot_all_async()
     threading.Timer(1, open_browser).start()
     app.run(host="0.0.0.0", port=5000, debug=False)

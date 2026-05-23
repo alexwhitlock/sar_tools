@@ -1,0 +1,4 @@
+services:
+  sar_tools:
+    volumes:
+      - Z:\:/mnt/usb

@@ -350,6 +350,27 @@ async function loadSystemInfo() {
   }
 }
 
+async function loadUsbStatus() {
+  const el = $("sysUsbStatus");
+  if (!el) return;
+  try {
+    const res = await fetch("/api/system/usb-status");
+    const data = await res.json();
+    if (data.writable) {
+      el.textContent = "Connected";
+      el.className = "system-info-value usb-ok";
+    } else if (data.present) {
+      el.textContent = "Read-only";
+      el.className = "system-info-value usb-warn";
+    } else {
+      el.textContent = "Not connected";
+      el.className = "system-info-value usb-missing";
+    }
+  } catch (e) {
+    console.warn("[home.js] USB status fetch failed:", e);
+  }
+}
+
 // ===============================
 // Home tab activation watcher
 // ===============================
@@ -593,6 +614,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   watchHomeTab();
   loadSystemInfo();
+  loadUsbStatus();
+  setInterval(loadUsbStatus, 10000);
   await loadIncidents("");
 });
 
