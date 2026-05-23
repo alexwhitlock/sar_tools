@@ -359,9 +359,6 @@ async function loadUsbStatus() {
     if (data.writable) {
       el.textContent = "Connected";
       el.className = "system-info-value usb-ok";
-    } else if (data.present) {
-      el.textContent = "Read-only";
-      el.className = "system-info-value usb-warn";
     } else {
       el.textContent = "Not connected";
       el.className = "system-info-value usb-missing";

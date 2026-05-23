@@ -140,7 +140,6 @@
 }
 
 .system-info-value.usb-ok      { color: #16a34a; font-weight: 600; }
-.system-info-value.usb-warn    { color: #d97706; font-weight: 600; }
 .system-info-value.usb-missing { color: #dc2626; font-weight: 600; }
 
 /* ── Dashboards card ── */
