@@ -58,6 +58,7 @@ START / STOP
 ------------
 Start:     docker compose up -d
 Stop:      docker compose down
+Restart:   double-click restart.bat  (also re-detects USB stick)
 View logs: docker compose logs -f
 
 
