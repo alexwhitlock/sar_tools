@@ -15,9 +15,13 @@ MAX_SNAPSHOTS = 50
 
 
 def usb_status():
-    present = os.path.isdir(USB_MOUNT)
-    writable = present and os.access(USB_MOUNT, os.W_OK)
-    return {"present": present, "writable": writable}
+    if not os.path.isdir(USB_MOUNT):
+        return {"present": False, "writable": False}
+    try:
+        os.statvfs(USB_MOUNT)
+        return {"present": True, "writable": True}
+    except OSError:
+        return {"present": False, "writable": False}
 
 
 def _esc(s):
