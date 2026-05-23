@@ -14,14 +14,11 @@ USB_MOUNT = "/mnt/usb"
 MAX_SNAPSHOTS = 50
 
 
+_usb_ok = False  # updated by write_snapshot on each real write
+
+
 def usb_status():
-    if not os.path.isdir(USB_MOUNT):
-        return {"present": False, "writable": False}
-    try:
-        os.statvfs(USB_MOUNT)
-        return {"present": True, "writable": True}
-    except OSError:
-        return {"present": False, "writable": False}
+    return {"present": os.path.isdir(USB_MOUNT), "writable": _usb_ok}
 
 
 def _esc(s):
@@ -186,7 +183,26 @@ tr:hover td{{background:#fafafa}}
 </html>"""
 
 
+def _write_to(snap_dir, safe_name, html):
+    snap_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    final_path = snap_dir / f"{safe_name}_{ts}.html"
+    tmp_path = snap_dir / f"{safe_name}_{ts}.html.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(html)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(str(tmp_path), str(final_path))
+    snapshots = sorted(snap_dir.glob(f"{safe_name}_*.html"))
+    for old in snapshots[:-MAX_SNAPSHOTS]:
+        try:
+            old.unlink()
+        except OSError:
+            pass
+
+
 def write_snapshot(incident_name):
+    global _usb_ok
     try:
         from db.database import incident_name_to_filename
         data = _query(incident_name)
@@ -194,31 +210,18 @@ def write_snapshot(incident_name):
             return
 
         html = _render(incident_name, data)
-
         safe_name = Path(incident_name_to_filename(incident_name)).stem
-        usb = usb_status()
-        base = USB_MOUNT if usb["writable"] else SNAPSHOT_DIR
-        snap_dir = Path(base) / safe_name
-        snap_dir.mkdir(parents=True, exist_ok=True)
 
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        final_path = snap_dir / f"{safe_name}_{ts}.html"
-        tmp_path = snap_dir / f"{safe_name}_{ts}.html.tmp"
-
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            f.write(html)
-            f.flush()
-            os.fsync(f.fileno())
-
-        os.replace(str(tmp_path), str(final_path))
-
-        # Prune oldest beyond MAX_SNAPSHOTS
-        snapshots = sorted(snap_dir.glob(f"{safe_name}_*.html"))
-        for old in snapshots[:-MAX_SNAPSHOTS]:
+        if os.path.isdir(USB_MOUNT):
             try:
-                old.unlink()
-            except OSError:
-                pass
+                _write_to(Path(USB_MOUNT) / safe_name, safe_name, html)
+                _usb_ok = True
+                return
+            except OSError as exc:
+                _usb_ok = False
+                log.warning("USB write failed for %s, falling back to internal: %s", incident_name, exc)
+
+        _write_to(Path(SNAPSHOT_DIR) / safe_name, safe_name, html)
 
     except Exception as exc:
         log.warning("Snapshot write failed for %s: %s", incident_name, exc)
