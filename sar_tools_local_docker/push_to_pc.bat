@@ -64,7 +64,9 @@ if "%IS_NEW%"=="1" (
 
 echo.
 echo Copying files to %DEST%...
-xcopy /Y "%~dp0*" "%DEST%\"
+echo push_to_pc.bat > "%TEMP%\xcopy_exclude.txt"
+xcopy /Y /EXCLUDE:"%TEMP%\xcopy_exclude.txt" "%~dp0*" "%DEST%\"
+del "%TEMP%\xcopy_exclude.txt"
 
 echo.
 echo Done. Run update.bat from %DEST% to rebuild and restart the container.
