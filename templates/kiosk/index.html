@@ -699,8 +699,8 @@
 
   let incidentName           = "";
   let action                 = "checkin";
-  let selectedMember         = null;
-  let selectedCheckoutPerson = null;
+  let selectedMember        = null;
+  let selectedCheckoutPeople = new Map();
   let checkoutAllPeople      = [];
   let autoResetTimer         = null;
 
@@ -808,13 +808,14 @@
   function resetKiosk() {
     clearTimeout(autoResetTimer);
     selectedMember = null;
-    selectedCheckoutPerson = null;
+    selectedCheckoutPeople = new Map();
     checkoutAllPeople = [];
     clearMsg("searchStatus");
     clearMsg("detailStatus");
     clearMsg("checkoutStatus");
     document.querySelectorAll('input[name="skill"]').forEach(cb => { cb.checked = false; });
     $("confirmCheckoutBtn").disabled = true;
+    $("confirmCheckoutBtn").textContent = "Confirm Checkout";
     $("searchDismiss").disabled = true;
     $("checkoutSearchDismiss").disabled = true;
 
@@ -1088,7 +1089,7 @@
     empty.style.display = "none";
     for (const p of people) {
       const div = document.createElement("div");
-      div.className = "result-row" + (selectedCheckoutPerson?.id === p.id ? " selected" : "");
+      div.className = "result-row" + (selectedCheckoutPeople.has(p.id) ? " selected" : "");
       div.innerHTML = `
         <div class="result-row-text">
           <div class="result-name">${esc(p.name)}</div>
@@ -1101,13 +1102,14 @@
   }
 
   function selectCheckoutPerson(person) {
-    if (selectedCheckoutPerson?.id === person.id) {
-      selectedCheckoutPerson = null;
-      $("confirmCheckoutBtn").disabled = true;
+    if (selectedCheckoutPeople.has(person.id)) {
+      selectedCheckoutPeople.delete(person.id);
     } else {
-      selectedCheckoutPerson = person;
-      $("confirmCheckoutBtn").disabled = false;
+      selectedCheckoutPeople.set(person.id, person);
     }
+    const count = selectedCheckoutPeople.size;
+    $("confirmCheckoutBtn").disabled = count === 0;
+    $("confirmCheckoutBtn").textContent = count > 1 ? `Confirm Checkout (${count})` : "Confirm Checkout";
     filterCheckout();
   }
 
@@ -1119,23 +1121,26 @@
   $("searchResults").addEventListener("scroll", () => $("searchInput").blur(), { passive: true });
 
   $("confirmCheckoutBtn").addEventListener("click", async () => {
-    if (!selectedCheckoutPerson) return;
+    if (!selectedCheckoutPeople.size) return;
     $("confirmCheckoutBtn").disabled = true;
     clearMsg("checkoutStatus");
+    const people = Array.from(selectedCheckoutPeople.values());
     try {
-      const res = await fetch("/api/kiosk/action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          incidentName,
-          action: "checkout",
-          name: selectedCheckoutPerson.name,
-          incidentPersonId: selectedCheckoutPerson.id,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
-      showSuccess(selectedCheckoutPerson.name);
+      for (const person of people) {
+        const res = await fetch("/api/kiosk/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            incidentName,
+            action: "checkout",
+            name: person.name,
+            incidentPersonId: person.id,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+      }
+      showSuccess(people.length === 1 ? people[0].name : `${people.length} people`);
     } catch (err) {
       showMsg("checkoutStatus", `Failed: ${err.message}`, "error");
       $("confirmCheckoutBtn").disabled = false;
