@@ -411,6 +411,10 @@ async function openPersonModal(mode, person = null) {
     document.getElementById("checkinEcName").value  = person?.checkinEcName       ?? "";
     document.getElementById("checkinEcPhone").value = person?.checkinEcPhone      ?? "";
     document.getElementById("checkinPlate").value   = person?.checkinLicensePlate ?? "";
+    const savedSkills = new Set((person?.checkinSkills || "").split(",").map(s => s.trim()).filter(Boolean));
+    document.querySelectorAll('input[name="editSkill"]').forEach(cb => {
+      cb.checked = savedSkills.has(cb.value);
+    });
   }
 
   // Populate team dropdown
@@ -1088,10 +1092,11 @@ function wireMenuAndModal() {
         const ciEcName = document.getElementById("checkinEcName")?.value.trim() || null;
         const ciEcPhone = document.getElementById("checkinEcPhone")?.value.trim() || null;
         const ciPlate = document.getElementById("checkinPlate")?.value.trim() || null;
+        const ciSkills = Array.from(document.querySelectorAll('input[name="editSkill"]:checked')).map(cb => cb.value).join(",") || null;
         await fetch("/api/personnel/checkin-info", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ incidentName, personKey: activePersonKey, phone: ciPhone, ecName: ciEcName, ecPhone: ciEcPhone, licensePlate: ciPlate }),
+          body: JSON.stringify({ incidentName, personKey: activePersonKey, phone: ciPhone, ecName: ciEcName, ecPhone: ciEcPhone, licensePlate: ciPlate, skills: ciSkills }),
         });
       }
 

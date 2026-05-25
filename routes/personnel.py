@@ -235,10 +235,12 @@ def api_personnel_checkin_info():
     ec_name = (data.get("ecName") or "").strip() or None
     ec_phone = (data.get("ecPhone") or "").strip() or None
     license_plate = (data.get("licensePlate") or "").strip() or None
+    skills = (data.get("skills") or "").strip() or None
     try:
         ok = update_checkin_info(
             incident_name, person_id=int(person_key),
             phone=phone, ec_name=ec_name, ec_phone=ec_phone, license_plate=license_plate,
+            skills=skills,
         )
         if not ok:
             return jsonify({"ok": False, "error": "person not found"}), 404
