@@ -10,9 +10,11 @@
 }
 
 .kiosk-toast {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  padding: 16px 22px;
+  padding: 16px 22px 19px;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.18);
   font-size: 1.05rem;
@@ -42,4 +44,30 @@
   background: #fde8e6;
   color: #7f1d1d;
   border: 1px solid #f9c0bb;
+}
+
+/* Progress bar */
+.toast-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  border-radius: 0 0 10px 10px;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: toast-progress 4s linear forwards;
+  animation-play-state: paused;
+}
+
+.kiosk-toast.toast-visible .toast-bar {
+  animation-play-state: running;
+}
+
+.toast-checkin .toast-bar  { background: #1e7a40; }
+.toast-checkout .toast-bar { background: #b83030; }
+
+@keyframes toast-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }

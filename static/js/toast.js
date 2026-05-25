@@ -1,4 +1,4 @@
-const DURATION_MS  = 6500;
+const DURATION_MS    = 4000;
 const ANIMATE_OUT_MS = 220;
 
 let container = null;
@@ -23,11 +23,13 @@ export function showToast(name, action) {
   const toast = document.createElement("div");
   toast.className = `kiosk-toast ${isCheckin ? "toast-checkin" : "toast-checkout"}`;
   toast.innerHTML =
-    `<span><strong>${esc(name)}</strong> ${isCheckin ? "checked in" : "checked out"}</span>`;
+    `<span><strong>${esc(name)}</strong> ${isCheckin ? "checked in" : "checked out"}</span>` +
+    `<div class="toast-bar"></div>`;
 
   getContainer().appendChild(toast);
 
-  // Two rAF frames to ensure the initial transform is painted before transitioning in
+  // Two rAF frames so the initial transform is painted before transitioning in.
+  // Adding toast-visible also starts the progress bar animation via CSS.
   requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("toast-visible")));
 
   setTimeout(() => {
