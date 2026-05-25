@@ -1,4 +1,4 @@
-const DURATION_MS  = 4500;
+const DURATION_MS  = 6500;
 const ANIMATE_OUT_MS = 220;
 
 let container = null;
@@ -23,7 +23,6 @@ export function showToast(name, action) {
   const toast = document.createElement("div");
   toast.className = `kiosk-toast ${isCheckin ? "toast-checkin" : "toast-checkout"}`;
   toast.innerHTML =
-    `<span class="toast-icon">${isCheckin ? "✅" : "👋"}</span>` +
     `<span><strong>${esc(name)}</strong> ${isCheckin ? "checked in" : "checked out"}</span>`;
 
   getContainer().appendChild(toast);
