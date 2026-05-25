@@ -74,6 +74,17 @@ body {
   flex-shrink: 0;
 }
 
+.top-incident-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.top-incident-name.hidden { display: none; }
+
 /* ===============================
    Global Map ID
    =============================== */

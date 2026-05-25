@@ -105,6 +105,7 @@ async function createIncident() {
       return;
     }
 
+    setTopBarIncident(data.incidentId);
     incidentMsg.show(`Active: ${data.incidentId}`, "info");
     updateLinkCheckboxVisibility();
     await loadIncidentSettings(data.incidentId);
@@ -124,6 +125,18 @@ async function createIncident() {
 function getCurrentIncident() {
   const sel = $("incidentSelect");
   return sel ? sel.value.trim() : "";
+}
+
+function setTopBarIncident(name) {
+  const el = $("top-incident-name");
+  if (!el) return;
+  if (name) {
+    el.textContent = name;
+    el.classList.remove("hidden");
+  } else {
+    el.textContent = "";
+    el.classList.add("hidden");
+  }
 }
 
 function updateLinkCheckboxVisibility() {
@@ -407,6 +420,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!val) {
       sel.dataset.prev = "";
       localStorage.removeItem("sar_incident");
+      setTopBarIncident("");
       incidentMsg.show("No incident selected.", "warning");
       updateLinkCheckboxVisibility();
       await loadIncidentSettings("");
@@ -419,6 +433,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await openIncident(val);
       sel.dataset.prev = val;
       localStorage.setItem("sar_incident", val);
+      setTopBarIncident(val);
       incidentMsg.show(`Active: ${val}`, "info");
       updateLinkCheckboxVisibility();
       await loadIncidentSettings(val);
@@ -558,6 +573,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const sel = $("incidentSelect");
       if (sel) sel.dataset.prev = data.incidentName;
       localStorage.setItem("sar_incident", data.incidentName);
+      setTopBarIncident(data.incidentName);
       updateLinkCheckboxVisibility();
       incidentMsg.show(`Renamed to: ${data.incidentName}`, "info");
       window.dispatchEvent(new CustomEvent("sar:incident-selected"));
@@ -593,6 +609,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await loadIncidents(data.incidentName);
       await openIncident(data.incidentName);
       localStorage.setItem("sar_incident", data.incidentName);
+      setTopBarIncident(data.incidentName);
       updateLinkCheckboxVisibility();
       await loadIncidentSettings(data.incidentName);
       incidentMsg.show(`Imported: ${data.incidentName}`, "info");
@@ -611,6 +628,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (savedIncident && $("incidentSelect")?.value === savedIncident) {
     try {
       await openIncident(savedIncident);
+      setTopBarIncident(savedIncident);
       await loadIncidentSettings(savedIncident);
       updateLinkCheckboxVisibility();
       window.dispatchEvent(new CustomEvent("sar:incident-selected"));
