@@ -35,7 +35,7 @@ def _query(incident_name):
         personnel = conn.execute("""
             SELECT p.name, p.status, p.notes,
                    p.checkin_phone, p.checkin_ec_name, p.checkin_ec_phone,
-                   p.checkin_license_plate, t.name AS team_name
+                   p.checkin_license_plate, p.checkin_skills, t.name AS team_name
             FROM personnel p
             LEFT JOIN team_members tm ON tm.personnel_id = p.id
             LEFT JOIN teams t ON t.id = tm.team_id
@@ -79,6 +79,7 @@ def _render(incident_name, data):
         f"<td>{_esc(p['checkin_ec_name'])}</td>"
         f"<td>{_esc(p['checkin_ec_phone'])}</td>"
         f"<td>{_esc(p['checkin_license_plate'])}</td>"
+        f"<td>{_esc(p['checkin_skills'])}</td>"
         f"<td class='note'>{_esc(p['notes'])}</td>"
         f"</tr>"
         for p in data["personnel"]
@@ -155,8 +156,8 @@ tr:hover td{{background:#fafafa}}
 
 <h2>Personnel ({nc})</h2>
 <table>
-<thead><tr><th>Name</th><th>Status</th><th>Team</th><th>Phone</th><th>EC Name</th><th>EC Phone</th><th>Plate</th><th>Notes</th></tr></thead>
-<tbody>{p_rows if p_rows else '<tr><td colspan="8" style="color:#999;font-style:italic">No personnel</td></tr>'}</tbody>
+<thead><tr><th>Name</th><th>Status</th><th>Team</th><th>Phone</th><th>EC Name</th><th>EC Phone</th><th>Plate</th><th>Skills</th><th>Notes</th></tr></thead>
+<tbody>{p_rows if p_rows else '<tr><td colspan="9" style="color:#999;font-style:italic">No personnel</td></tr>'}</tbody>
 </table>
 
 <h2>Teams ({nt})</h2>

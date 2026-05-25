@@ -127,7 +127,8 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
                 p.checkin_phone AS checkinPhone,
                 p.checkin_ec_name AS checkinEcName,
                 p.checkin_ec_phone AS checkinEcPhone,
-                p.checkin_license_plate AS checkinLicensePlate
+                p.checkin_license_plate AS checkinLicensePlate,
+                p.checkin_skills AS checkinSkills
             FROM personnel p
             LEFT JOIN team_members tm ON tm.personnel_id = p.id
             LEFT JOIN teams t ON t.id = tm.team_id
@@ -149,6 +150,7 @@ def list_personnel_with_team(incident_name: str) -> List[Dict[str, Any]]:
         "checkinEcName": r["checkinEcName"],
         "checkinEcPhone": r["checkinEcPhone"],
         "checkinLicensePlate": r["checkinLicensePlate"],
+        "checkinSkills": r["checkinSkills"],
     } for r in rows]
 
 
@@ -245,15 +247,16 @@ def update_checkin_info(
     ec_name: str | None = None,
     ec_phone: str | None = None,
     license_plate: str | None = None,
+    skills: str | None = None,
 ) -> bool:
     """Save kiosk check-in contact info to a personnel record. Returns True if updated."""
     with get_connection(incident_name) as conn:
         cur = conn.execute(
             """UPDATE personnel
                SET checkin_phone = ?, checkin_ec_name = ?, checkin_ec_phone = ?,
-                   checkin_license_plate = ?, updated_at = datetime('now')
+                   checkin_license_plate = ?, checkin_skills = ?, updated_at = datetime('now')
                WHERE id = ?""",
-            (phone, ec_name, ec_phone, license_plate, person_id),
+            (phone, ec_name, ec_phone, license_plate, skills, person_id),
         )
         conn.commit()
         return cur.rowcount > 0

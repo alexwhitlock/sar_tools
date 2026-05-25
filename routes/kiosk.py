@@ -31,7 +31,7 @@ def kiosk_search():
     with get_members_connection() as conn:
         rows = conn.execute("""
             SELECT id, name, d4h_ref, d4h_member_ref, phone,
-                   emergency_contact_name, emergency_contact_phone, license_plate
+                   emergency_contact_name, emergency_contact_phone, license_plate, skills
             FROM members
             WHERE name LIKE ? OR phone LIKE ? OR d4h_member_ref LIKE ? OR d4h_ref LIKE ?
             ORDER BY
@@ -90,6 +90,7 @@ def kiosk_search():
         "ecName":       r["emergency_contact_name"],
         "ecPhone":      r["emergency_contact_phone"],
         "licensePlate": r["license_plate"],
+        "skills":       r["skills"],
         "checkedIn":    is_checked_in(r),
     } for r in rows]
 
@@ -195,6 +196,7 @@ def kiosk_action():
     ec_phone           = (data.get("ecPhone") or "").strip() or None
     plate              = (data.get("licensePlate") or "").strip() or None
     notes              = (data.get("notes") or "").strip() or None
+    skills             = (data.get("skills") or "").strip() or None
 
     if not incident_name or not name:
         return jsonify({"error": "incidentName and name required"}), 400
@@ -221,9 +223,9 @@ def kiosk_action():
             conn.execute("""
                 UPDATE members
                 SET phone=?, emergency_contact_name=?, emergency_contact_phone=?,
-                    license_plate=?, local_modified=1, updated_at=datetime('now')
+                    license_plate=?, skills=?, local_modified=1, updated_at=datetime('now')
                 WHERE id=?
-            """, (phone, ec_name, ec_phone, plate, member_id))
+            """, (phone, ec_name, ec_phone, plate, skills, member_id))
             row = conn.execute(
                 "SELECT d4h_ref, d4h_member_ref FROM members WHERE id=?", (member_id,)
             ).fetchone()
@@ -239,15 +241,15 @@ def kiosk_action():
                 conn.execute("""
                     UPDATE members
                     SET phone=?, emergency_contact_name=?, emergency_contact_phone=?,
-                        license_plate=?, local_modified=1, updated_at=datetime('now')
+                        license_plate=?, skills=?, local_modified=1, updated_at=datetime('now')
                     WHERE id=?
-                """, (phone, ec_name, ec_phone, plate, existing["id"]))
+                """, (phone, ec_name, ec_phone, plate, skills, existing["id"]))
             else:
                 conn.execute("""
                     INSERT INTO members (name, phone, emergency_contact_name,
-                        emergency_contact_phone, license_plate, local_modified)
-                    VALUES (?, ?, ?, ?, ?, 1)
-                """, (name, phone, ec_name, ec_phone, plate))
+                        emergency_contact_phone, license_plate, skills, local_modified)
+                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                """, (name, phone, ec_name, ec_phone, plate, skills))
 
     # 2. Find or create person in incident personnel
     person_id = None
@@ -287,6 +289,7 @@ def kiosk_action():
             update_checkin_info(
                 incident_name, person_id=person_id,
                 phone=phone, ec_name=ec_name, ec_phone=ec_phone, license_plate=plate,
+                skills=skills,
             )
         except Exception:
             pass  # non-fatal

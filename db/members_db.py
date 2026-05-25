@@ -45,3 +45,5 @@ def run_members_migrations():
         cols = {row[1] for row in conn.execute("PRAGMA table_info(members)").fetchall()}
         if "email" in cols:
             conn.execute("ALTER TABLE members DROP COLUMN email")
+        if "skills" not in cols:
+            conn.execute("ALTER TABLE members ADD COLUMN skills TEXT")

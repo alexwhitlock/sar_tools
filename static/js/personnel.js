@@ -91,6 +91,7 @@ function renderCheckinInfoCell(p) {
   const ecParts = [p.checkinEcName, p.checkinEcPhone].filter(Boolean).map(escapeHtml);
   if (ecParts.length) lines.push(`Emrg: ${ecParts.join(" / ")}`);
   if (p.checkinLicensePlate) lines.push(`Plate: ${escapeHtml(p.checkinLicensePlate)}`);
+  if (p.checkinSkills) lines.push(`Skills: ${escapeHtml(p.checkinSkills)}`);
   if (!lines.length) return `<span class="checkin-info-cell" style="color:#bbb;">—</span>`;
   return `<div class="checkin-info-cell">${lines.join("<br>")}</div>`;
 }

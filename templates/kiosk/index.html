@@ -335,6 +335,29 @@
       margin-top: -4px;
     }
 
+    /* ── Skills checkboxes ── */
+    .skills-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .skill-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 2px 0;
+    }
+    .skill-option input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
     /* ── Buttons ── */
     .primary-btn {
       width: 100%;
@@ -615,6 +638,20 @@
           </div>
           <p class="plate-note">Plate is saved to your profile for future check-ins.</p>
         </div>
+        <div class="field-item" id="fiSkills" style="margin-top:12px;">
+          <div class="field-header">
+            <span class="field-name">Check all that apply</span>
+          </div>
+          <div class="skills-list">
+            <label class="skill-option"><input type="checkbox" name="skill" value="4x4 Vehicle" /> Four by Four vehicle</label>
+            <label class="skill-option"><input type="checkbox" name="skill" value="Team Leader" /> Team Leader</label>
+            <label class="skill-option"><input type="checkbox" name="skill" value="Advanced First Aid" /> Advanced First Aid</label>
+            <label class="skill-option"><input type="checkbox" name="skill" value="Mountain Bike" /> Mountain Bike</label>
+            <label class="skill-option"><input type="checkbox" name="skill" value="Drone" /> Drone</label>
+            <label class="skill-option"><input type="checkbox" name="skill" value="Canine Handler" /> Canine Handler</label>
+            <label class="skill-option"><input type="checkbox" name="skill" value="Canine Flanker" /> Canine Flanker</label>
+          </div>
+        </div>
         <div class="field-item" id="fiNotes" style="margin-top:12px;">
           <div class="field-header">
             <span class="field-name">Notes <span style="font-weight:normal;color:var(--muted)">(optional)</span></span>
@@ -776,6 +813,7 @@
     clearMsg("searchStatus");
     clearMsg("detailStatus");
     clearMsg("checkoutStatus");
+    document.querySelectorAll('input[name="skill"]').forEach(cb => { cb.checked = false; });
     $("confirmCheckoutBtn").disabled = true;
     $("searchDismiss").disabled = true;
     $("checkoutSearchDismiss").disabled = true;
@@ -924,6 +962,11 @@
     setField("fiPlate", "fieldPlate", r.licensePlate || "");
     $("fieldNotes").value = "";
 
+    const savedSkills = new Set((r.skills || "").split(",").map(s => s.trim()).filter(Boolean));
+    document.querySelectorAll('input[name="skill"]').forEach(cb => {
+      cb.checked = savedSkills.has(cb.value);
+    });
+
     function renderEc(ecName, ecPhone) {
       $("fieldEcName").value  = ecName;
       $("fieldEcPhone").value = ecPhone;
@@ -993,6 +1036,7 @@
       ecPhone:      $("fieldEcPhone").value.trim() || null,
       licensePlate: $("fieldPlate").value.trim().toUpperCase() || null,
       notes:        $("fieldNotes").value.trim()   || null,
+      skills:       Array.from(document.querySelectorAll('input[name="skill"]:checked')).map(cb => cb.value).join(",") || null,
       memberId:     selectedMember?.id ?? null,
     };
 

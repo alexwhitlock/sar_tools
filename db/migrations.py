@@ -57,6 +57,7 @@ def run_migrations(conn):
         (12, migration_012_assignments_sync_triggers),
         (13, migration_013_quick_fields),
         (14, migration_014_checkin_info),
+        (15, migration_015_checkin_skills),
     ]
 
     for version, migration in migrations:
@@ -252,6 +253,11 @@ def migration_014_checkin_info(conn):
     conn.execute("ALTER TABLE personnel ADD COLUMN checkin_ec_name TEXT")
     conn.execute("ALTER TABLE personnel ADD COLUMN checkin_ec_phone TEXT")
     conn.execute("ALTER TABLE personnel ADD COLUMN checkin_license_plate TEXT")
+
+
+def migration_015_checkin_skills(conn):
+    """Add comma-separated skills/equipment checklist field to personnel (kiosk check-in)."""
+    conn.execute("ALTER TABLE personnel ADD COLUMN checkin_skills TEXT")
 
 
 def migration_008_add_notes(conn):
