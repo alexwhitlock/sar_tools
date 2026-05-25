@@ -58,6 +58,7 @@ def run_migrations(conn):
         (13, migration_013_quick_fields),
         (14, migration_014_checkin_info),
         (15, migration_015_checkin_skills),
+        (16, migration_016_assignments_caltopo_fields),
     ]
 
     for version, migration in migrations:
@@ -258,6 +259,15 @@ def migration_014_checkin_info(conn):
 def migration_015_checkin_skills(conn):
     """Add comma-separated skills/equipment checklist field to personnel (kiosk check-in)."""
     conn.execute("ALTER TABLE personnel ADD COLUMN checkin_skills TEXT")
+
+
+def migration_016_assignments_caltopo_fields(conn):
+    """Cache CalTopo-derived fields on assignments so offline snapshots have full data."""
+    for col in ("number", "team", "caltopo_status", "assignment_type", "resource_type", "op_period"):
+        try:
+            conn.execute(f"ALTER TABLE assignments ADD COLUMN {col} TEXT")
+        except Exception:
+            pass
 
 
 def migration_008_add_notes(conn):

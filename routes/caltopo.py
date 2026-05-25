@@ -111,13 +111,17 @@ def api_assignments():
     try:
         assignments = get_assignments_for_map(map_id, mode=mode)
         if incident_name:
-            from db.assignments_repo import get_assignment_data
+            from db.assignments_repo import get_assignment_data, upsert_assignments_from_caltopo
             data_map = get_assignment_data(incident_name)
             for a in assignments:
                 row = data_map.get(a["id"]) or {}
-                a["notes"]   = row.get("notes") or None
-                a["asgnType"] = row.get("type") or None
+                a["notes"]    = row.get("notes") or None
+                a["asgnType"] = row.get("type")  or None
                 # description comes from CalTopo, not local DB
+            try:
+                upsert_assignments_from_caltopo(incident_name, assignments)
+            except Exception:
+                pass
         return jsonify(assignments)
     except Exception as e:
         return jsonify(error=str(e)), 500

@@ -62,11 +62,13 @@ def _query(incident_name):
         """).fetchall()
         try:
             assignments = conn.execute("""
-                SELECT feature_id, type, description, notes, updated_at
+                SELECT number, team, caltopo_status, assignment_type,
+                       resource_type, description, type, notes, op_period
                 FROM assignments
-                WHERE (description IS NOT NULL AND description != '')
-                   OR (notes IS NOT NULL AND notes != '')
-                ORDER BY type COLLATE NOCASE, description COLLATE NOCASE
+                ORDER BY
+                    CASE WHEN number IS NULL THEN 1 ELSE 0 END,
+                    CAST(number AS INTEGER),
+                    feature_id
             """).fetchall()
         except Exception:
             assignments = []
@@ -157,11 +159,15 @@ def _render(incident_name, data):
     # ── Assignment rows ──────────────────────────────────────────────────────
     a_rows = "".join(
         f"<tr>"
-        f"<td class='mono'>{_esc(a['feature_id'])}</td>"
-        f"<td>{_esc(a['type'])}</td>"
+        f"<td style='text-align:center;font-weight:700'>{_esc(a['number'])}</td>"
+        f"<td>{_esc(a['team'])}</td>"
+        f"<td>{_esc(a['caltopo_status'])}</td>"
+        f"<td>{_esc(a['assignment_type'])}</td>"
+        f"<td>{_esc(a['resource_type'])}</td>"
         f"<td>{_esc(a['description'])}</td>"
+        f"<td>{_esc(a['type'])}</td>"
         f"<td class='note'>{_esc(a['notes'])}</td>"
-        f"<td class='mono'>{_esc(a['updated_at'])}</td>"
+        f"<td>{_esc(a['op_period'])}</td>"
         f"</tr>"
         for a in data["assignments"]
     )
@@ -206,12 +212,12 @@ def _render(incident_name, data):
 <title>{_esc(incident_name)} — Snapshot {ts}</title>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-@page{{margin:1.5cm}}
-body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:11pt;line-height:1.4;color:#111;background:#fff}}
+@page{{size:landscape;margin:1.2cm 1.5cm}}
+body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:10.5pt;line-height:1.4;color:#111;background:#fff}}
 
 @media screen{{
-  body{{background:#ddd;padding:24px}}
-  .page{{max-width:960px;margin:0 auto;background:#fff;padding:24px 28px;box-shadow:0 2px 8px rgba(0,0,0,.18)}}
+  body{{background:#ccc;padding:24px}}
+  .page{{max-width:1200px;margin:0 auto;background:#fff;padding:24px 32px;box-shadow:0 2px 8px rgba(0,0,0,.18)}}
   .btn-bar{{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}}
   .print-btn{{padding:7px 18px;border:none;border-radius:6px;font-size:10pt;font-weight:600;cursor:pointer;background:#1a73e8;color:#fff}}
   .print-btn:hover{{background:#1558b5}}
@@ -303,8 +309,8 @@ function printMode(cls) {{
 <div class="section s-assignments">
 <h2>Assignments ({nc_assign})</h2>
 <table>
-<thead><tr><th>ID</th><th>Type</th><th>Description</th><th>Notes</th><th>Updated</th></tr></thead>
-<tbody>{a_rows if a_rows else '<tr><td colspan="5" style="color:#999;font-style:italic">No assignments recorded</td></tr>'}</tbody>
+<thead><tr><th>#</th><th>Team</th><th>Status</th><th>Type</th><th>Resource</th><th>Description</th><th>SAR Type</th><th>Notes</th><th>Op Period</th></tr></thead>
+<tbody>{a_rows if a_rows else '<tr><td colspan="9" style="color:#999;font-style:italic">No assignments recorded</td></tr>'}</tbody>
 </table>
 </div>
 
