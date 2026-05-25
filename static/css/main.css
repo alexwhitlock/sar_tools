@@ -79,9 +79,6 @@ body {
   font-weight: 600;
   color: #444;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 220px;
 }
 .top-incident-name.hidden { display: none; }
 
