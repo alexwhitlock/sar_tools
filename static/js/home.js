@@ -406,6 +406,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!val) {
       sel.dataset.prev = "";
+      localStorage.removeItem("sar_incident");
       incidentMsg.show("No incident selected.", "warning");
       updateLinkCheckboxVisibility();
       await loadIncidentSettings("");
@@ -417,6 +418,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       await openIncident(val);
       sel.dataset.prev = val;
+      localStorage.setItem("sar_incident", val);
       incidentMsg.show(`Active: ${val}`, "info");
       updateLinkCheckboxVisibility();
       await loadIncidentSettings(val);
@@ -555,6 +557,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await loadIncidents(data.incidentName);
       const sel = $("incidentSelect");
       if (sel) sel.dataset.prev = data.incidentName;
+      localStorage.setItem("sar_incident", data.incidentName);
       updateLinkCheckboxVisibility();
       incidentMsg.show(`Renamed to: ${data.incidentName}`, "info");
       window.dispatchEvent(new CustomEvent("sar:incident-selected"));
@@ -589,6 +592,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!res.ok || !data.ok) throw new Error(data.error || "Import failed");
       await loadIncidents(data.incidentName);
       await openIncident(data.incidentName);
+      localStorage.setItem("sar_incident", data.incidentName);
       updateLinkCheckboxVisibility();
       await loadIncidentSettings(data.incidentName);
       incidentMsg.show(`Imported: ${data.incidentName}`, "info");
@@ -601,7 +605,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   watchHomeTab();
   loadSystemInfo();
-  await loadIncidents("");
+
+  const savedIncident = localStorage.getItem("sar_incident") || "";
+  await loadIncidents(savedIncident);
+  if (savedIncident && $("incidentSelect")?.value === savedIncident) {
+    try {
+      await openIncident(savedIncident);
+      await loadIncidentSettings(savedIncident);
+      updateLinkCheckboxVisibility();
+      window.dispatchEvent(new CustomEvent("sar:incident-selected"));
+    } catch (e) {
+      console.warn("[home.js] Failed to restore incident:", e);
+      localStorage.removeItem("sar_incident");
+    }
+  }
 });
 
 window.addEventListener("sar:online", () => {

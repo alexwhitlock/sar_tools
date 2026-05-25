@@ -10,6 +10,7 @@ function openTab(id, btn) {
   if (!panel) return;
 
   panel.classList.add("active");
+  localStorage.setItem("sar_active_tab", id);
 
   if (btn) {
     btn.classList.add("active");
@@ -115,10 +116,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // Watch for resize
   new ResizeObserver(_updateTabOverflow).observe(document.querySelector(".top-bar"));
 
-  // Open first visible tab
-  const firstBtn = document.querySelectorAll(".tab-button")[0];
+  // Open last saved tab, falling back to the first tab
+  const allBtns = Array.from(document.querySelectorAll(".tab-button"));
+  const firstBtn = allBtns[0];
   if (!firstBtn) return;
-  const match = firstBtn.getAttribute("onclick")?.match(/openTab\('([^']+)'/);
-  if (!match) return;
-  openTab(match[1], firstBtn);
+  const firstMatch = firstBtn.getAttribute("onclick")?.match(/openTab\('([^']+)'/);
+  if (!firstMatch) return;
+
+  const savedTab = localStorage.getItem("sar_active_tab");
+  const savedBtn = savedTab
+    ? allBtns.find(b => b.getAttribute("onclick")?.includes(`'${savedTab}'`))
+    : null;
+  if (savedTab && savedBtn && document.getElementById(savedTab)) {
+    openTab(savedTab, savedBtn);
+  } else {
+    openTab(firstMatch[1], firstBtn);
+  }
 });
