@@ -296,10 +296,15 @@ def kiosk_action():
         if notes:
             try:
                 with get_connection(incident_name) as conn:
-                    conn.execute(
-                        "UPDATE personnel SET notes = ?, updated_at = datetime('now') WHERE id = ?",
-                        (notes, person_id),
-                    )
+                    conn.execute("""
+                        UPDATE personnel
+                        SET notes = CASE
+                            WHEN notes IS NULL OR notes = '' THEN 'Check-in notes: ' || ?
+                            ELSE notes || char(10) || 'Check-in notes: ' || ?
+                        END,
+                        updated_at = datetime('now')
+                        WHERE id = ?
+                    """, (notes, notes, person_id))
             except Exception:
                 pass  # non-fatal
 
