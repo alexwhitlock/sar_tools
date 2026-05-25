@@ -190,6 +190,116 @@ export async function loadPersonnel() {
 }
 
 /* ===============================
+   Person History
+   =============================== */
+
+function formatPersonHistoryTs(utcStr) {
+  if (!utcStr) return "";
+  const dt = new Date(utcStr.replace(" ", "T") + "Z");
+  const hh = String(dt.getHours()).padStart(2, "0");
+  const mm = String(dt.getMinutes()).padStart(2, "0");
+  const date = dt.toLocaleString(undefined, { month: "short", day: "numeric" });
+  return `${hh}:${mm} ${date}`;
+}
+
+function parsePersonHistoryEntry(entry, personName) {
+  const msg = entry.message;
+  const esc = personName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if (new RegExp(`^Personnel "${esc}" added`).test(msg))
+    return { type: "create", lines: ["Added"] };
+
+  if (new RegExp(`^Personnel "${esc}" deleted`).test(msg))
+    return { type: "delete", lines: ["Deleted"] };
+
+  let m = msg.match(new RegExp(`^Personnel "${esc}" updated: (.+)$`));
+  if (m) {
+    const raw = m[1];
+    const lines = [];
+    const nameM = raw.match(/name="([^"]+)"/);
+    if (nameM) lines.push(`Name → ${nameM[1]}`);
+    const notesM = raw.match(/notes="([^"]+)"/);
+    if (notesM) lines.push(`Notes: ${notesM[1] === "(none)" ? "cleared" : notesM[1]}`);
+    return { type: "other", lines: lines.length ? lines : [raw] };
+  }
+
+  m = msg.match(new RegExp(`^Personnel "${esc}" status set to "([^"]+)"`));
+  if (m) return { type: "status", lines: [`Status → ${m[1]}`] };
+
+  if (new RegExp(`^Personnel "${esc}" kiosk check-in confirmed`).test(msg))
+    return { type: "status", lines: ["Kiosk check-in confirmed"] };
+
+  m = msg.match(new RegExp(`^Personnel "${esc}" linked to D4H ref (.+)$`));
+  if (m) return { type: "other", lines: [`Linked to D4H ref ${m[1]}`] };
+
+  m = msg.match(/^"[^"]+" checked in via Kiosk/);
+  if (m) return { type: "status", lines: ["Checked in via Kiosk"] };
+
+  m = msg.match(/^"[^"]+" checked out via Kiosk/);
+  if (m) return { type: "status", lines: ["Checked out via Kiosk"] };
+
+  m = msg.match(/^"[^"]+" assigned to Team "([^"]+)"/);
+  if (m) return { type: "assignment", lines: [`Assigned to Team ${m[1]}`] };
+
+  m = msg.match(/^"[^"]+" removed from Team "([^"]+)"/);
+  if (m) return { type: "assignment", lines: [`Removed from Team ${m[1]}`] };
+
+  return { type: "other", lines: [msg] };
+}
+
+function renderPersonHistoryTimeline(container, entries, personName) {
+  if (!entries.length) {
+    container.innerHTML = '<div class="th-empty">No history found for this person.</div>';
+    return;
+  }
+  container.innerHTML = "";
+  for (const entry of entries) {
+    const p = parsePersonHistoryEntry(entry, personName);
+    const div = document.createElement("div");
+    div.className = `th-event th-${p.type}`;
+    div.innerHTML = `
+      <div class="th-time">${escapeHtml(formatPersonHistoryTs(entry.timestamp))}</div>
+      <div class="th-desc">${p.lines.map(l => escapeHtml(l)).join("<br>")}</div>
+    `;
+    container.appendChild(div);
+  }
+  const body = container.closest(".team-history-body");
+  if (body) body.scrollTop = body.scrollHeight;
+}
+
+async function openPersonHistory(person) {
+  const backdrop = document.getElementById("personHistoryBackdrop");
+  const titleEl  = document.getElementById("personHistoryTitle");
+  const timeline = document.getElementById("personHistoryTimeline");
+  if (!backdrop || !titleEl || !timeline) return;
+
+  titleEl.textContent = `${person.name} — History`;
+  timeline.innerHTML = '<div class="th-loading">Loading…</div>';
+  backdrop.classList.remove("hidden");
+  backdrop.setAttribute("aria-hidden", "false");
+
+  const incidentName = getCurrentIncidentName();
+  try {
+    const resp = await fetch(
+      `/api/personnel/history?incidentName=${encodeURIComponent(incidentName)}&personName=${encodeURIComponent(person.name)}`
+    );
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
+    renderPersonHistoryTimeline(timeline, data.entries || [], person.name);
+  } catch (err) {
+    timeline.innerHTML = `<div class="th-error">Failed to load history: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function closePersonHistory() {
+  const backdrop = document.getElementById("personHistoryBackdrop");
+  if (backdrop) {
+    backdrop.classList.add("hidden");
+    backdrop.setAttribute("aria-hidden", "true");
+  }
+}
+
+/* ===============================
    Modal + Menu wiring
    Requires HTML elements:
      #personMenu
@@ -286,6 +396,10 @@ async function openPersonModal(mode, person = null) {
   const errEl = document.getElementById("personModalError");
   if (errEl) errEl.classList.add("hidden");
   titleEl.textContent = mode === "add" ? "Add Person" : "Edit Person";
+  const histBtn = document.getElementById("personHistoryBtn");
+  if (histBtn) histBtn.disabled = mode === "add";
+  const delBtn = document.getElementById("personDeleteBtn");
+  if (delBtn) delBtn.disabled = mode === "add";
   nameInput.value = person?.name ?? "";
   if (notesInput) notesInput.value = person?.notes ?? "";
 
@@ -829,6 +943,13 @@ function wireMenuAndModal() {
       return;
     }
 
+    if (action === "history") {
+      const person = findPersonInCache(activePersonKey);
+      if (!person) return;
+      await openPersonHistory(person);
+      return;
+    }
+
     if (action === "edit") {
       const person = findPersonInCache(activePersonKey);
       if (!person) {
@@ -868,9 +989,45 @@ function wireMenuAndModal() {
     if (e.target === backdrop) closePersonModal();
   });
 
+  // History button in edit modal
+  document.getElementById("personHistoryBtn")?.addEventListener("click", async () => {
+    const person = findPersonInCache(activePersonKey);
+    if (person) await openPersonHistory(person);
+  });
+
+  // History modal close
+  document.getElementById("personHistoryClose")?.addEventListener("click", closePersonHistory);
+  document.getElementById("personHistoryBackdrop")?.addEventListener("click", (e) => {
+    if (e.target === document.getElementById("personHistoryBackdrop")) closePersonHistory();
+  });
+
+  // Delete button in edit modal
+  document.getElementById("personDeleteBtn")?.addEventListener("click", async () => {
+    if (modalMode !== "edit" || !activePersonKey) return;
+    const person = findPersonInCache(activePersonKey);
+    const label = person?.name ? ` "${person.name}"` : "";
+    if (!window.confirm(`Delete${label}? This cannot be undone.`)) return;
+    const incidentName = requireIncidentOrError();
+    if (!incidentName) return;
+    closePersonModal();
+    try {
+      personnelMessage.show("Deleting person…", "info");
+      await apiDeletePerson({ incidentName, personKey: activePersonKey });
+      personnelMessage.show("Person deleted.", "info");
+      await loadPersonnel();
+    } catch (err) {
+      personnelMessage.show(`Failed to delete person: ${err.message}`, "error");
+    }
+  });
+
   // Escape closes all overlays
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      const histBackdrop = document.getElementById("personHistoryBackdrop");
+      if (histBackdrop && !histBackdrop.classList.contains("hidden")) {
+        closePersonHistory();
+        return;
+      }
       closeMenu();
       closePersonModal();
       closeConflictModal();

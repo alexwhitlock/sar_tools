@@ -1578,6 +1578,8 @@ async function openTeamModal(mode, team = null) {
   if (notesInput) notesInput.value = team?.notes ?? "";
   const histBtn = document.getElementById("teamHistoryBtn");
   if (histBtn) histBtn.disabled = mode === "create";
+  const deleteBtn = document.getElementById("teamDeleteBtn");
+  if (deleteBtn) deleteBtn.disabled = mode === "create";
 
   const quickTlInput     = document.getElementById("quickTl");
   const quickAssignInput = document.getElementById("quickAssignment");
@@ -1768,6 +1770,26 @@ function wireModal() {
   document.getElementById("teamHistoryBackdrop")?.addEventListener("click", (e) => {
     if (e.target === document.getElementById("teamHistoryBackdrop")) closeTeamHistory();
   });
+
+  // Delete button in edit modal
+  document.getElementById("teamDeleteBtn")?.addEventListener("click", async () => {
+    if (modalMode !== "edit" || !activeTeamId) return;
+    const team = findTeamInCache(activeTeamId);
+    const label = team?.name ? ` "${team.name}"` : "";
+    if (!window.confirm(`Delete team${label}? This cannot be undone.`)) return;
+    const incidentName = requireIncidentOrError();
+    if (!incidentName) return;
+    closeTeamModal();
+    try {
+      teamsMessage.show("Deleting team…", "info");
+      await apiPost("/api/teams/delete", { incidentName, teamId: parseInt(activeTeamId) });
+      teamsMessage.show("Team deleted.", "info");
+      await loadTeams();
+    } catch (err) {
+      teamsMessage.show(`Failed to delete: ${err.message}`, "error");
+    }
+  });
+
   saveBtn.addEventListener("click", saveTeamModal);
 
   // Remove member via delegation

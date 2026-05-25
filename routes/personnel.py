@@ -20,7 +20,7 @@ from db.personnel_repo import (
     confirm_kiosk_person,
     VALID_STATUSES,
 )
-from db.log_repo import insert_log
+from db.log_repo import insert_log, get_logs
 
 
 def _log(incident_name, message):
@@ -261,6 +261,38 @@ def api_personnel_confirm_kiosk():
             return jsonify({"ok": False, "error": "person not found or not KIOSK source"}), 404
         _log(incident_name, f'Personnel "{name}" kiosk check-in confirmed')
         return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.get("/api/personnel/history")
+def api_personnel_history():
+    import re
+    incident_name = (request.args.get("incidentName") or "").strip()
+    person_name = (request.args.get("personName") or "").strip()
+    if not incident_name:
+        return jsonify({"ok": False, "error": "incidentName is required"}), 400
+    if not person_name:
+        return jsonify({"ok": False, "error": "personName is required"}), 400
+    try:
+        person_rows  = get_logs(incident_name, type_filter="user_event",
+                                search=f'Personnel "{person_name}"', order="asc")
+        kiosk_rows   = get_logs(incident_name, type_filter="user_event",
+                                search=f'"{person_name}" checked', order="asc")
+        assign_rows  = get_logs(incident_name, type_filter="user_event",
+                                search=f'"{person_name}" assigned to Team', order="asc")
+        remove_rows  = get_logs(incident_name, type_filter="user_event",
+                                search=f'"{person_name}" removed from Team', order="asc")
+
+        seen = set()
+        all_rows = []
+        for row in list(person_rows) + list(kiosk_rows) + list(assign_rows) + list(remove_rows):
+            if row["id"] not in seen:
+                seen.add(row["id"])
+                all_rows.append(row)
+
+        all_rows.sort(key=lambda r: (r["timestamp"] or "", r["id"]))
+        return jsonify({"ok": True, "entries": all_rows})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

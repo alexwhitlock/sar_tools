@@ -133,6 +133,7 @@
       <button type="button" class="menu-item" data-action="check-out" role="menuitem">Check Out</button>
       <button type="button" class="menu-item" data-action="confirm-kiosk" role="menuitem">Confirm (Kiosk)</button>
       <button type="button" class="menu-item" data-action="edit" role="menuitem">Edit</button>
+      <button type="button" class="menu-item" data-action="history" role="menuitem">History</button>
       <button type="button" class="menu-item danger" data-action="delete" role="menuitem">Delete</button>
     </div>
 
@@ -178,6 +179,10 @@
 
         <div id="personModalError" class="modal-error hidden"></div>
         <div class="modal-footer">
+          <div class="modal-footer-actions">
+            <button type="button" id="personHistoryBtn">History</button>
+            <button type="button" id="personDeleteBtn" class="modal-delete-btn">Delete</button>
+          </div>
           <button type="button" id="personModalCancel">Cancel</button>
           <button type="button" id="personModalSave">Save</button>
         </div>
@@ -202,6 +207,19 @@
         <div class="modal-footer">
           <button type="button" id="conflictModalCancel">Cancel</button>
           <button type="button" id="conflictModalImport">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Person History Modal -->
+    <div id="personHistoryBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal team-history-modal" role="dialog" aria-modal="true" aria-labelledby="personHistoryTitle">
+        <div class="modal-header">
+          <div id="personHistoryTitle" class="modal-title">Person History</div>
+          <button type="button" id="personHistoryClose" class="modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body team-history-body">
+          <div id="personHistoryTimeline" class="team-history-timeline"></div>
         </div>
       </div>
     </div>
