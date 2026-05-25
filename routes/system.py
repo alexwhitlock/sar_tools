@@ -9,14 +9,15 @@ _VERSION_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static
 
 @bp.get("/snapshot/latest")
 def snapshot_latest():
-    from routes.snapshot import latest_snapshot_path
+    from routes.snapshot import _query, _render
     incident_name = (request.args.get("incidentName") or "").strip()
     if not incident_name:
         return "incidentName is required", 400
-    path = latest_snapshot_path(incident_name)
-    if not path:
-        return "No snapshot available yet", 404
-    return send_file(path, mimetype="text/html")
+    data = _query(incident_name)
+    if data is None:
+        return "Incident not found", 404
+    html = _render(incident_name, data)
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 @bp.get("/api/system-info")
