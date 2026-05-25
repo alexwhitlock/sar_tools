@@ -53,18 +53,16 @@ def _query(incident_name):
             FROM incident_log
             WHERE type != 'user_event'
             ORDER BY timestamp DESC
-            LIMIT 200
         """).fetchall()
         user_events = conn.execute("""
             SELECT timestamp, role, type, flags, message
             FROM incident_log
             WHERE type = 'user_event'
             ORDER BY timestamp DESC
-            LIMIT 200
         """).fetchall()
         try:
             assignments = conn.execute("""
-                SELECT type, description, notes
+                SELECT feature_id, type, description, notes, updated_at
                 FROM assignments
                 WHERE (description IS NOT NULL AND description != '')
                    OR (notes IS NOT NULL AND notes != '')
@@ -106,12 +104,12 @@ def _render(incident_name, data):
         status  = t["status"] or ""
         tnotes  = t["notes"] or ""
 
-        meta_parts = []
-        if status: meta_parts.append(_esc(status))
-        if leader: meta_parts.append(f"TL: {_esc(leader)}")
-        if assign: meta_parts.append(_esc(assign))
-        if tnotes: meta_parts.append(f"<em>{_esc(tnotes)}</em>")
-        meta_html = " &middot; ".join(meta_parts)
+        meta_lines = []
+        if status: meta_lines.append(f"<div><b>Status:</b> {_esc(status)}</div>")
+        if leader: meta_lines.append(f"<div><b>TL:</b> {_esc(leader)}</div>")
+        if assign: meta_lines.append(f"<div><b>Assignment:</b> {_esc(assign)}</div>")
+        if tnotes: meta_lines.append(f"<div><b>Notes:</b> {_esc(tnotes)}</div>")
+        meta_html = "".join(meta_lines)
 
         member_items = "".join(
             f"<li>{_esc(p['name'])} <span class='ms'>({_esc(p['status'] or 'Added')})</span></li>"
@@ -159,9 +157,11 @@ def _render(incident_name, data):
     # ── Assignment rows ──────────────────────────────────────────────────────
     a_rows = "".join(
         f"<tr>"
+        f"<td class='mono'>{_esc(a['feature_id'])}</td>"
         f"<td>{_esc(a['type'])}</td>"
         f"<td>{_esc(a['description'])}</td>"
         f"<td class='note'>{_esc(a['notes'])}</td>"
+        f"<td class='mono'>{_esc(a['updated_at'])}</td>"
         f"</tr>"
         for a in data["assignments"]
     )
@@ -241,7 +241,7 @@ h2{{font-size:11.5pt;font-weight:700;border-bottom:1.5px solid #111;padding-bott
 .tc{{border:1px solid #999;border-radius:3px;padding:7px 10px}}
 .tc-none{{border-style:dashed;border-color:#bbb}}
 .tc-name{{font-weight:700;font-size:10.5pt;margin-bottom:3px}}
-.tc-meta{{font-size:8pt;color:#444;margin-bottom:5px;line-height:1.4}}
+.tc-meta{{font-size:8pt;color:#444;margin-bottom:5px;line-height:1.6}}
 .tc-members{{list-style:none;font-size:9pt;padding-left:2px}}
 .tc-members li{{padding:1px 0;border-bottom:1px solid #eee}}
 .tc-members li:last-child{{border-bottom:none}}
@@ -286,7 +286,7 @@ function printMode(cls) {{
 </div>
 
 <div class="section s-roster">
-<h2>Team Roster</h2>
+<h2>Teams</h2>
 <div class="tc-grid">
 {team_cards if team_cards else '<p style="color:#999;font-style:italic;font-size:9pt">No teams</p>'}
 </div>
@@ -303,13 +303,13 @@ function printMode(cls) {{
 <div class="section s-assignments">
 <h2>Assignments ({nc_assign})</h2>
 <table>
-<thead><tr><th>Type</th><th>Description</th><th>Notes</th></tr></thead>
-<tbody>{a_rows if a_rows else '<tr><td colspan="3" style="color:#999;font-style:italic">No assignments recorded</td></tr>'}</tbody>
+<thead><tr><th>ID</th><th>Type</th><th>Description</th><th>Notes</th><th>Updated</th></tr></thead>
+<tbody>{a_rows if a_rows else '<tr><td colspan="5" style="color:#999;font-style:italic">No assignments recorded</td></tr>'}</tbody>
 </table>
 </div>
 
 <div class="section s-log">
-<h2>Incident Log ({nc_log} most recent, excluding user events)</h2>
+<h2>Incident Log ({nc_log})</h2>
 <table>
 <thead><tr><th>Timestamp</th><th>Role</th><th>Type</th><th>Message</th></tr></thead>
 <tbody>{l_rows if l_rows else '<tr><td colspan="4" style="color:#999;font-style:italic">No log entries</td></tr>'}</tbody>
@@ -317,7 +317,7 @@ function printMode(cls) {{
 </div>
 
 <div class="section s-userevents">
-<h2>User Events ({nc_ue} most recent)</h2>
+<h2>User Events ({nc_ue})</h2>
 <table>
 <thead><tr><th>Timestamp</th><th>Role</th><th>Message</th></tr></thead>
 <tbody>{u_rows if u_rows else '<tr><td colspan="3" style="color:#999;font-style:italic">No user events</td></tr>'}</tbody>
