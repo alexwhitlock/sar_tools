@@ -51,14 +51,16 @@ def _query(incident_name):
         log_entries = conn.execute("""
             SELECT timestamp, role, type, flags, message
             FROM incident_log
+            WHERE type != 'user_event'
             ORDER BY timestamp DESC
             LIMIT 200
         """).fetchall()
-        comms_entries = conn.execute("""
-            SELECT timestamp, role, flags, message
+        user_events = conn.execute("""
+            SELECT timestamp, role, type, flags, message
             FROM incident_log
-            WHERE type = 'comms'
-            ORDER BY timestamp ASC
+            WHERE type = 'user_event'
+            ORDER BY timestamp DESC
+            LIMIT 200
         """).fetchall()
         try:
             assignments = conn.execute("""
@@ -74,7 +76,7 @@ def _query(incident_name):
             "personnel":   [dict(r) for r in personnel],
             "teams":       [dict(r) for r in teams],
             "log":         [dict(r) for r in log_entries],
-            "comms_log":   [dict(r) for r in comms_entries],
+            "user_events": [dict(r) for r in user_events],
             "assignments": [dict(r) for r in assignments],
         }
     finally:
@@ -164,20 +166,10 @@ def _render(incident_name, data):
         for a in data["assignments"]
     )
 
-    # ── Comms log rows (ASC — chronological record) ──────────────────────────
     def _imp(e):
         return "important" in (e.get("flags") or "")
 
-    c_rows = "".join(
-        f"<tr{'  class=\"imp\"' if _imp(e) else ''}>"
-        f"<td class='mono'>{_esc(e['timestamp'])}</td>"
-        f"<td>{_esc(e['role'])}</td>"
-        f"<td>{_esc(e['message'])}</td>"
-        f"</tr>"
-        for e in data["comms_log"]
-    )
-
-    # ── Full incident log rows (DESC — most recent first) ────────────────────
+    # ── Incident log rows (no user_event, DESC) ──────────────────────────────
     l_rows = "".join(
         f"<tr{'  class=\"imp\"' if _imp(e) else ''}>"
         f"<td class='mono'>{_esc(e['timestamp'])}</td>"
@@ -188,12 +180,22 @@ def _render(incident_name, data):
         for e in data["log"]
     )
 
-    nc   = len(data["personnel"])
-    nt   = len(data["teams"])
-    n_ci = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked In")
-    n_co = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked Out")
-    nc_log   = len(data["comms_log"])
-    nc_full  = len(data["log"])
+    # ── User events rows (DESC) ──────────────────────────────────────────────
+    u_rows = "".join(
+        f"<tr>"
+        f"<td class='mono'>{_esc(e['timestamp'])}</td>"
+        f"<td>{_esc(e['role'])}</td>"
+        f"<td>{_esc(e['message'])}</td>"
+        f"</tr>"
+        for e in data["user_events"]
+    )
+
+    nc        = len(data["personnel"])
+    nt        = len(data["teams"])
+    n_ci      = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked In")
+    n_co      = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked Out")
+    nc_log    = len(data["log"])
+    nc_ue     = len(data["user_events"])
     nc_assign = len(data["assignments"])
 
     return f"""<!DOCTYPE html>
@@ -222,8 +224,8 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;f
   .section+.section{{page-break-before:always;break-before:page}}
   h2{{page-break-after:avoid;break-after:avoid}}
   .tc{{page-break-inside:avoid;break-inside:avoid}}
-  /* Print mode: hide incident log */
-  body.no-incident-log .s-log{{display:none}}
+  /* Print mode: hide user events */
+  body.no-user-events .s-userevents{{display:none}}
 }}
 
 h1{{font-size:16pt;font-weight:700;margin-bottom:3px}}
@@ -268,7 +270,7 @@ function printMode(cls) {{
 
 <div class="btn-bar">
   <button class="print-btn" onclick="printMode('')">Print All</button>
-  <button class="print-btn secondary" onclick="printMode('no-incident-log')">Print (no incident log)</button>
+  <button class="print-btn secondary" onclick="printMode('no-user-events')">Print (no user events)</button>
 </div>
 
 <h1>{_esc(incident_name)}</h1>
@@ -279,8 +281,8 @@ function printMode(cls) {{
   <span class="stat-item">{n_co} Checked Out</span>
   <span class="stat-item">{nt} Teams</span>
   <span class="stat-item">{nc_assign} Assignments</span>
-  <span class="stat-item">{nc_log} Comms</span>
-  <span class="stat-item">{nc_full} Log Entries</span>
+  <span class="stat-item">{nc_log} Log Entries</span>
+  <span class="stat-item">{nc_ue} User Events</span>
 </div>
 
 <div class="section s-roster">
@@ -306,19 +308,19 @@ function printMode(cls) {{
 </table>
 </div>
 
-<div class="section s-comms">
-<h2>Comms Log ({nc_log})</h2>
-<table>
-<thead><tr><th>Timestamp</th><th>Role</th><th>Message</th></tr></thead>
-<tbody>{c_rows if c_rows else '<tr><td colspan="3" style="color:#999;font-style:italic">No comms log entries</td></tr>'}</tbody>
-</table>
-</div>
-
 <div class="section s-log">
-<h2>Incident Log ({nc_full} most recent)</h2>
+<h2>Incident Log ({nc_log} most recent, excluding user events)</h2>
 <table>
 <thead><tr><th>Timestamp</th><th>Role</th><th>Type</th><th>Message</th></tr></thead>
 <tbody>{l_rows if l_rows else '<tr><td colspan="4" style="color:#999;font-style:italic">No log entries</td></tr>'}</tbody>
+</table>
+</div>
+
+<div class="section s-userevents">
+<h2>User Events ({nc_ue} most recent)</h2>
+<table>
+<thead><tr><th>Timestamp</th><th>Role</th><th>Message</th></tr></thead>
+<tbody>{u_rows if u_rows else '<tr><td colspan="3" style="color:#999;font-style:italic">No user events</td></tr>'}</tbody>
 </table>
 </div>
 
