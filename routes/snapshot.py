@@ -49,15 +49,33 @@ def _query(incident_name):
             ORDER BY t.name
         """).fetchall()
         log_entries = conn.execute("""
-            SELECT timestamp, role, type, message
+            SELECT timestamp, role, type, flags, message
             FROM incident_log
             ORDER BY timestamp DESC
             LIMIT 200
         """).fetchall()
+        comms_entries = conn.execute("""
+            SELECT timestamp, role, flags, message
+            FROM incident_log
+            WHERE type = 'comms'
+            ORDER BY timestamp ASC
+        """).fetchall()
+        try:
+            assignments = conn.execute("""
+                SELECT type, description, notes
+                FROM assignments
+                WHERE (description IS NOT NULL AND description != '')
+                   OR (notes IS NOT NULL AND notes != '')
+                ORDER BY type COLLATE NOCASE, description COLLATE NOCASE
+            """).fetchall()
+        except Exception:
+            assignments = []
         return {
-            "personnel": [dict(r) for r in personnel],
-            "teams": [dict(r) for r in teams],
-            "log": [dict(r) for r in log_entries],
+            "personnel":   [dict(r) for r in personnel],
+            "teams":       [dict(r) for r in teams],
+            "log":         [dict(r) for r in log_entries],
+            "comms_log":   [dict(r) for r in comms_entries],
+            "assignments": [dict(r) for r in assignments],
         }
     finally:
         conn.close()
@@ -77,7 +95,6 @@ def _render(incident_name, data):
         else:
             unassigned.append(p)
 
-    # ── Team cards ───────────────────────────────────────────────────────────
     team_cards = ""
     for tname in [t["name"] for t in data["teams"]]:
         t       = team_info[tname]
@@ -88,10 +105,10 @@ def _render(incident_name, data):
         tnotes  = t["notes"] or ""
 
         meta_parts = []
-        if status:   meta_parts.append(_esc(status))
-        if leader:   meta_parts.append(f"TL: {_esc(leader)}")
-        if assign:   meta_parts.append(_esc(assign))
-        if tnotes:   meta_parts.append(f"<em>{_esc(tnotes)}</em>")
+        if status: meta_parts.append(_esc(status))
+        if leader: meta_parts.append(f"TL: {_esc(leader)}")
+        if assign: meta_parts.append(_esc(assign))
+        if tnotes: meta_parts.append(f"<em>{_esc(tnotes)}</em>")
         meta_html = " &middot; ".join(meta_parts)
 
         member_items = "".join(
@@ -137,9 +154,32 @@ def _render(incident_name, data):
             f"</tr>"
         )
 
-    # ── Log rows ─────────────────────────────────────────────────────────────
-    l_rows = "".join(
+    # ── Assignment rows ──────────────────────────────────────────────────────
+    a_rows = "".join(
         f"<tr>"
+        f"<td>{_esc(a['type'])}</td>"
+        f"<td>{_esc(a['description'])}</td>"
+        f"<td class='note'>{_esc(a['notes'])}</td>"
+        f"</tr>"
+        for a in data["assignments"]
+    )
+
+    # ── Comms log rows (ASC — chronological record) ──────────────────────────
+    def _imp(e):
+        return "important" in (e.get("flags") or "")
+
+    c_rows = "".join(
+        f"<tr{'  class=\"imp\"' if _imp(e) else ''}>"
+        f"<td class='mono'>{_esc(e['timestamp'])}</td>"
+        f"<td>{_esc(e['role'])}</td>"
+        f"<td>{_esc(e['message'])}</td>"
+        f"</tr>"
+        for e in data["comms_log"]
+    )
+
+    # ── Full incident log rows (DESC — most recent first) ────────────────────
+    l_rows = "".join(
+        f"<tr{'  class=\"imp\"' if _imp(e) else ''}>"
         f"<td class='mono'>{_esc(e['timestamp'])}</td>"
         f"<td>{_esc(e['role'])}</td>"
         f"<td>{_esc(e['type'])}</td>"
@@ -152,6 +192,9 @@ def _render(incident_name, data):
     nt   = len(data["teams"])
     n_ci = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked In")
     n_co = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked Out")
+    nc_log   = len(data["comms_log"])
+    nc_full  = len(data["log"])
+    nc_assign = len(data["assignments"])
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -167,13 +210,20 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;f
 @media screen{{
   body{{background:#ddd;padding:24px}}
   .page{{max-width:960px;margin:0 auto;background:#fff;padding:24px 28px;box-shadow:0 2px 8px rgba(0,0,0,.18)}}
-  .print-btn{{display:inline-block;margin-bottom:18px;padding:7px 20px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:10pt;font-weight:600;cursor:pointer;letter-spacing:.01em}}
+  .btn-bar{{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}}
+  .print-btn{{padding:7px 18px;border:none;border-radius:6px;font-size:10pt;font-weight:600;cursor:pointer;background:#1a73e8;color:#fff}}
   .print-btn:hover{{background:#1558b5}}
+  .print-btn.secondary{{background:#555}}
+  .print-btn.secondary:hover{{background:#333}}
 }}
 @media print{{
-  .print-btn{{display:none}}
-  h2{{page-break-after:avoid}}
-  .tc-grid{{page-break-inside:auto}}
+  .btn-bar{{display:none}}
+  /* Each section starts on a new page except the first */
+  .section+.section{{page-break-before:always;break-before:page}}
+  h2{{page-break-after:avoid;break-after:avoid}}
+  .tc{{page-break-inside:avoid;break-inside:avoid}}
+  /* Print mode: hide incident log */
+  body.no-incident-log .s-log{{display:none}}
 }}
 
 h1{{font-size:16pt;font-weight:700;margin-bottom:3px}}
@@ -181,11 +231,12 @@ h1{{font-size:16pt;font-weight:700;margin-bottom:3px}}
 .stats{{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;font-size:9.5pt}}
 .stat-item{{border:1px solid #bbb;border-radius:3px;padding:3px 10px;font-weight:600}}
 
-h2{{font-size:11.5pt;font-weight:700;border-bottom:1.5px solid #111;padding-bottom:3px;margin:18px 0 10px}}
+h2{{font-size:11.5pt;font-weight:700;border-bottom:1.5px solid #111;padding-bottom:3px;margin:0 0 10px}}
+.section{{padding-top:18px}}
 
 /* ── Team cards ── */
-.tc-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-bottom:4px}}
-.tc{{border:1px solid #999;border-radius:3px;padding:7px 10px;page-break-inside:avoid;break-inside:avoid}}
+.tc-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}}
+.tc{{border:1px solid #999;border-radius:3px;padding:7px 10px}}
 .tc-none{{border-style:dashed;border-color:#bbb}}
 .tc-name{{font-weight:700;font-size:10.5pt;margin-bottom:3px}}
 .tc-meta{{font-size:8pt;color:#444;margin-bottom:5px;line-height:1.4}}
@@ -200,13 +251,26 @@ table{{width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:6px}}
 th{{text-align:left;padding:4px 6px;border-top:1.5px solid #111;border-bottom:1.5px solid #111;font-weight:700;font-size:8pt;white-space:nowrap}}
 td{{padding:4px 6px;border-bottom:1px solid #ccc;vertical-align:top}}
 tr:last-child td{{border-bottom:none}}
+tr.imp td{{font-weight:600}}
 .mono{{font-family:monospace;font-size:7.5pt;white-space:nowrap}}
 .note{{color:#444;font-size:7.5pt}}
 </style>
+<script>
+function printMode(cls) {{
+  document.body.className = cls;
+  window.print();
+  setTimeout(function(){{ document.body.className = ''; }}, 500);
+}}
+</script>
 </head>
 <body>
 <div class="page">
-<button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+
+<div class="btn-bar">
+  <button class="print-btn" onclick="printMode('')">Print All</button>
+  <button class="print-btn secondary" onclick="printMode('no-incident-log')">Print (no incident log)</button>
+</div>
+
 <h1>{_esc(incident_name)}</h1>
 <p class="meta">Snapshot: {ts} &nbsp;&middot;&nbsp; Read-only offline copy</p>
 <div class="stats">
@@ -214,25 +278,50 @@ tr:last-child td{{border-bottom:none}}
   <span class="stat-item">{n_ci} Checked In</span>
   <span class="stat-item">{n_co} Checked Out</span>
   <span class="stat-item">{nt} Teams</span>
-  <span class="stat-item">{len(data['log'])} Log Entries</span>
+  <span class="stat-item">{nc_assign} Assignments</span>
+  <span class="stat-item">{nc_log} Comms</span>
+  <span class="stat-item">{nc_full} Log Entries</span>
 </div>
 
+<div class="section s-roster">
 <h2>Team Roster</h2>
 <div class="tc-grid">
 {team_cards if team_cards else '<p style="color:#999;font-style:italic;font-size:9pt">No teams</p>'}
 </div>
+</div>
 
+<div class="section s-personnel">
 <h2>Personnel ({nc})</h2>
 <table>
 <thead><tr><th>Name</th><th>Status</th><th>Team</th><th>Phone</th><th>Emergency Contact</th><th>Plate</th><th>Skills / Equipment</th><th>Notes</th></tr></thead>
 <tbody>{p_rows if p_rows else '<tr><td colspan="8" style="color:#999;font-style:italic">No personnel</td></tr>'}</tbody>
 </table>
+</div>
 
-<h2>Incident Log ({len(data['log'])} most recent)</h2>
+<div class="section s-assignments">
+<h2>Assignments ({nc_assign})</h2>
+<table>
+<thead><tr><th>Type</th><th>Description</th><th>Notes</th></tr></thead>
+<tbody>{a_rows if a_rows else '<tr><td colspan="3" style="color:#999;font-style:italic">No assignments recorded</td></tr>'}</tbody>
+</table>
+</div>
+
+<div class="section s-comms">
+<h2>Comms Log ({nc_log})</h2>
+<table>
+<thead><tr><th>Timestamp</th><th>Role</th><th>Message</th></tr></thead>
+<tbody>{c_rows if c_rows else '<tr><td colspan="3" style="color:#999;font-style:italic">No comms log entries</td></tr>'}</tbody>
+</table>
+</div>
+
+<div class="section s-log">
+<h2>Incident Log ({nc_full} most recent)</h2>
 <table>
 <thead><tr><th>Timestamp</th><th>Role</th><th>Type</th><th>Message</th></tr></thead>
 <tbody>{l_rows if l_rows else '<tr><td colspan="4" style="color:#999;font-style:italic">No log entries</td></tr>'}</tbody>
 </table>
+</div>
+
 </div>
 </body>
 </html>"""
