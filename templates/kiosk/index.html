@@ -1093,7 +1093,6 @@
       div.innerHTML = `
         <div class="result-row-text">
           <div class="result-name">${esc(p.name)}</div>
-          ${p.team ? `<div class="result-meta">Team ${esc(p.team)}</div>` : ""}
         </div>
       `;
       div.addEventListener("click", () => selectCheckoutPerson(p));
