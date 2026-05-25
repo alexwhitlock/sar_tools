@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set DEFAULT=C:\sar_tools_local_docker
+set DEFAULT=%USERPROFILE%\sar_tools
 set IS_NEW=0
 
 echo SAR Tools - Push to PC

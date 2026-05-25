@@ -8,25 +8,30 @@ devices on the same LAN.
 PREREQUISITES
 -------------
 - Docker Desktop for Windows (https://www.docker.com/products/docker-desktop/)
-- A config.json file with your API credentials (see config_template.json in the repo)
+- A config.json file with your API credentials (see config_template.json)
 
 
 FOLDER SETUP
 ------------
-Copy this folder to C:\sar_tools_local_docker on the field PC.
+Install to %USERPROFILE%\sar_tools  (e.g. C:\Users\alex\sar_tools)
+Installing under your user profile ensures Docker Desktop can reliably
+read and write all files.
 
-  C:\sar_tools_local_docker\
+  sar_tools\
     docker-compose.yml
     update.bat
+    restart.bat
     push_to_pc.bat
     config.json          <- your credentials (never shared or committed)
-    data/incidents/      <- incident databases (created automatically)
+    data\incidents\      <- incident databases (created automatically)
+    html_backups\        <- HTML snapshots of each incident (created automatically)
 
 
 FIRST RUN
 ---------
-1. Place your config.json in this folder
-2. Double-click update.bat
+1. Copy this folder to %USERPROFILE%\sar_tools
+2. Copy config_template.json to config.json and fill in your credentials
+3. Double-click update.bat
 
 This pulls the latest code from GitHub, builds the Docker image, and
 starts the container.
@@ -48,7 +53,7 @@ Code updates (Docker image):
   rebuilds the Docker image, and restarts the container.
 
 Deployment file updates (docker-compose.yml, update.bat, etc.):
-  Copy the entire sar_tools_local_docker folder to a USB stick.
+  Copy the entire sar_tools folder to a USB stick.
   On the field PC, run push_to_pc.bat from the USB stick.
   This copies the updated files to the local sar_tools folder.
   Then run update.bat as normal.
@@ -58,7 +63,7 @@ START / STOP
 ------------
 Start:     docker compose up -d
 Stop:      docker compose down
-Restart:   double-click restart.bat  (also re-detects USB stick)
+Restart:   double-click restart.bat
 View logs: docker compose logs -f
 
 
@@ -72,36 +77,7 @@ The container will restart automatically whenever Docker Desktop launches.
 
 DATA PERSISTENCE
 ----------------
-Incident databases are stored in the data/incidents/ folder next to
-docker-compose.yml. They persist across restarts and rebuilds.
-Back up this folder to preserve incident data.
-
-
-USB BACKUP STICK (one-time setup)
-----------------------------------
-The app automatically writes a current HTML snapshot of each incident
-to a USB stick after every change. The snapshot is a self-contained
-file that can be opened and printed on any computer, even if the app
-is not running.
-
-Setup steps (do once per USB stick and once per PC):
-
-1. Insert the USB stick.
-
-2. Assign it drive letter Z:
-   - Right-click Start -> Disk Management
-   - Right-click the USB stick partition -> Change Drive Letter and Paths
-   - Click Change, select Z:, click OK
-
-3. Share the Z: drive with Docker Desktop:
-   - Open Docker Desktop -> Settings -> Resources -> File Sharing
-   - Add Z:\ and click Apply
-
-4. Restart the container:
-   docker compose down
-   docker compose up -d
-
-The Home tab will show "USB Backup: Connected" (green) when the stick
-is present. Snapshots are written to Z:\<incident-name>\ automatically.
-If the stick is removed, the app falls back to internal storage and the
-indicator turns red.
+Incident databases are stored in the data\incidents\ folder.
+HTML backups are stored in the html_backups\ folder.
+Both persist across container restarts and rebuilds.
+Back up these folders to preserve incident data.

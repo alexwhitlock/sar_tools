@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(ssh alex@t3600 \"cd /home/alex/sar_tools && git fetch && git checkout main && git pull && git rev-parse --short HEAD\")"
+    ]
+  }
+}

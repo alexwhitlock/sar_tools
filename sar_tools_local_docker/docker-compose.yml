@@ -7,4 +7,5 @@ services:
     volumes:
       - ./config.json:/app/config.json:ro
       - ./data:/app/data
+      - ./html_backups:/app/html_backups
     restart: unless-stopped

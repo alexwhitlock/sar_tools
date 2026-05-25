@@ -20,12 +20,6 @@ if %errorlevel% neq 0 (
 )
 
 echo Starting container...
-if exist "Z:\" (
-    echo USB stick detected on Z: - enabling USB backup.
-    docker compose -f docker-compose.yml -f docker-compose.usb.yml up -d --force-recreate
-) else (
-    echo No USB stick on Z: - running without USB backup.
-    docker compose up -d --force-recreate
-)
+docker compose up -d --force-recreate
 echo Done. Open http://localhost:5000
 pause

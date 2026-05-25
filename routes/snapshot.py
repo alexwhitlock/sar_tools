@@ -9,16 +9,8 @@ log = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 INCIDENT_DIR = os.path.join(BASE_DIR, "data", "incidents")
-SNAPSHOT_DIR = os.path.join(BASE_DIR, "data", "snapshots")
-USB_MOUNT = "/mnt/usb"
+SNAPSHOT_DIR = os.path.join(BASE_DIR, "html_backups")
 MAX_SNAPSHOTS = 50
-
-
-_usb_ok = False  # updated by write_snapshot on each real write
-
-
-def usb_status():
-    return {"present": os.path.isdir(USB_MOUNT), "writable": _usb_ok}
 
 
 def _esc(s):
@@ -202,27 +194,14 @@ def _write_to(snap_dir, safe_name, html):
 
 
 def write_snapshot(incident_name):
-    global _usb_ok
     try:
         from db.database import incident_name_to_filename
         data = _query(incident_name)
         if data is None:
             return
-
         html = _render(incident_name, data)
         safe_name = Path(incident_name_to_filename(incident_name)).stem
-
-        if os.path.isdir(USB_MOUNT):
-            try:
-                _write_to(Path(USB_MOUNT) / safe_name, safe_name, html)
-                _usb_ok = True
-                return
-            except OSError as exc:
-                _usb_ok = False
-                log.warning("USB write failed for %s, falling back to internal: %s", incident_name, exc)
-
         _write_to(Path(SNAPSHOT_DIR) / safe_name, safe_name, html)
-
     except Exception as exc:
         log.warning("Snapshot write failed for %s: %s", incident_name, exc)
 
