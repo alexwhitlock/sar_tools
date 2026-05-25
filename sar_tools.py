@@ -110,11 +110,29 @@ def checkin_admin():
     return render_template("kiosk/admin.html")
 
 
+def _make_qr_svg(url):
+    import io, qrcode, qrcode.image.svg
+    factory = qrcode.image.svg.SvgPathImage
+    img = qrcode.make(url, image_factory=factory, box_size=10, border=2)
+    svg_io = io.BytesIO()
+    img.save(svg_io)
+    svg = svg_io.getvalue().decode("utf-8")
+    return svg[svg.index("<svg"):]
+
+
+def _is_local_network_url(url):
+    import re
+    from urllib.parse import urlparse
+    hostname = (urlparse(url).hostname or "").lower()
+    return (
+        hostname == "localhost"
+        or hostname.endswith(".local")
+        or bool(re.match(r"^\d+\.\d+\.\d+\.\d+$", hostname))
+    )
+
+
 @app.route("/checkin/qr")
 def checkin_qr():
-    import io
-    import qrcode
-    import qrcode.image.svg
     from urllib.parse import quote
     from flask import request as req
 
@@ -125,13 +143,12 @@ def checkin_qr():
     base = req.host_url.rstrip("/")
     check_in_url = f"{base}/checkin?incidentName={quote(incident)}"
 
-    factory = qrcode.image.svg.SvgPathImage
-    img = qrcode.make(check_in_url, image_factory=factory, box_size=10, border=2)
-    svg_io = io.BytesIO()
-    img.save(svg_io)
-    svg = svg_io.getvalue().decode("utf-8")
-    # Strip XML declaration so it embeds cleanly
-    svg = svg[svg.index("<svg"):]
+    svg = _make_qr_svg(check_in_url)
+
+    if _is_local_network_url(check_in_url):
+        network_warning = '<p class="network-warning">&#9888; Device must be on local network</p>'
+    else:
+        network_warning = ""
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -158,6 +175,17 @@ def checkin_qr():
       text-align: center;
       margin-bottom: 32px;
       line-height: 1.2;
+    }}
+    .network-warning {{
+      font-size: 1rem;
+      font-weight: 600;
+      color: #7a5c00;
+      background: #fff8e1;
+      border: 1.5px solid #ffe082;
+      border-radius: 8px;
+      padding: 10px 20px;
+      text-align: center;
+      margin-bottom: 24px;
     }}
     .qr-wrap {{
       width: min(320px, 80vw);
@@ -188,6 +216,7 @@ def checkin_qr():
 </head>
 <body>
   <h1>{incident}</h1>
+  {network_warning}
   <div class="qr-wrap">{svg}</div>
   <p>Sign In</p>
   <div class="url">{check_in_url}</div>
@@ -195,6 +224,25 @@ def checkin_qr():
 </body>
 </html>"""
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/api/checkin/qr-svg")
+def api_checkin_qr_svg():
+    from urllib.parse import quote
+    from flask import request as req, jsonify as _jsonify
+
+    incident = req.args.get("incidentName", "").strip()
+    base = req.host_url.rstrip("/")
+    if incident:
+        url = f"{base}/checkin?incidentName={quote(incident)}"
+    else:
+        url = f"{base}/checkin"
+
+    try:
+        svg = _make_qr_svg(url)
+        return _jsonify({"ok": True, "svg": svg, "url": url})
+    except Exception as e:
+        return _jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.after_request

@@ -503,6 +503,91 @@
     }
     #syncModalStatus.ok  { color: var(--green); }
     #syncModalStatus.err { color: var(--red); }
+
+    /* ── QR button ── */
+    .qr-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 7px;
+      color: var(--muted);
+      line-height: 0;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .qr-btn:hover { background: rgba(0,0,0,0.06); color: var(--text); }
+    .qr-btn:active { background: rgba(0,0,0,0.10); }
+
+    /* ── QR modal ── */
+    .qr-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-backdrop.hidden { display: none; }
+    .qr-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px 20px 20px;
+      max-width: 320px;
+      width: calc(100vw - 32px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.22);
+    }
+    .qr-card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--text);
+    }
+    .qr-network-warning {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #7a5c00;
+      text-align: center;
+      width: 100%;
+    }
+    .qr-svg-wrap {
+      width: 240px;
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-svg-wrap svg { width: 100%; height: 100%; }
+    .qr-url {
+      font-size: 0.68rem;
+      color: #999;
+      word-break: break-all;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .qr-close-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      background: #f2f3f4;
+      font-size: 0.97rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .qr-close-btn:active { background: #e0e0e0; }
   </style>
 </head>
 <body>
@@ -516,6 +601,29 @@
       <button class="change-btn" id="changeIncidentBtn">Change</button>
     </div>
     <span class="conn-pill offline" id="connPill">Offline</span>
+    <button class="qr-btn" id="qrBtn" title="Show QR Code" aria-label="Show QR Code">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20" fill="currentColor" aria-hidden="true">
+        <rect x="1" y="1" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="3.5" y="3.5" width="2" height="2"/>
+        <rect x="12" y="1" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="14.5" y="3.5" width="2" height="2"/>
+        <rect x="1" y="12" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="3.5" y="14.5" width="2" height="2"/>
+        <rect x="9.5" y="1" width="1.5" height="1.5"/>
+        <rect x="9.5" y="4" width="1.5" height="1.5"/>
+        <rect x="1" y="9.5" width="1.5" height="1.5"/>
+        <rect x="4" y="9.5" width="1.5" height="1.5"/>
+        <rect x="9.5" y="9.5" width="1.5" height="1.5"/>
+        <rect x="12" y="9.5" width="1.5" height="1.5"/>
+        <rect x="15" y="9.5" width="1.5" height="1.5"/>
+        <rect x="18" y="9.5" width="1.5" height="1.5"/>
+        <rect x="12" y="12" width="1.5" height="1.5"/>
+        <rect x="15" y="12" width="1.5" height="4.5"/>
+        <rect x="12" y="15" width="1.5" height="1.5"/>
+        <rect x="18" y="12" width="1.5" height="7"/>
+        <rect x="12" y="18" width="4.5" height="1.5"/>
+      </svg>
+    </button>
     <a href="/checkin/admin" class="settings-btn" id="settingsBtn" title="Admin / Settings">⚙</a>
   </div>
 
@@ -681,6 +789,17 @@
 <div class="offline-veil" id="offlineVeil"></div>
 
 <!-- D4H sync modal -->
+<!-- QR Code Modal -->
+<div class="qr-backdrop hidden" id="qrBackdrop">
+  <div class="qr-card">
+    <div class="qr-card-title">Scan to Check In</div>
+    <div class="qr-network-warning hidden" id="qrNetworkWarning">&#9888; Device must be on local network</div>
+    <div class="qr-svg-wrap" id="qrSvgWrap"></div>
+    <div class="qr-url" id="qrUrl"></div>
+    <button class="qr-close-btn" id="qrCloseBtn">Close</button>
+  </div>
+</div>
+
 <div class="sync-backdrop hidden" id="syncBackdrop">
   <div class="sync-card">
     <h3>Sync D4H Database?</h3>
@@ -1018,12 +1137,33 @@
 
   $("backBtn").addEventListener("click", resetKiosk);
 
+  // ── Phone formatting / validation ──
+  function formatPhone(raw) {
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) return { value: null };
+    if (digits.length !== 10) return { error: true };
+    return { value: `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}` };
+  }
+
   // ── Check-in: submit ──
   $("submitBtn").addEventListener("click", doSubmit);
 
   async function doSubmit() {
-    const name = $("fieldName").value.trim();
-    if (!name) { showMsg("detailStatus", "Name is required.", "error"); return; }
+    const name    = $("fieldName").value.trim();
+    const rawPhone  = $("fieldPhone").value.trim();
+    const ecName  = $("fieldEcName").value.trim();
+    const rawEcPhone = $("fieldEcPhone").value.trim();
+    const plate   = $("fieldPlate").value.trim();
+
+    if (!name)       { showMsg("detailStatus", "Name is required.",                      "error"); return; }
+    if (!rawPhone)   { showMsg("detailStatus", "Phone number is required.",               "error"); return; }
+    const phoneResult = formatPhone(rawPhone);
+    if (phoneResult.error) { showMsg("detailStatus", "Phone number must be exactly 10 digits.", "error"); return; }
+    if (!ecName)     { showMsg("detailStatus", "Emergency contact name is required.",    "error"); return; }
+    if (!rawEcPhone) { showMsg("detailStatus", "Emergency contact phone is required.",   "error"); return; }
+    const ecPhoneResult = formatPhone(rawEcPhone);
+    if (ecPhoneResult.error) { showMsg("detailStatus", "Emergency contact phone must be exactly 10 digits.", "error"); return; }
+    if (!plate)      { showMsg("detailStatus", "License plate is required.",             "error"); return; }
 
     $("submitBtn").disabled = true;
     clearMsg("detailStatus");
@@ -1032,9 +1172,9 @@
       incidentName,
       action,
       name,
-      phone:        $("fieldPhone").value.trim()   || null,
-      ecName:       $("fieldEcName").value.trim()  || null,
-      ecPhone:      $("fieldEcPhone").value.trim() || null,
+      phone:        phoneResult.value,
+      ecName:       ecName || null,
+      ecPhone:      ecPhoneResult.value,
       licensePlate: $("fieldPlate").value.trim().toUpperCase() || null,
       notes:        $("fieldNotes").value.trim()   || null,
       skills:       Array.from(document.querySelectorAll('input[name="skill"]:checked')).map(cb => cb.value).join(",") || null,
@@ -1223,6 +1363,36 @@
     }
     setTimeout(hideSyncModal, 2200);
   });
+
+  // ── QR Code Modal ──
+  async function openQrModal() {
+    const svgWrap = $("qrSvgWrap");
+    const urlEl   = $("qrUrl");
+    const warning = $("qrNetworkWarning");
+    svgWrap.innerHTML = '<div style="color:#aaa;font-size:0.85rem;padding:60px 0;text-align:center">Loading…</div>';
+    urlEl.textContent = "";
+    warning.classList.add("hidden");
+    $("qrBackdrop").classList.remove("hidden");
+    const params = incidentName ? `?incidentName=${encodeURIComponent(incidentName)}` : "";
+    try {
+      const res  = await fetch(`/api/checkin/qr-svg${params}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to generate QR");
+      svgWrap.innerHTML = data.svg;
+      urlEl.textContent = data.url;
+      const hostname = new URL(data.url).hostname;
+      const isLocal  = hostname === "localhost"
+        || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
+        || hostname.endsWith(".local");
+      if (isLocal) warning.classList.remove("hidden");
+    } catch (e) {
+      svgWrap.innerHTML = `<div style="color:#c00;padding:20px;text-align:center;font-size:0.85rem">Error: ${e.message}</div>`;
+    }
+  }
+  function closeQrModal() { $("qrBackdrop").classList.add("hidden"); }
+  $("qrBtn").addEventListener("click", openQrModal);
+  $("qrCloseBtn").addEventListener("click", closeQrModal);
+  $("qrBackdrop").addEventListener("click", e => { if (e.target === $("qrBackdrop")) closeQrModal(); });
 
   loadIncidents().then(() => {
     const saved = urlIncident || localStorage.getItem(STORAGE_KEY) || "";
