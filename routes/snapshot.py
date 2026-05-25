@@ -66,36 +66,78 @@ def _query(incident_name):
 def _render(incident_name, data):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def status_class(s):
-        s = (s or "").lower().replace(" ", "-")
-        return f"st-{s}" if s else ""
+    # ── Build team roster ────────────────────────────────────────────────────
+    team_info    = {t["name"]: t for t in data["teams"]}
+    team_members = {t["name"]: [] for t in data["teams"]}
+    unassigned   = []
+    for p in data["personnel"]:
+        tn = p["team_name"]
+        if tn and tn in team_members:
+            team_members[tn].append(p)
+        else:
+            unassigned.append(p)
 
-    p_rows = "".join(
-        f"<tr>"
-        f"<td>{_esc(p['name'])}</td>"
-        f"<td><span class='badge {status_class(p['status'])}'>{_esc(p['status'])}</span></td>"
-        f"<td>{_esc(p['team_name'])}</td>"
-        f"<td>{_esc(p['checkin_phone'])}</td>"
-        f"<td>{_esc(p['checkin_ec_name'])}</td>"
-        f"<td>{_esc(p['checkin_ec_phone'])}</td>"
-        f"<td>{_esc(p['checkin_license_plate'])}</td>"
-        f"<td>{_esc(p['checkin_skills'])}</td>"
-        f"<td class='note'>{_esc(p['notes'])}</td>"
-        f"</tr>"
-        for p in data["personnel"]
-    )
+    # ── Team cards ───────────────────────────────────────────────────────────
+    team_cards = ""
+    for tname in [t["name"] for t in data["teams"]]:
+        t       = team_info[tname]
+        members = team_members[tname]
+        leader  = t["leader_name"] or t["manual_tl"] or ""
+        assign  = t["manual_assignment"] or ""
+        status  = t["status"] or ""
+        tnotes  = t["notes"] or ""
 
-    t_rows = "".join(
-        f"<tr>"
-        f"<td><strong>{_esc(t['name'])}</strong></td>"
-        f"<td><span class='badge {status_class(t['status'])}'>{_esc(t['status'])}</span></td>"
-        f"<td>{_esc(t['leader_name'] or t['manual_tl'])}</td>"
-        f"<td>{_esc(t['manual_assignment'])}</td>"
-        f"<td class='note'>{_esc(t['notes'])}</td>"
-        f"</tr>"
-        for t in data["teams"]
-    )
+        meta_parts = []
+        if status:   meta_parts.append(_esc(status))
+        if leader:   meta_parts.append(f"TL: {_esc(leader)}")
+        if assign:   meta_parts.append(_esc(assign))
+        if tnotes:   meta_parts.append(f"<em>{_esc(tnotes)}</em>")
+        meta_html = " &middot; ".join(meta_parts)
 
+        member_items = "".join(
+            f"<li>{_esc(p['name'])} <span class='ms'>({_esc(p['status'] or 'Added')})</span></li>"
+            for p in members
+        ) or "<li class='empty'>No members</li>"
+
+        team_cards += (
+            f'<div class="tc">'
+            f'<div class="tc-name">{_esc(tname)}</div>'
+            + (f'<div class="tc-meta">{meta_html}</div>' if meta_html else "")
+            + f'<ul class="tc-members">{member_items}</ul>'
+            f'</div>'
+        )
+
+    if unassigned:
+        ua_items = "".join(
+            f"<li>{_esc(p['name'])} <span class='ms'>({_esc(p['status'] or 'Added')})</span></li>"
+            for p in unassigned
+        )
+        team_cards += (
+            f'<div class="tc tc-none">'
+            f'<div class="tc-name">No Team</div>'
+            f'<ul class="tc-members">{ua_items}</ul>'
+            f'</div>'
+        )
+
+    # ── Personnel rows ───────────────────────────────────────────────────────
+    p_rows = ""
+    for p in data["personnel"]:
+        ec_parts = [x for x in [p["checkin_ec_name"], p["checkin_ec_phone"]] if x]
+        ec_html  = "<br>".join(_esc(x) for x in ec_parts)
+        p_rows += (
+            f"<tr>"
+            f"<td>{_esc(p['name'])}</td>"
+            f"<td>{_esc(p['status'])}</td>"
+            f"<td>{_esc(p['team_name'])}</td>"
+            f"<td>{_esc(p['checkin_phone'])}</td>"
+            f"<td>{ec_html}</td>"
+            f"<td>{_esc(p['checkin_license_plate'])}</td>"
+            f"<td>{_esc(p['checkin_skills'])}</td>"
+            f"<td class='note'>{_esc(p['notes'])}</td>"
+            f"</tr>"
+        )
+
+    # ── Log rows ─────────────────────────────────────────────────────────────
     l_rows = "".join(
         f"<tr>"
         f"<td class='mono'>{_esc(e['timestamp'])}</td>"
@@ -106,8 +148,10 @@ def _render(incident_name, data):
         for e in data["log"]
     )
 
-    nc = len(data["personnel"])
-    nt = len(data["teams"])
+    nc   = len(data["personnel"])
+    nt   = len(data["teams"])
+    n_ci = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked In")
+    n_co = sum(1 for p in data["personnel"] if (p["status"] or "") == "Checked Out")
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -117,53 +161,71 @@ def _render(incident_name, data):
 <title>{_esc(incident_name)} — Snapshot {ts}</title>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;color:#111;background:#f5f5f5;padding:24px}}
-.page{{max-width:1200px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:24px 28px}}
-h1{{font-size:1.6rem;font-weight:700;margin-bottom:4px}}
-.meta{{color:#666;font-size:0.85rem;margin-bottom:24px}}
-h2{{font-size:1.05rem;font-weight:600;margin:24px 0 10px;padding-bottom:4px;border-bottom:2px solid #e5e5e5}}
-table{{width:100%;border-collapse:collapse;font-size:0.875rem}}
-th{{text-align:left;padding:6px 10px;background:#f0f0f0;font-weight:600;border-bottom:2px solid #ddd}}
-td{{padding:6px 10px;border-bottom:1px solid #eee;vertical-align:top}}
+@page{{margin:1.5cm}}
+body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:11pt;line-height:1.4;color:#111;background:#fff}}
+
+@media screen{{
+  body{{background:#ddd;padding:24px}}
+  .page{{max-width:960px;margin:0 auto;background:#fff;padding:24px 28px;box-shadow:0 2px 8px rgba(0,0,0,.18)}}
+  .print-btn{{display:inline-block;margin-bottom:18px;padding:7px 20px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:10pt;font-weight:600;cursor:pointer;letter-spacing:.01em}}
+  .print-btn:hover{{background:#1558b5}}
+}}
+@media print{{
+  .print-btn{{display:none}}
+  h2{{page-break-after:avoid}}
+  .tc-grid{{page-break-inside:auto}}
+}}
+
+h1{{font-size:16pt;font-weight:700;margin-bottom:3px}}
+.meta{{font-size:9pt;color:#555;margin-bottom:10px}}
+.stats{{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;font-size:9.5pt}}
+.stat-item{{border:1px solid #bbb;border-radius:3px;padding:3px 10px;font-weight:600}}
+
+h2{{font-size:11.5pt;font-weight:700;border-bottom:1.5px solid #111;padding-bottom:3px;margin:18px 0 10px}}
+
+/* ── Team cards ── */
+.tc-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-bottom:4px}}
+.tc{{border:1px solid #999;border-radius:3px;padding:7px 10px;page-break-inside:avoid;break-inside:avoid}}
+.tc-none{{border-style:dashed;border-color:#bbb}}
+.tc-name{{font-weight:700;font-size:10.5pt;margin-bottom:3px}}
+.tc-meta{{font-size:8pt;color:#444;margin-bottom:5px;line-height:1.4}}
+.tc-members{{list-style:none;font-size:9pt;padding-left:2px}}
+.tc-members li{{padding:1px 0;border-bottom:1px solid #eee}}
+.tc-members li:last-child{{border-bottom:none}}
+.tc-members li.empty{{color:#999;font-style:italic}}
+.ms{{color:#666;font-size:7.5pt}}
+
+/* ── Tables ── */
+table{{width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:6px}}
+th{{text-align:left;padding:4px 6px;border-top:1.5px solid #111;border-bottom:1.5px solid #111;font-weight:700;font-size:8pt;white-space:nowrap}}
+td{{padding:4px 6px;border-bottom:1px solid #ccc;vertical-align:top}}
 tr:last-child td{{border-bottom:none}}
-tr:hover td{{background:#fafafa}}
-.mono{{font-family:monospace;font-size:0.8rem;white-space:nowrap}}
-.note{{color:#555;font-size:0.8rem;max-width:240px}}
-.badge{{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:600;background:#e5e5e5;color:#444}}
-.st-checked-in{{background:#d1fae5;color:#065f46}}
-.st-available{{background:#dbeafe;color:#1e40af}}
-.st-deployed{{background:#fef3c7;color:#92400e}}
-.st-signed-out{{background:#fee2e2;color:#991b1b}}
-.st-out-of-service{{background:#f3f4f6;color:#6b7280}}
-.st-in-service{{background:#ede9fe;color:#5b21b6}}
-.summary{{display:flex;gap:24px;margin-bottom:20px;flex-wrap:wrap}}
-.stat{{background:#f8f8f8;border:1px solid #e5e5e5;border-radius:6px;padding:10px 18px;text-align:center}}
-.stat-n{{font-size:1.8rem;font-weight:700;line-height:1}}
-.stat-l{{font-size:0.75rem;color:#666;margin-top:2px}}
-@media print{{body{{background:#fff;padding:0}}.page{{box-shadow:none;padding:12px}}}}
+.mono{{font-family:monospace;font-size:7.5pt;white-space:nowrap}}
+.note{{color:#444;font-size:7.5pt}}
 </style>
 </head>
 <body>
 <div class="page">
+<button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
 <h1>{_esc(incident_name)}</h1>
-<p class="meta">Snapshot generated {ts} &nbsp;·&nbsp; Read-only offline copy</p>
+<p class="meta">Snapshot: {ts} &nbsp;&middot;&nbsp; Read-only offline copy</p>
+<div class="stats">
+  <span class="stat-item">{nc} Personnel</span>
+  <span class="stat-item">{n_ci} Checked In</span>
+  <span class="stat-item">{n_co} Checked Out</span>
+  <span class="stat-item">{nt} Teams</span>
+  <span class="stat-item">{len(data['log'])} Log Entries</span>
+</div>
 
-<div class="summary">
-  <div class="stat"><div class="stat-n">{nc}</div><div class="stat-l">Personnel</div></div>
-  <div class="stat"><div class="stat-n">{nt}</div><div class="stat-l">Teams</div></div>
-  <div class="stat"><div class="stat-n">{len(data['log'])}</div><div class="stat-l">Log Entries (recent)</div></div>
+<h2>Team Roster</h2>
+<div class="tc-grid">
+{team_cards if team_cards else '<p style="color:#999;font-style:italic;font-size:9pt">No teams</p>'}
 </div>
 
 <h2>Personnel ({nc})</h2>
 <table>
-<thead><tr><th>Name</th><th>Status</th><th>Team</th><th>Phone</th><th>EC Name</th><th>EC Phone</th><th>Plate</th><th>Skills</th><th>Notes</th></tr></thead>
-<tbody>{p_rows if p_rows else '<tr><td colspan="9" style="color:#999;font-style:italic">No personnel</td></tr>'}</tbody>
-</table>
-
-<h2>Teams ({nt})</h2>
-<table>
-<thead><tr><th>Team</th><th>Status</th><th>Leader</th><th>Assignment</th><th>Notes</th></tr></thead>
-<tbody>{t_rows if t_rows else '<tr><td colspan="5" style="color:#999;font-style:italic">No teams</td></tr>'}</tbody>
+<thead><tr><th>Name</th><th>Status</th><th>Team</th><th>Phone</th><th>Emergency Contact</th><th>Plate</th><th>Skills / Equipment</th><th>Notes</th></tr></thead>
+<tbody>{p_rows if p_rows else '<tr><td colspan="8" style="color:#999;font-style:italic">No personnel</td></tr>'}</tbody>
 </table>
 
 <h2>Incident Log ({len(data['log'])} most recent)</h2>
