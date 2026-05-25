@@ -80,6 +80,13 @@
 .col-checkin-info { display: none; }
 .show-checkin-info .col-checkin-info { display: table-cell; }
 
+td.col-checkin-info,
+td.col-checkin-info .checkin-info-cell {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .checkin-info-cell {
   font-size: 0.78rem;
   line-height: 1.55;
