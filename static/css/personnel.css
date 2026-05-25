@@ -236,6 +236,18 @@
   overflow: hidden;   /* ensures header/footer respect rounding */
 }
 
+.person-modal {
+  width: 420px;
+}
+
+#personHistoryBackdrop .modal {
+  max-width: 520px;
+  width: 95%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Header */
 .modal-header {
   display: flex;
