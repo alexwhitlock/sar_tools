@@ -144,6 +144,13 @@ function updateDashboardLinks() {
   const dashUrl  = incident ? `/dashboard?incidentName=${encodeURIComponent(incident)}` : null;
   const kioskUrl = incident ? `/checkin?incidentName=${encodeURIComponent(incident)}`   : null;
 
+  const snapLink = $("dashboardSnapshotLink");
+  if (snapLink) {
+    const snapUrl = incident ? `/snapshot/latest?incidentName=${encodeURIComponent(incident)}` : null;
+    snapLink.href = snapUrl || "#";
+    snapLink.classList.toggle("disabled", !snapUrl);
+  }
+
   const link    = $("dashboardIncidentLink");
   const copyBtn = $("dashboardIncidentCopy");
   if (link)    { link.href = dashUrl || "#"; link.classList.toggle("disabled", !dashUrl); }

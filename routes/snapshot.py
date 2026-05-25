@@ -213,3 +213,11 @@ def snapshot_incident_async(incident_name):
 def snapshot_all_async():
     for name in _incident_names():
         snapshot_incident_async(name)
+
+
+def latest_snapshot_path(incident_name):
+    from db.database import incident_name_to_filename
+    safe_name = Path(incident_name_to_filename(incident_name)).stem
+    snap_dir = Path(SNAPSHOT_DIR) / safe_name
+    files = sorted(snap_dir.glob(f"{safe_name}_*.html"))
+    return files[-1] if files else None
