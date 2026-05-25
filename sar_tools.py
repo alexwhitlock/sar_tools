@@ -140,7 +140,12 @@ def checkin_qr():
     if not incident:
         return "incidentName is required", 400
 
-    base = req.host_url.rstrip("/")
+    forwarded_host = req.headers.get("X-Forwarded-Host")
+    if forwarded_host:
+        proto = req.headers.get("X-Forwarded-Proto", "https")
+        base = f"{proto}://{forwarded_host}"
+    else:
+        base = req.host_url.rstrip("/")
     check_in_url = f"{base}/checkin?incidentName={quote(incident)}"
 
     svg = _make_qr_svg(check_in_url)
@@ -231,12 +236,12 @@ def api_checkin_qr_svg():
     from urllib.parse import quote
     from flask import request as req, jsonify as _jsonify
 
-    incident = req.args.get("incidentName", "").strip()
-    base = req.host_url.rstrip("/")
-    if incident:
-        url = f"{base}/checkin?incidentName={quote(incident)}"
-    else:
-        url = f"{base}/checkin"
+    # Prefer a client-supplied URL (accurate even behind a reverse proxy)
+    url = req.args.get("url", "").strip()
+    if not url:
+        incident = req.args.get("incidentName", "").strip()
+        base = req.host_url.rstrip("/")
+        url = f"{base}/checkin?incidentName={quote(incident)}" if incident else f"{base}/checkin"
 
     try:
         svg = _make_qr_svg(url)
