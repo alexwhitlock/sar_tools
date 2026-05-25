@@ -9,6 +9,7 @@ import { loadPersonnel } from "./personnel.js";
 import { loadAssignments } from "./assignments.js";
 import { syncLive, syncOffline, syncStop, onSyncNow } from "./sync-indicator.js";
 import { refreshCommsTeams, refreshLogPanels } from "./logging.js";
+import { showToast } from "./toast.js";
 
 const SSE_RETRY_DELAY_MS = 5_000;
 const TAB_IDS = ["home", "assignments", "personnel", "teams", "logging"];
@@ -47,6 +48,8 @@ function startSSE() {
       window.dispatchEvent(new CustomEvent("sar:online"));
     } else if (msg.type === "sync") {
       if (document.visibilityState !== "hidden") syncAll();
+    } else if (msg.type === "kiosk_notify") {
+      showToast(msg.name, msg.action);
     }
   };
 

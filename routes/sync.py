@@ -18,6 +18,21 @@ _connections: dict = {}
 # Per-incident CalTopo poller greenlets: incident_name -> greenlet
 _caltopo_pollers: dict = {}
 
+# Per-incident kiosk notification list: incident_name -> [{seq, action, name}, ...]
+# Each SSE client tracks its own last-seen seq, so all clients receive all notifications.
+_notify_list: dict = {}
+_notify_seq: dict = {}   # incident_name -> next sequence number
+
+
+def push_kiosk_notify(incident_name: str, action: str, name: str):
+    """Queue a kiosk check-in/out notification for SSE delivery to all connected clients."""
+    seq = _notify_seq.get(incident_name, 0)
+    _notify_list.setdefault(incident_name, []).append({"seq": seq, "action": action, "name": name})
+    _notify_seq[incident_name] = seq + 1
+    # Keep last 50 notifications per incident to bound memory
+    if len(_notify_list[incident_name]) > 50:
+        _notify_list[incident_name] = _notify_list[incident_name][-50:]
+
 
 def get_connected_incidents() -> list:
     """Return incident names that currently have at least one SSE client connected."""
@@ -113,6 +128,8 @@ def _event_stream(incident_name: str, app):
 
         last_version = _get_version(incident_name)
         last_users = _connections.get(incident_name, 1)
+        # Start from current seq so we don't replay old notifications on connect
+        last_notify_seq = _notify_seq.get(incident_name, 0)
         yield _msg("init", users=last_users)
 
         while True:
@@ -120,6 +137,12 @@ def _event_stream(incident_name: str, app):
 
             version = _get_version(incident_name)
             users = _connections.get(incident_name, 1)
+
+            # Deliver any kiosk notifications queued since last poll
+            for n in _notify_list.get(incident_name, []):
+                if n["seq"] >= last_notify_seq:
+                    yield _msg("kiosk_notify", action=n["action"], name=n["name"])
+                    last_notify_seq = n["seq"] + 1
 
             if version != last_version:
                 last_version = version

@@ -16,6 +16,14 @@ def _log(incident_name, message):
         pass
 
 
+def _notify(incident_name, action, name):
+    try:
+        from routes.sync import push_kiosk_notify
+        push_kiosk_notify(incident_name, action, name)
+    except Exception:
+        pass
+
+
 # ── Member directory search ──────────────────────────────────────────────────
 
 @bp.get("/api/kiosk/search")
@@ -209,6 +217,7 @@ def kiosk_action():
             update_person_status(incident_name, person_id=int(incident_person_id), status=target_status)
             verb = "checked out" if target_status == "Checked Out" else "checked in"
             _log(incident_name, f'"{name}" {verb} via Kiosk')
+            _notify(incident_name, action, name)
             return jsonify({"ok": True, "personId": int(incident_person_id), "addedToIncident": False})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -312,11 +321,13 @@ def kiosk_action():
     verb = "checked in" if target_status == "Checked In" else "checked out"
     if is_new:
         _log(incident_name, f'"{name}" {verb} via Kiosk (new)')
+        _notify(incident_name, action, name)
         return jsonify({"ok": True, "personId": person_id, "addedToIncident": True})
 
     try:
         update_person_status(incident_name, person_id=person_id, status=target_status)
         _log(incident_name, f'"{name}" {verb} via Kiosk')
+        _notify(incident_name, action, name)
         return jsonify({"ok": True, "personId": person_id, "addedToIncident": False})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
