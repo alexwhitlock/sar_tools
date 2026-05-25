@@ -4,7 +4,7 @@ import threading
 import webbrowser
 import logging
 logging.basicConfig(level=logging.INFO)
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, jsonify, make_response, render_template, send_from_directory
 
 # ================= Flask App =================
 app = Flask(
@@ -102,7 +102,9 @@ def dashboard():
 
 @app.route("/checkin")
 def checkin():
-    return render_template("kiosk/index.html")
+    resp = make_response(render_template("kiosk/index.html"))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @app.route("/checkin/admin")
@@ -240,7 +242,12 @@ def api_checkin_qr_svg():
     url = req.args.get("url", "").strip()
     if not url:
         incident = req.args.get("incidentName", "").strip()
-        base = req.host_url.rstrip("/")
+        forwarded_host = req.headers.get("X-Forwarded-Host")
+        if forwarded_host:
+            proto = req.headers.get("X-Forwarded-Proto", "https")
+            base = f"{proto}://{forwarded_host}"
+        else:
+            base = req.host_url.rstrip("/")
         url = f"{base}/checkin?incidentName={quote(incident)}" if incident else f"{base}/checkin"
 
     try:
