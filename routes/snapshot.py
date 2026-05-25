@@ -62,13 +62,14 @@ def _query(incident_name):
         """).fetchall()
         try:
             assignments = conn.execute("""
-                SELECT number, team, caltopo_status, assignment_type,
-                       resource_type, description, type, notes, op_period
-                FROM assignments
+                SELECT ac.number, ac.team, ac.caltopo_status, ac.assignment_type,
+                       ac.resource_type, ac.description, a.type, a.notes, ac.op_period
+                FROM assignments_cache ac
+                LEFT JOIN assignments a ON a.feature_id = ac.feature_id
                 ORDER BY
-                    CASE WHEN number IS NULL THEN 1 ELSE 0 END,
-                    CAST(number AS INTEGER),
-                    feature_id
+                    CASE WHEN ac.number IS NULL THEN 1 ELSE 0 END,
+                    CAST(ac.number AS INTEGER),
+                    ac.feature_id
             """).fetchall()
         except Exception:
             assignments = []

@@ -13,7 +13,7 @@ def get_assignment_data(incident_name: str) -> Dict[str, dict]:
 
 
 def upsert_assignments_from_caltopo(incident_name: str, assignments: list) -> None:
-    """Cache CalTopo-derived fields locally so offline snapshots have full assignment data."""
+    """Cache CalTopo-derived fields in assignments_cache (no sync triggers → no fetch loop)."""
     with get_connection(incident_name) as conn:
         for a in assignments:
             fid = a.get("id")
@@ -21,9 +21,9 @@ def upsert_assignments_from_caltopo(incident_name: str, assignments: list) -> No
                 continue
             num = str(a["number"]) if a.get("number") is not None else None
             conn.execute("""
-                INSERT INTO assignments
+                INSERT INTO assignments_cache
                     (feature_id, number, team, caltopo_status, assignment_type,
-                     resource_type, description, op_period, updated_at)
+                     resource_type, description, op_period, cached_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 ON CONFLICT(feature_id) DO UPDATE SET
                     number          = excluded.number,
@@ -33,7 +33,7 @@ def upsert_assignments_from_caltopo(incident_name: str, assignments: list) -> No
                     resource_type   = excluded.resource_type,
                     description     = excluded.description,
                     op_period       = excluded.op_period,
-                    updated_at      = datetime('now')
+                    cached_at       = datetime('now')
             """, (fid, num, a.get("team"), a.get("status"),
                   a.get("assignmentType"), a.get("resourceType"),
                   a.get("description"), a.get("op")))

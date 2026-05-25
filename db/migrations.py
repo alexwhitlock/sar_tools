@@ -59,6 +59,7 @@ def run_migrations(conn):
         (14, migration_014_checkin_info),
         (15, migration_015_checkin_skills),
         (16, migration_016_assignments_caltopo_fields),
+        (17, migration_017_assignments_cache),
     ]
 
     for version, migration in migrations:
@@ -268,6 +269,29 @@ def migration_016_assignments_caltopo_fields(conn):
             conn.execute(f"ALTER TABLE assignments ADD COLUMN {col} TEXT")
         except Exception:
             pass
+
+
+def migration_017_assignments_cache(conn):
+    """Separate read-only CalTopo mirror into its own table (no sync triggers).
+
+    Writing CalTopo data to the assignments table (which has sync triggers from
+    migration_012) caused an infinite fetch loop: write → sync_state bump → SSE
+    push → client re-fetch → write again. assignments_cache has no triggers so
+    it can be updated freely on every GET without side effects.
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS assignments_cache (
+            feature_id      TEXT PRIMARY KEY,
+            number          TEXT,
+            team            TEXT,
+            caltopo_status  TEXT,
+            assignment_type TEXT,
+            resource_type   TEXT,
+            description     TEXT,
+            op_period       TEXT,
+            cached_at       TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
 
 
 def migration_008_add_notes(conn):
