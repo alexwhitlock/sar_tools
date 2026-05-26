@@ -1,13 +1,14 @@
 @echo off
 setlocal
 
-set DEFAULT=%USERPROFILE%\sar_tools
+set DEFAULT=%USERPROFILE%\sar_tools_local_docker
 set IS_NEW=0
 
 echo SAR Tools - Push to PC
 echo ======================
 echo.
-choice /c NU /m "Is this a (N)ew install or (U)pdate to an existing installation"
+choice /c NUC /m "Is this a (N)ew install, (U)pdate to an existing installation, or (C)ancel"
+if errorlevel 3 goto :cancel
 if errorlevel 2 goto :update
 if errorlevel 1 goto :new_install
 
@@ -16,15 +17,41 @@ if errorlevel 1 goto :new_install
 :new_install
 set IS_NEW=1
 echo.
-choice /c YN /m "Install to default location (%DEFAULT%)"
+choice /c YNC /m "Install to default location (%DEFAULT%) — (Y)es, (N)o (choose path), (C)ancel"
+if errorlevel 3 goto :cancel
 if errorlevel 2 goto :new_custom
-if errorlevel 1 (
-    set DEST=%DEFAULT%
-    goto :do_copy
-)
+set DEST=%DEFAULT%
+goto :check_dest
 
 :new_custom
-set /p DEST=Enter installation path:
+set DEST=
+set /p DEST=Enter installation path (or press Enter to cancel):
+if "%DEST%"=="" goto :cancel
+goto :check_dest
+
+:check_dest
+if not exist "%DEST%" goto :do_mkdir
+echo.
+echo Folder already exists: %DEST%
+choice /c OUC /m "Would you like to (O)verwrite existing files, switch to (U)pdate mode, or (C)ancel"
+if errorlevel 3 goto :cancel
+if errorlevel 2 goto :switch_to_update
+goto :do_copy
+
+:switch_to_update
+set IS_NEW=0
+goto :do_copy
+
+:do_mkdir
+mkdir "%DEST%"
+if not exist "%DEST%" (
+    echo ERROR: Could not create folder %DEST%
+    echo Check that the path is valid and you have permission to create it.
+    echo You can try creating the folder manually first, then re-run this script.
+    pause
+    exit /b 1
+)
+echo Created %DEST%
 goto :do_copy
 
 
@@ -35,7 +62,9 @@ if exist "%DEFAULT%\update.bat" (
     goto :do_copy
 )
 echo Default location %DEFAULT% not found.
-set /p DEST=Enter path to existing installation:
+set DEST=
+set /p DEST=Enter path to existing installation (or press Enter to cancel):
+if "%DEST%"=="" goto :cancel
 
 if not exist "%DEST%\update.bat" (
     echo ERROR: Could not find an existing installation at %DEST%
@@ -47,29 +76,20 @@ goto :do_copy
 
 :: ── Copy files ───────────────────────────────────────────────
 :do_copy
-if "%IS_NEW%"=="1" (
-    if not exist "%DEST%" (
-        mkdir "%DEST%"
-        if %errorlevel% neq 0 (
-            echo ERROR: Could not create folder %DEST%
-            echo Check that the path is valid and you have permission to create it.
-            pause
-            exit /b 1
-        )
-        echo Created %DEST%
-    ) else (
-        echo Folder already exists: %DEST%
-    )
-)
-
 echo.
 echo Copying files to %DEST%...
-echo push_to_pc.bat > "%TEMP%\xcopy_exclude.txt"
-xcopy /Y /EXCLUDE:"%TEMP%\xcopy_exclude.txt" "%~dp0*" "%DEST%\"
-del "%TEMP%\xcopy_exclude.txt"
+xcopy /Y "%~dp0*" "%DEST%\"
+if exist "%DEST%\push_to_pc.bat" del "%DEST%\push_to_pc.bat"
 
 echo.
 echo Done. Run update.bat from %DEST% to rebuild and restart the container.
 if "%IS_NEW%"=="1" echo Note: fill in config.json with your credentials before running update.bat.
 pause
+exit /b 0
+
+
+:: ── Cancel ───────────────────────────────────────────────────
+:cancel
+echo.
+echo Cancelled.
 exit /b 0
