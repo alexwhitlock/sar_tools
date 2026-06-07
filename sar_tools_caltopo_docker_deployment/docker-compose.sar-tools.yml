@@ -9,5 +9,5 @@ services:
       - ../sar-tools/data:/app/data
       - ../sar-tools/html_backups:/app/html_backups
     environment:
-      - HOST_IP
+      HOST_IP: "${HOST_IP}"
     restart: always

@@ -8,6 +8,12 @@ echo.
 echo Detecting host LAN IP...
 for /f "delims=" %%i in ('powershell -NoProfile -Command "$a=Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notmatch '^(127\.|172\.|169\.)'}| Sort-Object PrefixLength | Select-Object -First 1 -ExpandProperty IPAddress; $a"') do set HOST_IP=%%i
 if defined HOST_IP (echo Detected: %HOST_IP%) else (echo Warning: could not detect host IP)
+
+:: Write HOST_IP into .env so docker-compose picks it up via ${HOST_IP} substitution
+(
+  echo COMPOSE_PROJECT_NAME=sar-tools
+  echo HOST_IP=%HOST_IP%
+) > "%~dp0.env"
 echo.
 
 :: Check GitHub connectivity
