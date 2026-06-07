@@ -1374,22 +1374,15 @@
     urlEl.textContent = "";
     warning.classList.add("hidden");
     $("qrBackdrop").classList.remove("hidden");
-    // Build the URL from the browser's origin — always correct even behind a proxy
-    const base = window.location.origin;
-    const kioskUrl = incidentName
-      ? `${base}/checkin?incidentName=${encodeURIComponent(incidentName)}`
-      : `${base}/checkin`;
+    // Let the server resolve the correct base URL (substitutes LAN IP for localhost)
+    const params = incidentName ? `incidentName=${encodeURIComponent(incidentName)}` : "";
     try {
-      const res  = await fetch(`/api/checkin/qr-svg?url=${encodeURIComponent(kioskUrl)}`);
+      const res  = await fetch(`/api/checkin/qr-svg?${params}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Failed to generate QR");
       svgWrap.innerHTML = data.svg;
-      urlEl.textContent = kioskUrl;
-      const hostname = new URL(kioskUrl).hostname;
-      const isLocal  = hostname === "localhost"
-        || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
-        || hostname.endsWith(".local");
-      if (isLocal) warning.classList.remove("hidden");
+      urlEl.textContent = data.url;
+      if (data.isLocal) warning.classList.remove("hidden");
     } catch (e) {
       svgWrap.innerHTML = `<div style="color:#c00;padding:20px;text-align:center;font-size:0.85rem">Error: ${e.message}</div>`;
     }

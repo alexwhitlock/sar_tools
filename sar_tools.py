@@ -161,24 +161,28 @@ def _is_local_network_url(url):
     )
 
 
+def _build_kiosk_qr(req, incident):
+    """Shared helper: resolve URL, generate SVG, detect local network.
+
+    Returns (kiosk_url, svg, is_local).
+    """
+    from urllib.parse import quote
+    base = _resolve_base_url(req)
+    url = f"{base}/checkin?incidentName={quote(incident)}" if incident else f"{base}/checkin"
+    svg = _make_qr_svg(url)
+    return url, svg, _is_local_network_url(url)
+
+
 @app.route("/checkin/qr")
 def checkin_qr():
-    from urllib.parse import quote
     from flask import request as req
 
     incident = req.args.get("incidentName", "").strip()
     if not incident:
         return "incidentName is required", 400
 
-    base = _resolve_base_url(req)
-    check_in_url = f"{base}/checkin?incidentName={quote(incident)}"
-
-    svg = _make_qr_svg(check_in_url)
-
-    if _is_local_network_url(check_in_url):
-        network_warning = '<p class="network-warning">&#9888; Device must be on local network</p>'
-    else:
-        network_warning = ""
+    check_in_url, svg, is_local = _build_kiosk_qr(req, incident)
+    network_warning = '<p class="network-warning">&#9888; Device must be on local network</p>' if is_local else ""
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -258,19 +262,12 @@ def checkin_qr():
 
 @app.route("/api/checkin/qr-svg")
 def api_checkin_qr_svg():
-    from urllib.parse import quote
     from flask import request as req, jsonify as _jsonify
 
-    # Prefer a client-supplied URL (accurate even behind a reverse proxy)
-    url = req.args.get("url", "").strip()
-    if not url:
-        incident = req.args.get("incidentName", "").strip()
-        base = _resolve_base_url(req)
-        url = f"{base}/checkin?incidentName={quote(incident)}" if incident else f"{base}/checkin"
-
+    incident = req.args.get("incidentName", "").strip()
     try:
-        svg = _make_qr_svg(url)
-        return _jsonify({"ok": True, "svg": svg, "url": url})
+        url, svg, is_local = _build_kiosk_qr(req, incident)
+        return _jsonify({"ok": True, "svg": svg, "url": url, "isLocal": is_local})
     except Exception as e:
         return _jsonify({"ok": False, "error": str(e)}), 500
 
