@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set DEFAULT=%USERPROFILE%\sar_tools_local_docker
+set DEFAULT=%USERPROFILE%\sar_tools_caltopo_docker_deployment
 set IS_NEW=0
 
 echo SAR Tools - Push to PC
@@ -57,7 +57,7 @@ goto :do_copy
 
 :: ── Update ───────────────────────────────────────────────────
 :update
-if exist "%DEFAULT%\update.bat" (
+if exist "%DEFAULT%\update_sar_tools.bat" (
     set DEST=%DEFAULT%
     goto :do_copy
 )
@@ -66,7 +66,7 @@ set DEST=
 set /p DEST=Enter path to existing installation (or press Enter to cancel):
 if "%DEST%"=="" goto :cancel
 
-if not exist "%DEST%\update.bat" (
+if not exist "%DEST%\update_sar_tools.bat" (
     echo ERROR: Could not find an existing installation at %DEST%
     pause
     exit /b 1
@@ -78,12 +78,29 @@ goto :do_copy
 :do_copy
 echo.
 echo Copying files to %DEST%...
-xcopy /Y "%~dp0*" "%DEST%\"
-if exist "%DEST%\push_to_pc.bat" del "%DEST%\push_to_pc.bat"
+for %%f in (
+    docker-compose.sar-tools.yml
+    docker-compose.caltopo.yml
+    Dockerfile.caltopo
+    update_sar_tools.bat
+    update_caltopo.bat
+    restart_sar_tools.bat
+    restart_caltopo.bat
+    setup.bat
+    usb-backup.ps1
+    config_template.json
+    .env
+    README.txt
+) do copy /Y "%~dp0%%f" "%DEST%\%%f"
 
 echo.
-echo Done. Run update.bat from %DEST% to rebuild and restart the container.
-if "%IS_NEW%"=="1" echo Note: fill in config.json with your credentials before running update.bat.
+echo Done.
+if "%IS_NEW%"=="1" (
+    echo.
+    echo New install: run setup.bat next to finish configuring the PC.
+) else (
+    echo Run update_sar_tools.bat to rebuild and restart the containers.
+)
 pause
 exit /b 0
 

@@ -20,6 +20,6 @@ if %errorlevel% neq 0 (
 )
 
 echo Starting container...
-docker compose up -d --force-recreate
+docker compose -f docker-compose.sar-tools.yml -p sar-tools up -d --force-recreate
 echo Done. Open http://localhost:5000
 pause
