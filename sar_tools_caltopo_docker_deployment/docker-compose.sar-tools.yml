@@ -8,4 +8,6 @@ services:
       - ../sar-tools/config.json:/app/config.json:ro
       - ../sar-tools/data:/app/data
       - ../sar-tools/html_backups:/app/html_backups
+    environment:
+      - HOST_IP
     restart: always

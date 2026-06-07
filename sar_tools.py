@@ -130,14 +130,17 @@ def _resolve_base_url(req):
     parsed = urlparse(base)
 
     if parsed.hostname in ("localhost", "127.0.0.1", "::1"):
+        port = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
+        # HOST_IP is injected by the Windows host at container start via docker-compose,
+        # giving us the real LAN IP rather than the Docker virtual network IP.
+        host_ip_env = os.environ.get("HOST_IP", "").strip()
+        if host_ip_env:
+            return f"{parsed.scheme}://{host_ip_env}{port}"
         try:
-            # UDP connect picks the right outbound interface without sending any data,
-            # avoiding Docker/VPN virtual adapters that gethostbyname can return.
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             lan_ip = s.getsockname()[0]
             s.close()
-            port = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
             return f"{parsed.scheme}://{lan_ip}{port}"
         except Exception:
             pass
