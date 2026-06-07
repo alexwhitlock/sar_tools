@@ -1398,10 +1398,135 @@ document.addEventListener("DOMContentLoaded", () => {
 
   wireFilters(personnelTable);
   watchPersonnelTab();
-
-  // menu + modal wiring
   wireMenuAndModal();
   wireConflictModal();
+  wireRosterViewToggle();
+});
+
+/* ===============================
+   Swim lane view
+   =============================== */
+
+let _currentView = "table"; // "table" | "lanes"
+
+function wireRosterViewToggle() {
+  const tableBtn  = document.getElementById("roster-view-table-btn");
+  const lanesBtn  = document.getElementById("roster-view-lanes-btn");
+  const tableView = document.getElementById("rosterTableView");
+  const lanesView = document.getElementById("rosterLanesView");
+  const skillsFilter = document.getElementById("personnelSkillsFilter");
+  if (!tableBtn || !lanesBtn) return;
+
+  tableBtn.addEventListener("click", () => {
+    _currentView = "table";
+    tableBtn.classList.add("active");
+    lanesBtn.classList.remove("active");
+    tableView?.classList.remove("hidden");
+    lanesView?.classList.add("hidden");
+    if (skillsFilter) skillsFilter.classList.add("hidden");
+  });
+
+  lanesBtn.addEventListener("click", () => {
+    _currentView = "lanes";
+    lanesBtn.classList.add("active");
+    tableBtn.classList.remove("active");
+    tableView?.classList.add("hidden");
+    lanesView?.classList.remove("hidden");
+    if (skillsFilter) skillsFilter.classList.remove("hidden");
+    renderLanes(personnelCache);
+  });
+
+  // Re-render lanes after every data load when lanes view is active
+  const origSetData = personnelTable?.setData?.bind(personnelTable);
+  if (origSetData) {
+    personnelTable.setData = (data) => {
+      origSetData(data);
+      if (_currentView === "lanes") renderLanes(data);
+    };
+  }
+}
+
+const _SKILL_ABBREV = {
+  "4x4 Vehicle":        "4×4",
+  "Team Leader":        "TL",
+  "Advanced First Aid": "First Aid",
+  "Mountain Bike":      "Bike",
+  "Drone":              "Drone",
+  "Canine Handler":     "K9 Handler",
+  "Canine Flanker":     "K9 Flanker",
+};
+
+function _parseSkills(raw) {
+  if (!raw) return [];
+  try { const arr = JSON.parse(raw); if (Array.isArray(arr)) return arr; } catch {}
+  return raw.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+function _getActiveSkillFilters() {
+  return Array.from(document.querySelectorAll(".skill-pill input:checked")).map(c => c.value);
+}
+
+function renderLanes(people) {
+  const available = [], deployed = [], released = [];
+  const activeSkills = _getActiveSkillFilters();
+
+  for (const p of (people || [])) {
+    const skills = _parseSkills(p.checkinSkills);
+    if (activeSkills.length && !activeSkills.some(s => skills.includes(s))) continue;
+    if (p.status === "Checked In" && !p.team) available.push(p);
+    else if (p.status === "Checked In" && p.team) deployed.push(p);
+    else if (p.status === "Checked Out") released.push(p);
+  }
+
+  _fillLane("laneCardsAvail",    available);
+  _fillLane("laneCardsDeployed", deployed);
+  _fillLane("laneCardsReleased", released);
+
+  const setCount = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+  setCount("laneCountAvail",    available.length);
+  setCount("laneCountDeployed", deployed.length);
+  setCount("laneCountReleased", released.length);
+}
+
+function _fillLane(containerId, people) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!people.length) {
+    el.innerHTML = '<div class="lane-empty">None</div>';
+    return;
+  }
+  el.innerHTML = people.map(p => {
+    const skills = _parseSkills(p.checkinSkills)
+      .map(s => `<span class="rc-skill-chip">${escapeHtml(_SKILL_ABBREV[s] || s)}</span>`)
+      .join("");
+    const teamHtml = p.team
+      ? `<div class="rc-team">${escapeHtml(p.team)}</div>` : "";
+    const kioskBadge = p.source === "KIOSK"
+      ? `<span class="rc-source-badge">KIOSK</span>` : "";
+    const key = getPersonKey(p);
+    return `<div class="roster-card" data-person-key="${escapeHtml(String(key))}">
+      <div class="rc-name">${escapeHtml(p.name)}${kioskBadge}</div>
+      ${teamHtml}
+      ${skills ? `<div class="rc-skills">${skills}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  // Clicking a card opens the person's action menu (reuse existing menu)
+  el.querySelectorAll(".roster-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const key = card.dataset.personKey;
+      const person = personnelCache.find(p => String(getPersonKey(p)) === key);
+      if (!person) return;
+      openPersonModal("edit", person);
+    });
+  });
+}
+
+// Skill filter pills re-render lanes on change
+document.addEventListener("change", (e) => {
+  if (e.target.closest(".skill-pill") && _currentView === "lanes") {
+    renderLanes(personnelCache);
+  }
 });
 
 window.addEventListener("sar:offline", () => {

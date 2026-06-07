@@ -17,15 +17,15 @@
   width: 100%;
   border-collapse: seperate;
   border-spacing: 0;
-  font-size: 0.85rem;
+  font-size: 1rem;
   table-layout: fixed;
 }
 
 /* Cells */
 .data-table th,
 .data-table td {
-  border: 1px solid #ccc;
-  padding: 0.35rem 0.5rem;
+  border: 1px solid #c0c0c0;
+  padding: 0.5rem 0.75rem;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -41,8 +41,13 @@
   position: sticky;
   top: 0;
   z-index: 5;                 /* stays above rows */
-  background: #f0f0f0;         /* REQUIRED for sticky */
-  box-shadow: 0 1px 0 #ccc;  /* subtle separation when scrolling */
+  background: #e8e8e8;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #333;
+  box-shadow: 0 2px 0 #aaa;
 }
 
 /* ===============================
@@ -87,5 +92,5 @@
    =============================== */
 
 .data-table tbody tr:hover {
-  background: #f2f2f2;
+  background: #e8f0f8;
 }
