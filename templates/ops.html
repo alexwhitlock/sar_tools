@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Operations — SAR Tools</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:     #cc5e31;
+  --dark:       #1e2636;
+  --bg:         #f4f5f8;
+  --card:       #fff;
+  --border:     #e0e0e0;
+  --text:       #111;
+  --muted:      #777;
+  --oos:        #757575;
+  --staged:     #1565c0;
+  --briefed:    #00838f;
+  --travelling: #e65100;
+  --on-asgn:    #2e7d32;
+  --returning:  #6a1b9a;
+  --debrief:    #c67d00;
+  --retired:    #37474f;
+}
+
+html, body { height: 100%; font-family: system-ui, -apple-system, sans-serif; font-size: 16px; color: var(--text); }
+
+body { display: flex; flex-direction: column; background: var(--bg); }
+
+/* ── Header ── */
+.ops-header {
+  background: var(--dark);
+  color: #fff;
+  height: 52px;
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.ops-wordmark { font-size: 0.68rem; font-weight: 900; letter-spacing: 0.12em; color: var(--accent); }
+.ops-role-tag {
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em;
+  background: rgba(255,255,255,0.12); padding: 2px 8px; border-radius: 3px; color: #fff;
+}
+.ops-sep    { color: rgba(255,255,255,0.2); }
+.ops-incident { flex: 1; font-size: 1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ops-dot    { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; flex-shrink: 0; }
+.ops-dot.stale { background: #f97316; box-shadow: 0 0 6px #f97316; }
+.ops-time   { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+.ops-back   { font-size: 0.75rem; color: rgba(255,255,255,0.5); text-decoration: none;
+              border: 1px solid rgba(255,255,255,0.2); padding: 0.2rem 0.65rem; border-radius: 4px; }
+.ops-back:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+
+/* ── No incident ── */
+.ops-no-incident { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: var(--muted); }
+.ops-no-incident a { color: var(--accent); }
+
+/* ── Body (two panels) ── */
+.ops-body  { flex: 1; display: flex; overflow: hidden; }
+.ops-body.hidden { display: none; }
+
+/* ── Panel shared ── */
+.ops-panel { display: flex; flex-direction: column; overflow: hidden; }
+.ops-panel-hdr {
+  padding: 0.55rem 1rem;
+  background: #fff;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.ops-panel-title { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #555; }
+.ops-panel-scroll { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.9rem; }
+
+/* ── Teams panel ── */
+.ops-teams { flex: 0 0 500px; border-right: 2px solid var(--border); }
+
+/* ── Status group ── */
+.sg { display: flex; flex-direction: column; gap: 0.35rem; }
+.sg.empty { display: none; }
+.sg-hdr { display: flex; align-items: center; gap: 0.45rem; padding: 0.2rem 0; }
+.sg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.sg-label { font-size: 0.67rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+.sg-count { font-size: 0.7rem; color: var(--muted); }
+
+/* ── Team card ── */
+.tc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 5px solid #ccc;
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.tc[data-status="Out of Service"]             { border-left-color: var(--oos); }
+.tc[data-status="Staged"]                     { border-left-color: var(--staged); }
+.tc[data-status="Briefed"]                    { border-left-color: var(--briefed); }
+.tc[data-status="Travelling to Assignment"]   { border-left-color: var(--travelling); }
+.tc[data-status="On Assignment"]              { border-left-color: var(--on-asgn); }
+.tc[data-status="Returning from Assignment"]  { border-left-color: var(--returning); }
+.tc[data-status="Awaiting Debrief"]           { border-left-color: var(--debrief); }
+.tc[data-status="Retired"]                    { border-left-color: var(--retired); }
+
+.tc-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.25rem; }
+.tc-name { font-size: 1rem; font-weight: 800; }
+.tc-mc   { font-size: 0.75rem; color: var(--muted); }
+.tc-members { font-size: 0.75rem; color: #666; margin-bottom: 0.35rem; line-height: 1.5; }
+.tc-asgn  { font-size: 0.8rem; color: #444; margin-bottom: 0.45rem; }
+.tc-asgn strong { font-weight: 700; }
+.tc-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+/* Action buttons */
+button.ta {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: auto !important;
+  background: transparent;
+  border: 1.5px solid #bbb;
+  color: #333;
+  border-radius: 4px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+button.ta:hover { background: #f0f0f0; border-color: #777; }
+button.ta.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.ta.primary:hover { background: #b6522b; border-color: #b6522b; }
+button.ta:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Deploy picker */
+.dp {
+  display: none;
+  margin-top: 0.5rem;
+  background: #f0f4ff;
+  border: 1.5px solid #b8c8f0;
+  border-radius: 5px;
+  padding: 0.6rem 0.7rem;
+}
+.dp.open { display: block; }
+.dp-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: #3a5baf; margin-bottom: 0.35rem; }
+.dp select { width: 100%; font-size: 0.85rem; padding: 0.3rem 0.4rem; border: 1px solid #bbb; border-radius: 4px; margin-bottom: 0.4rem; }
+.dp-btns { display: flex; gap: 0.4rem; }
+button.dp-ok  { display:inline-flex;align-items:center;justify-content:center;width:auto!important;background:#2e7d32;color:#fff;border:none;border-radius:4px;padding:0.35rem 0.85rem;font-size:0.8rem;font-weight:700;cursor:pointer; }
+button.dp-ok:hover { background: #1b5e20; }
+button.dp-ok:disabled { opacity:0.45;cursor:not-allowed; }
+button.dp-cancel { display:inline-flex;align-items:center;justify-content:center;width:auto!important;background:transparent;color:#555;border:1px solid #bbb;border-radius:4px;padding:0.35rem 0.8rem;font-size:0.8rem;cursor:pointer; }
+
+/* ── Assignments panel ── */
+.ops-asgn  { flex: 1; }
+
+.as-section { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.as-hdr { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0; }
+.as-badge {
+  font-size: 0.65rem; font-weight: 800; letter-spacing: 0.07em;
+  padding: 2px 7px; border-radius: 3px; color: #fff; text-transform: uppercase;
+}
+.b-ip   { background: var(--travelling); }
+.b-prep { background: var(--staged); }
+.b-done { background: var(--on-asgn); }
+.b-draft{ background: var(--oos); }
+.as-cnt { font-size: 0.72rem; color: var(--muted); }
+
+.ar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+.ar-num  { font-size: 0.92rem; font-weight: 800; min-width: 46px; }
+.ar-team { font-size: 0.78rem; font-weight: 700; color: #555; min-width: 68px; }
+.ar-team.none { color: #bbb; font-weight: 400; font-style: italic; }
+.ar-desc { flex: 1; font-size: 0.8rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ar-type { font-size: 0.72rem; color: #aaa; white-space: nowrap; }
+
+/* ── Create team modal ── */
+.modal-back { position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9000; }
+.modal-back.hidden { display:none; }
+.modal-box  { background:#fff;border-radius:8px;padding:1.5rem;width:360px;max-width:calc(100vw - 2rem);box-shadow:0 8px 24px rgba(0,0,0,0.15); }
+.modal-box h3 { font-size:1rem;margin-bottom:1rem; }
+.modal-box label { display:block;font-size:0.85rem;font-weight:600;margin-top:0.7rem;margin-bottom:0.2rem; }
+.modal-box input, .modal-box select { width:100%;font-size:0.875rem;padding:0.35rem 0.5rem;border:1px solid #ccc;border-radius:4px; }
+.modal-err { font-size:0.8rem;color:#b71c1c;margin-top:0.4rem; display:none; }
+.modal-ftns { display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1rem; }
+.modal-ftns button { width:auto!important; }
+button.btn-cancel { background:transparent;border:1px solid #ccc;color:#555; }
+button.btn-cancel:hover { background:#f5f5f5; }
+
+/* ── Add member modal ── */
+.add-member-list { max-height:240px;overflow-y:auto;border:1px solid #eee;border-radius:4px;margin-top:0.4rem; }
+.am-row { display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.6rem;border-bottom:1px solid #f5f5f5;font-size:0.85rem; }
+.am-row:last-child { border-bottom:none; }
+button.am-add { width:auto!important;background:var(--on-asgn);color:#fff;border:none;border-radius:3px;padding:0.2rem 0.6rem;font-size:0.75rem;font-weight:700;cursor:pointer; }
+button.am-add:hover { background:#1b5e20; }
+
+/* ── Toolbar buttons ── */
+button.hdr-btn { display:inline-flex;align-items:center;justify-content:center;width:auto!important;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:0.3rem 0.8rem;font-size:0.78rem;font-weight:600;cursor:pointer;margin-left:auto; }
+button.hdr-btn:hover { background:#b6522b; }
+button.hdr-btn.secondary { background:transparent;border:1px solid #ccc;color:#444; }
+button.hdr-btn.secondary:hover { background:#f0f0f0; }
+
+/* ── Toast ── */
+.toast { position:fixed;bottom:1.5rem;right:1.5rem;background:#1e2636;color:#fff;padding:0.65rem 1.1rem;border-radius:6px;font-size:0.85rem;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:9999;opacity:0;transition:opacity 0.2s;pointer-events:none; }
+.toast.show { opacity:1; }
+.toast.err  { background:#b71c1c; }
+
+/* ── Dot colors ── */
+.dot-oos        { background: var(--oos); }
+.dot-staged     { background: var(--staged); }
+.dot-briefed    { background: var(--briefed); }
+.dot-travelling { background: var(--travelling); }
+.dot-on-asgn    { background: var(--on-asgn); }
+.dot-returning  { background: var(--returning); }
+.dot-debrief    { background: var(--debrief); }
+.dot-retired    { background: var(--retired); }
+
+.loading { padding:2rem;text-align:center;color:var(--muted);font-size:0.9rem; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="ops-header">
+  <span class="ops-wordmark">SAR TOOLS</span>
+  <span class="ops-role-tag">OPS</span>
+  <span class="ops-sep">|</span>
+  <span class="ops-incident" id="opsIncident">—</span>
+  <span class="ops-dot" id="opsDot"></span>
+  <span class="ops-time" id="opsTime"></span>
+  <a href="/" class="ops-back">← Main Tool</a>
+</div>
+
+<!-- No incident -->
+<div class="ops-no-incident hidden" id="opsNone">
+  <div>No incident selected.</div>
+  <a href="/">Go to the main tool and select an incident first →</a>
+</div>
+
+<!-- Body -->
+<div class="ops-body hidden" id="opsBody">
+
+  <!-- Teams panel -->
+  <div class="ops-panel ops-teams">
+    <div class="ops-panel-hdr">
+      <span class="ops-panel-title">Teams</span>
+      <button class="hdr-btn" id="btnAddTeam">+ New Team</button>
+    </div>
+    <div class="ops-panel-scroll" id="teamsScroll">
+      <div class="loading">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Assignments panel -->
+  <div class="ops-panel ops-asgn">
+    <div class="ops-panel-hdr">
+      <span class="ops-panel-title">Assignments</span>
+    </div>
+    <div class="ops-panel-scroll" id="asgnScroll">
+      <div class="loading">Loading…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Create team modal -->
+<div class="modal-back hidden" id="modalCreate">
+  <div class="modal-box">
+    <h3>New Team</h3>
+    <label>Team Name</label>
+    <input type="text" id="newTeamName" placeholder="e.g. Team Alpha" autocomplete="off" />
+    <label>Initial Status</label>
+    <select id="newTeamStatus">
+      <option value="Staged">Staged</option>
+      <option value="Out of Service">Out of Service</option>
+    </select>
+    <div class="modal-err" id="createErr"></div>
+    <div class="modal-ftns">
+      <button class="btn-cancel" id="btnCreateCancel">Cancel</button>
+      <button id="btnCreateConfirm">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add member modal -->
+<div class="modal-back hidden" id="modalAddMember">
+  <div class="modal-box">
+    <h3 id="addMemberTitle">Add Members — Team</h3>
+    <div class="add-member-list" id="addMemberList"></div>
+    <div class="modal-ftns">
+      <button class="btn-cancel" id="btnAddMemberClose">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ──────────────────────────────────────────────────────────────
+   SAR Tools — OPS page
+   Reads incident from localStorage. Auto-refreshes every 15s.
+────────────────────────────────────────────────────────────── */
+
+const INCIDENT = localStorage.getItem("sar_incident") || "";
+let DATA = { teams: [], assignments: [], availablePersonnel: [] };
+const REFRESH_MS = 15000;
+
+/* ── status groups in display order ── */
+const GROUPS = [
+  { s: "Staged",                    dot: "dot-staged",     lbl: "Staged" },
+  { s: "Briefed",                   dot: "dot-briefed",    lbl: "Briefed" },
+  { s: "Travelling to Assignment",  dot: "dot-travelling", lbl: "Travelling" },
+  { s: "On Assignment",             dot: "dot-on-asgn",    lbl: "On Assignment" },
+  { s: "Returning from Assignment", dot: "dot-returning",  lbl: "Returning" },
+  { s: "Awaiting Debrief",          dot: "dot-debrief",    lbl: "Awaiting Debrief" },
+  { s: "Out of Service",            dot: "dot-oos",        lbl: "Out of Service" },
+  { s: "Retired",                   dot: "dot-retired",    lbl: "Retired" },
+];
+
+/* next allowed transitions per status.
+   "__deploy__" = special: open assignment picker */
+const NEXT = {
+  "Out of Service":             ["Staged"],
+  "Staged":                     ["__deploy__"],
+  "Briefed":                    ["Travelling to Assignment", "On Assignment"],
+  "Travelling to Assignment":   ["On Assignment"],
+  "On Assignment":              ["Returning from Assignment"],
+  "Returning from Assignment":  ["Awaiting Debrief"],
+  "Awaiting Debrief":           ["Staged", "Out of Service"],
+  "Retired":                    ["Staged"],
+};
+
+const BTN_LABEL = {
+  "Staged":                    "↩ Stage",
+  "Travelling to Assignment":  "En Route →",
+  "On Assignment":             "On Assignment ✓",
+  "Returning from Assignment": "Returning ←",
+  "Awaiting Debrief":          "Awaiting Debrief",
+  "Out of Service":            "Out of Service",
+};
+
+const ASGN_ORDER  = ["INPROGRESS","PREPARED","COMPLETED","DRAFT"];
+const ASGN_META   = {
+  INPROGRESS: { lbl:"In Progress", cls:"b-ip"   },
+  PREPARED:   { lbl:"Prepared",    cls:"b-prep" },
+  COMPLETED:  { lbl:"Completed",   cls:"b-done" },
+  DRAFT:      { lbl:"Draft",       cls:"b-draft"},
+};
+
+/* ── init ── */
+document.addEventListener("DOMContentLoaded", () => {
+  if (!INCIDENT) {
+    show("opsNone"); return;
+  }
+  document.getElementById("opsIncident").textContent = INCIDENT;
+  show("opsBody");
+  load();
+  setInterval(load, REFRESH_MS);
+
+  document.getElementById("btnAddTeam").addEventListener("click", openCreate);
+  document.getElementById("btnCreateCancel").addEventListener("click", closeCreate);
+  document.getElementById("btnCreateConfirm").addEventListener("click", doCreate);
+  document.getElementById("newTeamName").addEventListener("keydown", e => { if (e.key === "Enter") doCreate(); });
+  document.getElementById("btnAddMemberClose").addEventListener("click", () => hide("modalAddMember"));
+});
+
+/* ── data ── */
+async function load() {
+  try {
+    const r = await fetch(`/api/ops/data?incidentName=${enc(INCIDENT)}`);
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    DATA = d;
+    renderTeams(d.teams);
+    renderAsgn(d.assignments);
+    const t = new Date().toTimeString().slice(0,5);
+    document.getElementById("opsTime").textContent = `Updated ${t}`;
+    document.getElementById("opsDot").classList.remove("stale");
+  } catch(e) {
+    document.getElementById("opsDot").classList.add("stale");
+  }
+}
+
+/* ── teams ── */
+function renderTeams(teams) {
+  const scroll = document.getElementById("teamsScroll");
+  const byS = {};
+  for (const t of teams) (byS[t.status] = byS[t.status] || []).push(t);
+
+  scroll.innerHTML = "";
+  for (const g of GROUPS) {
+    const items = byS[g.s] || [];
+    const sec = el("div", "sg" + (items.length ? "" : " empty"));
+    sec.innerHTML = `<div class="sg-hdr">
+      <span class="sg-dot ${g.dot}"></span>
+      <span class="sg-label">${g.lbl}</span>
+      <span class="sg-count">${items.length}</span>
+    </div>`;
+    for (const t of items) sec.appendChild(teamCard(t));
+    scroll.appendChild(sec);
+  }
+}
+
+function teamCard(t) {
+  const members = t.members || [];
+  const memberStr = members.map(m => m.name).join(", ");
+
+  const card = el("div", "tc");
+  card.dataset.teamId = t.id;
+  card.dataset.status = t.status;
+
+  const asgnHtml = t.manualAssignment
+    ? `<div class="tc-asgn"><strong>Assignment:</strong> ${esc(t.manualAssignment)}</div>`
+    : "";
+
+  card.innerHTML = `
+    <div class="tc-head">
+      <span class="tc-name">${esc(t.name)}</span>
+      <span class="tc-mc">${members.length} member${members.length !== 1 ? "s" : ""}</span>
+    </div>
+    ${memberStr ? `<div class="tc-members">${esc(memberStr)}</div>` : ""}
+    ${asgnHtml}
+    <div class="tc-actions" id="ta-${t.id}"></div>
+    <div class="dp" id="dp-${t.id}">
+      <div class="dp-label">Select assignment to brief for:</div>
+      <select id="dp-sel-${t.id}"></select>
+      <div class="dp-btns">
+        <button class="dp-ok"     data-tid="${t.id}">Brief &amp; Deploy</button>
+        <button class="dp-cancel" data-tid="${t.id}">Cancel</button>
+      </div>
+    </div>`;
+
+  /* action buttons */
+  const actEl = card.querySelector(`#ta-${t.id}`);
+  for (const ns of (NEXT[t.status] || [])) {
+    const b = el("button", "ta" + (ns === "__deploy__" ? " primary" : ""));
+    b.textContent = ns === "__deploy__" ? "Brief & Deploy →" : (BTN_LABEL[ns] || ns);
+    if (ns === "__deploy__") b.addEventListener("click", () => openDeploy(t));
+    else b.addEventListener("click", () => setStatus(t.id, ns));
+    actEl.appendChild(b);
+  }
+
+  /* add member button */
+  const addMbr = el("button", "ta secondary");
+  addMbr.textContent = "+ Members";
+  addMbr.style.marginLeft = "0.25rem";
+  addMbr.addEventListener("click", () => openAddMember(t));
+  actEl.appendChild(addMbr);
+
+  /* deploy picker wiring */
+  card.querySelector(`.dp-ok`)?.addEventListener("click",     () => confirmDeploy(t.id));
+  card.querySelector(`.dp-cancel`)?.addEventListener("click", () => closeDeploy(t.id));
+
+  return card;
+}
+
+/* ── deploy picker ── */
+function openDeploy(team) {
+  const picker = document.getElementById(`dp-${team.id}`);
+  const sel    = document.getElementById(`dp-sel-${team.id}`);
+  if (!picker || !sel) return;
+
+  const prepared = DATA.assignments.filter(a => a.status === "PREPARED");
+  sel.innerHTML = prepared.length
+    ? prepared.map(a => `<option value="${esc(a.number)}">${esc(a.number)}${a.description ? " — " + esc(a.description.substring(0,50)) : ""}</option>`).join("")
+    : `<option value="" disabled>No prepared assignments</option>`;
+
+  picker.classList.add("open");
+}
+
+function closeDeploy(tid) {
+  document.getElementById(`dp-${tid}`)?.classList.remove("open");
+}
+
+async function confirmDeploy(tid) {
+  const sel = document.getElementById(`dp-sel-${tid}`);
+  const num = sel?.value;
+  if (!num) return;
+  const btn = document.querySelector(`#dp-${tid} .dp-ok`);
+  if (btn) btn.disabled = true;
+  try {
+    const r = await post("/api/ops/deploy", { incidentName: INCIDENT, teamId: tid, assignmentNumber: num });
+    if (!r.ok) throw new Error(r.error);
+    toast(`Briefed for ${num}`);
+    await load();
+  } catch(e) { toast(e.message, true); if (btn) btn.disabled = false; }
+}
+
+/* ── status change ── */
+async function setStatus(tid, newStatus) {
+  try {
+    const r = await post("/api/ops/set-team-status", { incidentName: INCIDENT, teamId: tid, status: newStatus });
+    if (!r.ok) throw new Error(r.error);
+    toast(`→ ${newStatus}`);
+    await load();
+  } catch(e) { toast(e.message, true); }
+}
+
+/* ── add member ── */
+function openAddMember(team) {
+  document.getElementById("addMemberTitle").textContent = `Members — ${team.name}`;
+  const list = document.getElementById("addMemberList");
+
+  const available = DATA.availablePersonnel || [];
+  const currentIds = new Set((team.members || []).map(m => m.id));
+
+  /* show current members + option to remove, then available to add */
+  const currentMembers = team.members || [];
+
+  if (!available.length && !currentMembers.length) {
+    list.innerHTML = `<div style="padding:0.75rem;color:#888;font-size:0.85rem">No available personnel to add.</div>`;
+  } else {
+    list.innerHTML = [
+      ...currentMembers.map(m =>
+        `<div class="am-row"><span>${esc(m.name)}</span>
+         <button class="am-add" style="background:#b71c1c" data-action="remove" data-pid="${m.id}" data-tid="${team.id}">Remove</button></div>`
+      ),
+      ...available.filter(p => !currentIds.has(p.id)).map(p =>
+        `<div class="am-row"><span>${esc(p.name)}</span>
+         <button class="am-add" data-action="add" data-pid="${p.id}" data-tid="${team.id}">Add</button></div>`
+      )
+    ].join("") || `<div style="padding:0.75rem;color:#888;font-size:0.85rem">No personnel available.</div>`;
+  }
+
+  list.querySelectorAll("button[data-action]").forEach(b => {
+    b.addEventListener("click", async () => {
+      const action = b.dataset.action;
+      const pid    = parseInt(b.dataset.pid);
+      const tid    = parseInt(b.dataset.tid);
+      b.disabled = true;
+      try {
+        if (action === "add") {
+          const r = await post("/api/teams/assign-person", { incidentName: INCIDENT, teamId: tid, personId: pid });
+          if (!r.ok) throw new Error(r.error);
+          toast("Member added");
+        } else {
+          const r = await post("/api/teams/remove-person", { incidentName: INCIDENT, personId: pid });
+          if (!r.ok) throw new Error(r.error);
+          toast("Member removed");
+        }
+        await load();
+        openAddMember(DATA.teams.find(t => t.id === tid) || team);
+      } catch(e) { toast(e.message, true); b.disabled = false; }
+    });
+  });
+
+  show("modalAddMember");
+}
+
+/* ── assignments ── */
+function renderAsgn(asgns) {
+  const scroll = document.getElementById("asgnScroll");
+  if (!asgns.length) {
+    scroll.innerHTML = `<div class="loading">No assignments synced from CalTopo yet.</div>`;
+    return;
+  }
+
+  const byS = {};
+  for (const a of asgns) {
+    const s = (a.status || "DRAFT").toUpperCase();
+    (byS[s] = byS[s] || []).push(a);
+  }
+
+  scroll.innerHTML = "";
+  for (const key of ASGN_ORDER) {
+    const items = byS[key];
+    if (!items?.length) continue;
+    const m = ASGN_META[key] || { lbl: key, cls: "b-draft" };
+    const sec = el("div", "as-section");
+    sec.innerHTML = `
+      <div class="as-hdr">
+        <span class="as-badge ${m.cls}">${m.lbl}</span>
+        <span class="as-cnt">${items.length}</span>
+      </div>
+      ${items.map(a => `
+        <div class="ar">
+          <span class="ar-num">${esc(a.number||"—")}</span>
+          <span class="ar-team ${a.team?"":"none"}">${a.team ? esc(a.team) : "No team"}</span>
+          <span class="ar-desc" title="${esc(a.description||"")}">${esc(a.description||"—")}</span>
+          ${a.assignmentType ? `<span class="ar-type">${esc(a.assignmentType)}</span>` : ""}
+        </div>`).join("")}`;
+    scroll.appendChild(sec);
+  }
+}
+
+/* ── create team ── */
+function openCreate() {
+  document.getElementById("newTeamName").value = "";
+  document.getElementById("createErr").style.display = "none";
+  show("modalCreate");
+  setTimeout(() => document.getElementById("newTeamName").focus(), 50);
+}
+function closeCreate() { hide("modalCreate"); }
+
+async function doCreate() {
+  const name   = document.getElementById("newTeamName").value.trim();
+  const status = document.getElementById("newTeamStatus").value;
+  const errEl  = document.getElementById("createErr");
+  if (!name) { errEl.textContent = "Name required."; errEl.style.display = ""; return; }
+  errEl.style.display = "none";
+  try {
+    const r = await post("/api/teams/create", { incidentName: INCIDENT, name });
+    if (!r.ok) throw new Error(r.error);
+    if (status !== "Staged") {
+      await post("/api/teams/update", { incidentName: INCIDENT, teamId: r.id, status });
+    }
+    closeCreate();
+    toast(`Team "${name}" created`);
+    await load();
+  } catch(e) { errEl.textContent = e.message; errEl.style.display = ""; }
+}
+
+/* ── helpers ── */
+async function post(url, body) {
+  const r = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+  return r.json();
+}
+
+function show(id) { document.getElementById(id)?.classList.remove("hidden"); }
+function hide(id) { document.getElementById(id)?.classList.add("hidden"); }
+function el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+function enc(s) { return encodeURIComponent(s); }
+function esc(s) {
+  return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+}
+
+let _toastT = null;
+function toast(msg, isErr = false) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast show" + (isErr ? " err" : "");
+  if (_toastT) clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove("show"), 3000);
+}
+</script>
+</body>
+</html>
