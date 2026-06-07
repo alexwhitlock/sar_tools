@@ -112,6 +112,34 @@ def checkin_admin():
     return render_template("kiosk/admin.html")
 
 
+def _resolve_base_url(req):
+    """Return the externally-reachable base URL for this server.
+
+    When the operator accesses the app via localhost, substitute the actual
+    LAN IP so QR codes and kiosk links work on other devices on the network.
+    """
+    import socket
+    from urllib.parse import urlparse
+
+    forwarded_host = req.headers.get("X-Forwarded-Host")
+    if forwarded_host:
+        proto = req.headers.get("X-Forwarded-Proto", "https")
+        return f"{proto}://{forwarded_host}"
+
+    base = req.host_url.rstrip("/")
+    parsed = urlparse(base)
+
+    if parsed.hostname in ("localhost", "127.0.0.1", "::1"):
+        try:
+            lan_ip = socket.gethostbyname(socket.gethostname())
+            port = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
+            return f"{parsed.scheme}://{lan_ip}{port}"
+        except Exception:
+            pass
+
+    return base
+
+
 def _make_qr_svg(url):
     import io, qrcode, qrcode.image.svg
     factory = qrcode.image.svg.SvgPathImage
@@ -142,12 +170,7 @@ def checkin_qr():
     if not incident:
         return "incidentName is required", 400
 
-    forwarded_host = req.headers.get("X-Forwarded-Host")
-    if forwarded_host:
-        proto = req.headers.get("X-Forwarded-Proto", "https")
-        base = f"{proto}://{forwarded_host}"
-    else:
-        base = req.host_url.rstrip("/")
+    base = _resolve_base_url(req)
     check_in_url = f"{base}/checkin?incidentName={quote(incident)}"
 
     svg = _make_qr_svg(check_in_url)
@@ -242,12 +265,7 @@ def api_checkin_qr_svg():
     url = req.args.get("url", "").strip()
     if not url:
         incident = req.args.get("incidentName", "").strip()
-        forwarded_host = req.headers.get("X-Forwarded-Host")
-        if forwarded_host:
-            proto = req.headers.get("X-Forwarded-Proto", "https")
-            base = f"{proto}://{forwarded_host}"
-        else:
-            base = req.host_url.rstrip("/")
+        base = _resolve_base_url(req)
         url = f"{base}/checkin?incidentName={quote(incident)}" if incident else f"{base}/checkin"
 
     try:
