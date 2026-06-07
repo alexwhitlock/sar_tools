@@ -1,145 +1,208 @@
-<div id="home" class="tab-panel active">
-  <div class="home-dashboard">
+<div id="home" class="tab-panel">
+<div class="tab-content cmd-content">
 
-    <div class="home-grid">
+  <!-- ══════════════════════════════════════════════════
+       NO INCIDENT — selector shown when nothing active
+  ══════════════════════════════════════════════════ -->
+  <div id="cmdNoIncident" class="cmd-no-incident">
 
-      <div class="home-card">
-        <h2>Incident</h2>
-
-        <div class="form-row">
-          <label for="incidentSelect">Current Incident</label>
-          <select id="incidentSelect"></select>
-        </div>
-
-        <div class="form-row">
-          <label for="incidentNewName">New Incident</label>
-          <input
-            type="text"
-            id="incidentNewName"
-            placeholder="e.g. 2026-001 Gatineau Park"
-            autocomplete="off"
-          />
-          <button id="incidentCreateBtn" type="button">Create</button>
-        </div>
-
-        <div class="message-bar hidden" id="incidentHint"></div>
-
-        <div class="incident-db-row">
-          <button id="incidentRenameBtn" type="button" disabled>Rename</button>
-          <button id="incidentExportBtn" type="button" disabled>Export</button>
-          <button id="incidentImportBtn" type="button">Import</button>
-          <input type="file" id="incidentImportFile" accept=".sqlite3" style="display:none">
-        </div>
-      </div>
-
-      <div class="home-card card-caltopo">
-        <div class="card-header">
-          <h2>CalTopo</h2>
-          <label class="link-label" id="caltopoLinkRow" style="display:none">
-            <input type="checkbox" id="caltopoLinkCheck" />
-            Link to Incident
-          </label>
-        </div>
-
-        <div class="form-row">
-          <label for="mapId">CalTopo Map ID</label>
-          <input
-            type="text"
-            id="mapId"
-            placeholder="e.g. APC1GE5"
-            autocomplete="off"
-          />
-          <button id="mapIdLookupBtn" type="button" class="lookup-btn" title="Look up map">Apply</button>
-        </div>
-
-        <div class="form-row caltopo-mode-row">
-          <label>Mode</label>
-          <div class="caltopo-mode-options">
-            <label class="mode-option"><input type="radio" name="caltopoMode" value="online"  checked /> Online (caltopo.com)</label>
-            <label class="mode-option"><input type="radio" name="caltopoMode" value="offline"         /> Offline (localhost:8080)</label>
-          </div>
-        </div>
-
-        <div class="message-bar hidden" id="caltopoHint"></div>
-
-        <div class="form-row" id="opPeriodRow" style="display:none">
-          <label for="opSelect">Op Period</label>
-          <select id="opSelect">
-            <option value="">— All periods —</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="home-card card-system">
-        <h2>System Info</h2>
-        <div class="system-info">
-          <div class="system-info-row">
-            <span class="system-info-label">Host Server</span>
-            <span class="system-info-value" id="sysHostname">—</span>
-          </div>
-          <div class="system-info-row">
-            <span class="system-info-label">Commit</span>
-            <span class="system-info-value" id="sysGitHash">—</span>
-          </div>
-          <div class="system-info-row">
-            <span class="system-info-label">Deployed</span>
-            <span class="system-info-value" id="sysGitDate">—</span>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="home-card card-d4h">
-        <div class="card-header">
-          <h2>D4H Activity</h2>
-          <label class="link-label" id="d4hLinkRow" style="display:none">
-            <input type="checkbox" id="d4hLinkCheck" />
-            Link to Incident
-          </label>
-        </div>
-
-        <div class="form-row">
-          <label for="d4h_activity">D4H Activity ID</label>
-          <input
-            type="text"
-            id="d4h_activity"
-            placeholder="e.g. 327349"
-            autocomplete="off"
-          />
-          <button id="d4hLookupBtn" type="button" class="lookup-btn" title="Look up activity">Apply</button>
-        </div>
-
-        <div class="message-bar hidden" id="d4hHint"></div>
-      </div>
-
+    <div class="cmd-ni-logo">
+      <span class="cmd-ni-sar">SAR</span><span class="cmd-ni-tools"> TOOLS</span>
     </div>
-      <div class="home-card card-dashboards">
-        <h2>Dashboards</h2>
-        <div class="dashboard-links">
-          <div class="dashboard-link-row">
-            <span class="dashboard-link-name">Incident Overview</span>
-            <div class="dashboard-link-actions">
-              <a id="dashboardIncidentLink" href="#" target="_blank" class="dashboard-open-btn disabled">Open ↗</a>
-              <button id="dashboardIncidentCopy" type="button" class="dashboard-copy-btn" disabled>Copy URL</button>
-            </div>
-          </div>
-          <div class="dashboard-link-row">
-            <span class="dashboard-link-name">HTML Backup</span>
-            <div class="dashboard-link-actions">
-              <a id="dashboardSnapshotLink" href="#" target="_blank" class="dashboard-open-btn disabled">Latest ↗</a>
-            </div>
-          </div>
-          <div class="dashboard-link-row">
-            <span class="dashboard-link-name">Check-in Kiosk</span>
-            <div class="dashboard-link-actions">
-              <a id="dashboardKioskLink" href="#" target="_blank" class="dashboard-open-btn disabled">Open ↗</a>
-              <button id="dashboardKioskCopy" type="button" class="dashboard-copy-btn" disabled>Copy URL</button>
-              <button id="dashboardKioskQr" type="button" class="dashboard-copy-btn" disabled>QR Code</button>
-            </div>
-          </div>
-        </div>
-        <p class="dashboard-hint" id="dashboardHint">Select an incident to enable dashboard links.</p>
+    <div class="cmd-ni-sub">Command &amp; Operations</div>
+
+    <div class="cmd-ni-card">
+      <div class="form-row">
+        <label for="incidentSelect" class="cmd-form-label">Active Incident</label>
+        <select id="incidentSelect" class="cmd-select"></select>
       </div>
+      <div class="form-row cmd-create-row">
+        <label for="incidentNewName" class="cmd-form-label">New Incident</label>
+        <input type="text" id="incidentNewName" placeholder="e.g. 2026-001 Gatineau Park" autocomplete="off" />
+        <button id="incidentCreateBtn" type="button">Create</button>
+      </div>
+      <div class="message-bar hidden" id="incidentHint"></div>
+
+      <div class="incident-db-row">
+        <button id="incidentRenameBtn" type="button" disabled>Rename</button>
+        <button id="incidentExportBtn" type="button" disabled>Export</button>
+        <button id="incidentImportBtn" type="button">Import</button>
+        <input type="file" id="incidentImportFile" accept=".sqlite3" style="display:none">
+      </div>
+    </div>
 
   </div>
-</div>
+
+  <!-- ══════════════════════════════════════════════════
+       ACTIVE INCIDENT — command dashboard
+  ══════════════════════════════════════════════════ -->
+  <div id="cmdDashboard" class="cmd-dashboard hidden">
+
+    <!-- Incident banner -->
+    <div class="cmd-banner">
+      <div class="cmd-banner-left">
+        <span class="cmd-active-dot"></span>
+        <span class="cmd-active-label">ACTIVE OPERATION</span>
+      </div>
+      <div class="cmd-incident-name" id="cmdIncidentName">—</div>
+      <div class="cmd-banner-right">
+        <button class="cmd-change-btn" id="cmdChangeBtn">Change Incident</button>
+      </div>
+    </div>
+
+    <!-- Scrollable dashboard body -->
+    <div class="cmd-body">
+
+      <!-- Personnel stat cards -->
+      <div class="cmd-stat-row">
+        <div class="cmd-stat-card cmd-stat-avail">
+          <div class="cmd-stat-num" id="cmdStatAvail">—</div>
+          <div class="cmd-stat-label">AVAILABLE</div>
+          <div class="cmd-stat-sub">checked in, no team</div>
+        </div>
+        <div class="cmd-stat-card cmd-stat-deployed">
+          <div class="cmd-stat-num" id="cmdStatDeployed">—</div>
+          <div class="cmd-stat-label">DEPLOYED</div>
+          <div class="cmd-stat-sub">on a team</div>
+        </div>
+        <div class="cmd-stat-card cmd-stat-released">
+          <div class="cmd-stat-num" id="cmdStatReleased">—</div>
+          <div class="cmd-stat-label">RELEASED</div>
+          <div class="cmd-stat-sub">checked out</div>
+        </div>
+        <div class="cmd-stat-card cmd-stat-added">
+          <div class="cmd-stat-num" id="cmdStatAdded">—</div>
+          <div class="cmd-stat-label">ADDED</div>
+          <div class="cmd-stat-sub">not yet checked in</div>
+        </div>
+      </div>
+
+      <!-- Two-column: Teams + Assignments -->
+      <div class="cmd-two-col">
+
+        <!-- Teams -->
+        <div class="cmd-panel">
+          <div class="cmd-panel-header">
+            <span class="cmd-panel-title">Teams</span>
+            <span class="cmd-panel-count" id="cmdTeamCount"></span>
+          </div>
+          <div class="cmd-teams-list" id="cmdTeamsList">
+            <div class="cmd-empty">No teams yet.</div>
+          </div>
+        </div>
+
+        <!-- Assignments -->
+        <div class="cmd-panel">
+          <div class="cmd-panel-header">
+            <span class="cmd-panel-title">Assignments</span>
+          </div>
+          <div id="cmdAsgnBody">
+            <div class="cmd-empty">No assignments synced yet.</div>
+          </div>
+          <div class="cmd-panel-footer">
+            <div class="cmd-dashboard-links" id="cmdDashboardLinks">
+              <a id="dashboardIncidentLink" href="#" target="_blank" class="cmd-link-btn disabled">Incident Overview ↗</a>
+              <a id="dashboardSnapshotLink" href="#" target="_blank" class="cmd-link-btn disabled">HTML Backup ↗</a>
+              <a id="dashboardKioskLink"    href="#" target="_blank" class="cmd-link-btn disabled">Check-in Kiosk ↗</a>
+              <button id="dashboardKioskQr"  type="button" class="cmd-link-btn cmd-qr-btn" disabled>QR Code</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Recent log -->
+      <div class="cmd-panel cmd-panel-log">
+        <div class="cmd-panel-header">
+          <span class="cmd-panel-title">Recent Log</span>
+          <button class="cmd-panel-action" onclick="openTab('logging', document.querySelector('.tab-button:nth-child(6)'))">View Full Log →</button>
+        </div>
+        <div class="cmd-log-feed" id="cmdLogFeed">
+          <div class="cmd-empty">No log entries yet.</div>
+        </div>
+      </div>
+
+      <!-- Setup & Configuration (collapsible) -->
+      <details class="cmd-setup" id="cmdSetup">
+        <summary class="cmd-setup-summary">&#9881; Setup &amp; Configuration</summary>
+        <div class="cmd-setup-body">
+
+          <div class="cmd-setup-grid">
+
+            <!-- CalTopo -->
+            <div class="home-card card-caltopo">
+              <div class="card-header">
+                <h2>CalTopo</h2>
+                <label class="link-label" id="caltopoLinkRow" style="display:none">
+                  <input type="checkbox" id="caltopoLinkCheck" /> Link to Incident
+                </label>
+              </div>
+              <div class="form-row">
+                <label for="mapId">CalTopo Map ID</label>
+                <input type="text" id="mapId" placeholder="e.g. APC1GE5" autocomplete="off" />
+                <button id="mapIdLookupBtn" type="button" class="lookup-btn" title="Look up map">Apply</button>
+              </div>
+              <div class="form-row caltopo-mode-row">
+                <label>Mode</label>
+                <div class="caltopo-mode-options">
+                  <label class="mode-option"><input type="radio" name="caltopoMode" value="offline" checked /> Offline (localhost:8080)</label>
+                  <label class="mode-option"><input type="radio" name="caltopoMode" value="online" /> Online (caltopo.com)</label>
+                </div>
+              </div>
+              <div class="message-bar hidden" id="caltopoHint"></div>
+              <div class="form-row" id="opPeriodRow" style="display:none">
+                <label for="opSelect">Op Period</label>
+                <select id="opSelect"><option value="">— All periods —</option></select>
+              </div>
+            </div>
+
+            <!-- D4H -->
+            <div class="home-card card-d4h">
+              <div class="card-header">
+                <h2>D4H Activity</h2>
+                <label class="link-label" id="d4hLinkRow" style="display:none">
+                  <input type="checkbox" id="d4hLinkCheck" /> Link to Incident
+                </label>
+              </div>
+              <div class="form-row">
+                <label for="d4h_activity">D4H Activity ID</label>
+                <input type="text" id="d4h_activity" placeholder="e.g. 327349" autocomplete="off" />
+                <button id="d4hLookupBtn" type="button" class="lookup-btn" title="Look up activity">Apply</button>
+              </div>
+              <div class="message-bar hidden" id="d4hHint"></div>
+            </div>
+
+            <!-- System Info -->
+            <div class="home-card card-system">
+              <h2>System Info</h2>
+              <div class="system-info">
+                <div class="system-info-row">
+                  <span class="system-info-label">Host Server</span>
+                  <span class="system-info-value" id="sysHostname">—</span>
+                </div>
+                <div class="system-info-row">
+                  <span class="system-info-label">Commit</span>
+                  <span class="system-info-value" id="sysGitHash">—</span>
+                </div>
+                <div class="system-info-row">
+                  <span class="system-info-label">Deployed</span>
+                  <span class="system-info-value" id="sysGitDate">—</span>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /cmd-setup-grid -->
+        </div><!-- /cmd-setup-body -->
+      </details>
+
+    </div><!-- /cmd-body -->
+  </div><!-- /cmdDashboard -->
+
+</div><!-- /tab-content -->
+</div><!-- /home -->
+
+<!-- Copy URL buttons (legacy IDs needed by home.js) -->
+<span style="display:none">
+  <button id="dashboardIncidentCopy" type="button" disabled></button>
+  <button id="dashboardKioskCopy"    type="button" disabled></button>
+</span>

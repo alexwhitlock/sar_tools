@@ -1,0 +1,11 @@
+services:
+  sar_tools:
+    image: sar_tools:local
+    container_name: sar_tools
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../sar-tools/config.json:/app/config.json:ro
+      - ../sar-tools/data:/app/data
+      - ../sar-tools/html_backups:/app/html_backups
+    restart: always

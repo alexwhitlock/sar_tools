@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 INCIDENT_DIR = os.path.join(BASE_DIR, "data", "incidents")
 SNAPSHOT_DIR = os.path.join(BASE_DIR, "html_backups")
-MAX_SNAPSHOTS = 50
+MAX_SNAPSHOTS = 3
 
 
 def _esc(s):

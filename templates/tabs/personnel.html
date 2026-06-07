@@ -11,19 +11,14 @@
 
       <div id="personnel-message" class="message-bar info hidden"></div>
 
-      <button
-        id="person-add"
-        class="personnel-toolbar-btn"
-        title="Add Person">
-        + Person
-      </button>
+      <button id="person-add" class="personnel-toolbar-btn" title="Add Person">+ Person</button>
+      <button id="d4h-add"    class="personnel-toolbar-btn" title="Sync with D4H">Sync with D4H</button>
 
-      <button
-        id="d4h-add"
-        class="personnel-toolbar-btn"
-        title="Sync with D4H">
-        Sync with D4H
-      </button>
+      <!-- View toggle -->
+      <div class="view-toggle roster-view-toggle">
+        <button id="roster-view-table-btn"  class="view-toggle-btn active" title="Table view">Table</button>
+        <button id="roster-view-lanes-btn"  class="view-toggle-btn"        title="Swim lanes">Lanes</button>
+      </div>
 
       <button id="personnel-print-btn" class="tab-print-btn" title="Print / Save as PDF">Print</button>
 
@@ -91,8 +86,24 @@
 
     </div>
 
-    <!-- scroll container -->
-    <div class="table-container personnel-table-container">
+    <!-- Skills filter (shown in both views) -->
+    <div class="personnel-skills-filter hidden" id="personnelSkillsFilter">
+      <div class="filter-group">
+        <label>Skills</label>
+        <div class="pill-group" data-filter-key="skill">
+          <label class="pill skill-pill"><input type="checkbox" value="4x4 Vehicle" /> 4x4</label>
+          <label class="pill skill-pill"><input type="checkbox" value="Team Leader" /> Team Leader</label>
+          <label class="pill skill-pill"><input type="checkbox" value="Advanced First Aid" /> First Aid</label>
+          <label class="pill skill-pill"><input type="checkbox" value="Mountain Bike" /> Mountain Bike</label>
+          <label class="pill skill-pill"><input type="checkbox" value="Drone" /> Drone</label>
+          <label class="pill skill-pill"><input type="checkbox" value="Canine Handler" /> Canine Handler</label>
+          <label class="pill skill-pill"><input type="checkbox" value="Canine Flanker" /> Canine Flanker</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div class="table-container personnel-table-container" id="rosterTableView">
       <table class="data-table personnel-data-table">
         <thead>
           <tr>
@@ -120,6 +131,31 @@
           -->
         </tbody>
       </table>
+    </div>
+
+    <!-- SWIM LANE VIEW -->
+    <div class="roster-lanes hidden" id="rosterLanesView">
+      <div class="roster-lane lane-available">
+        <div class="lane-header">
+          <span class="lane-title">Available</span>
+          <span class="lane-count" id="laneCountAvail">0</span>
+        </div>
+        <div class="lane-cards" id="laneCardsAvail"></div>
+      </div>
+      <div class="roster-lane lane-deployed">
+        <div class="lane-header">
+          <span class="lane-title">Deployed</span>
+          <span class="lane-count" id="laneCountDeployed">0</span>
+        </div>
+        <div class="lane-cards" id="laneCardsDeployed"></div>
+      </div>
+      <div class="roster-lane lane-released">
+        <div class="lane-header">
+          <span class="lane-title">Released</span>
+          <span class="lane-count" id="laneCountReleased">0</span>
+        </div>
+        <div class="lane-cards" id="laneCardsReleased"></div>
+      </div>
     </div>
 
     <!-- ================================================= -->

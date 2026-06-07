@@ -49,6 +49,9 @@ app.register_blueprint(system_bp)
 from routes.kiosk import bp as kiosk_bp
 app.register_blueprint(kiosk_bp)
 
+from routes.ops import bp as ops_bp
+app.register_blueprint(ops_bp)
+
 from routes.snapshot import snapshot_incident_async, snapshot_all_async
 
 # ================= Load Config File =================

@@ -1,0 +1,15 @@
+services:
+  caltopo:
+    build:
+      context: .
+      dockerfile: Dockerfile.caltopo
+    image: caltopo:local
+    container_name: caltopo
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../CalTopo/desktop.jar:/app/desktop.jar:ro
+      - ../CalTopo:/root/CalTopo
+    working_dir: /app
+    command: ["java", "-jar", "desktop.jar"]
+    restart: always
