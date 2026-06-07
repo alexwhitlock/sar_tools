@@ -6,9 +6,6 @@ function openTab(id, btn) {
   document.querySelectorAll(".tab-button")
     .forEach(b => b.classList.remove("active"));
 
-  // Keep dropdown items in sync (may not exist in sidebar layout)
-
-
   const panel = document.getElementById(id);
   if (!panel) return;
 
@@ -116,9 +113,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("tabDropdown")?.classList.add("hidden");
   });
 
-  // Watch for resize (only in horizontal tab layout; sidebar layout has no .top-bar)
-  const topBarEl = document.querySelector(".top-bar");
-  if (topBarEl) new ResizeObserver(_updateTabOverflow).observe(topBarEl);
+  // Watch for resize
+  new ResizeObserver(_updateTabOverflow).observe(document.querySelector(".top-bar"));
 
   // Open last saved tab, falling back to the first tab
   const allBtns = Array.from(document.querySelectorAll(".tab-button"));

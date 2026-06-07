@@ -44,58 +44,70 @@
 
 <body>
 
-<!-- ══════════════ Tab bar ══════════════ -->
 <div class="top-bar">
 
   <div class="tabs" id="tabsRow">
-    <button class="tab-button" onclick="openTab('home', this)">Command</button>
-    <button class="tab-button" onclick="openTab('rectangle', this)">Map</button>
-    <button class="tab-button" onclick="openTab('assignments', this)">Assignments</button>
-    <button class="tab-button" onclick="openTab('personnel', this)">Roster</button>
-    <button class="tab-button" onclick="openTab('teams', this)">Teams</button>
-    <button class="tab-button" onclick="openTab('logging', this)">Log</button>
-    <button class="tab-button" id="consoleTabBtn" style="display:none"
-            onclick="openTab('console', this)">Debug</button>
+    <button class="tab-button"
+            onclick="openTab('home', this)">
+      Home
+    </button>
 
+    <button class="tab-button"
+            onclick="openTab('rectangle', this)">
+      Rectangle Tool
+    </button>
+
+    <button class="tab-button"
+            onclick="openTab('assignments', this)">
+      Assignments
+    </button>
+
+    <button class="tab-button"
+            onclick="openTab('personnel', this)">
+      Personnel
+    </button>
+
+    <button class="tab-button"
+            onclick="openTab('teams', this)">
+      Teams
+    </button>
+
+    <button class="tab-button"
+            onclick="openTab('logging', this)">
+      Logging
+    </button>
+
+    <button class="tab-button"
+            id="consoleTabBtn"
+            style="display:none"
+            onclick="openTab('console', this)">
+      Debug Console
+    </button>
+
+    <!-- Hamburger menu (shown when tabs overflow) -->
     <div class="tab-hamburger hidden" id="tabHamburger">
       <button class="tab-hamburger-btn" id="tabHamburgerBtn" aria-label="Navigation menu">&#9776;</button>
       <div class="tab-dropdown hidden" id="tabDropdown"></div>
     </div>
   </div>
 
+  <!-- Right side controls -->
   <div class="top-bar-controls">
+
     <span id="top-incident-name" class="top-incident-name hidden"></span>
-    <div id="sync-pill" class="sync-pill hidden"><span id="sync-countdown"></span></div>
+
+    <div id="sync-pill" class="sync-pill hidden">
+      <span id="sync-countdown"></span>
+    </div>
+
     <button id="sync-now-btn" class="sync-now-btn hidden">Sync Now</button>
+
     <button onclick="var a=document.querySelector('.tab-panel.active');window.open('/help/help.html#'+(a?a.id:'overview'),'_blank')">Help</button>
+
   </div>
 
 </div>
 
-<!-- ══════════════ Operational status strip ══════════════ -->
-<div class="op-strip hidden" id="opStrip">
-  <div class="op-strip-group">
-    <span class="op-strip-label">PERSONNEL</span>
-    <span id="osAvail" class="os-num os-green">—</span><span class="os-sub"> avail</span>
-    <span class="os-dot">·</span>
-    <span id="osDeployed" class="os-num os-orange">—</span><span class="os-sub"> deployed</span>
-    <span class="os-dot">·</span>
-    <span id="osReleased" class="os-num os-muted">—</span><span class="os-sub"> out</span>
-  </div>
-  <span class="op-strip-sep">|</span>
-  <div class="op-strip-group">
-    <span class="op-strip-label">TEAMS</span>
-    <span id="osTeams" class="os-num os-blue">—</span><span class="os-sub"> on assignment</span>
-  </div>
-  <span class="op-strip-sep">|</span>
-  <div class="op-strip-group">
-    <span class="op-strip-label">ASSIGNMENTS</span>
-    <span id="osAsgnDone" class="os-num os-purple">—</span><span class="os-sub"> complete · </span>
-    <span id="osAsgnActive" class="os-num os-orange">—</span><span class="os-sub"> active</span>
-  </div>
-</div>
-
-<!-- ══════════════ Tab panels ══════════════ -->
 <div id="page">
   {% include "tabs/home.html" %}
   {% include "tabs/rectangle.html" %}

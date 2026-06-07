@@ -129,11 +129,14 @@ function getCurrentIncident() {
 
 function setTopBarIncident(name) {
   const el = $("top-incident-name");
-  if (el) {
-    el.textContent = name || "—";
-    el.classList.toggle("hidden", !name);
+  if (!el) return;
+  if (name) {
+    el.textContent = name;
+    el.classList.remove("hidden");
+  } else {
+    el.textContent = "";
+    el.classList.add("hidden");
   }
-  showCommandDashboard(name);
 }
 
 function updateLinkCheckboxVisibility() {
@@ -367,152 +370,6 @@ async function loadSystemInfo() {
   }
 }
 
-
-// ===============================
-// Command Dashboard
-// ===============================
-
-let _dashInterval = null;
-
-function _esc(s) {
-  return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
-}
-
-function showCommandDashboard(incidentName) {
-  const noInc = $("cmdNoIncident");
-  const dash  = $("cmdDashboard");
-  if (!noInc || !dash) return;
-  if (incidentName) {
-    noInc.style.display = "none";
-    dash.classList.remove("hidden");
-    const nameEl = $("cmdIncidentName");
-    if (nameEl) nameEl.textContent = incidentName;
-    const nameDisplay = $("incidentNameDisplay");
-    if (nameDisplay) nameDisplay.textContent = incidentName;
-    loadCommandDashboard(incidentName);
-    if (_dashInterval) clearInterval(_dashInterval);
-    _dashInterval = setInterval(() => loadCommandDashboard(incidentName), 30000);
-  } else {
-    noInc.style.display = "";
-    dash.classList.add("hidden");
-    if (_dashInterval) { clearInterval(_dashInterval); _dashInterval = null; }
-    updateOpStrip(null);
-  }
-}
-
-async function loadCommandDashboard(incidentName) {
-  if (!incidentName) return;
-  try {
-    const res  = await fetch(`/api/command-summary?incidentName=${encodeURIComponent(incidentName)}`);
-    const data = await res.json();
-    if (!data.ok) return;
-    _renderDashStats(data);
-    _renderTeams(data.teams || []);
-    _renderAssignments(data.assignments || {});
-    _renderRecentLog(data.recentLog || []);
-    updateOpStrip(data);
-  } catch (e) {
-    console.warn("[home.js] command summary fetch failed:", e);
-  }
-}
-
-function _renderDashStats(data) {
-  const p = data.personnel || {};
-  const set = (id, v) => { const el = $(id); if (el) el.textContent = v ?? "—"; };
-  set("cmdStatAvail",    p.available ?? 0);
-  set("cmdStatDeployed", p.deployed  ?? 0);
-  set("cmdStatReleased", p.released  ?? 0);
-  set("cmdStatAdded",    p.added     ?? 0);
-}
-
-const _TEAM_BADGE = {
-  "Out of Service":             "cmd-ts-badge-oos",
-  "Staged":                     "cmd-ts-badge-staged",
-  "Briefed":                    "cmd-ts-badge-briefed",
-  "Travelling to Assignment":   "cmd-ts-badge-travelling",
-  "On Assignment":              "cmd-ts-badge-on-assignment",
-  "Returning from Assignment":  "cmd-ts-badge-returning",
-  "Awaiting Debrief":           "cmd-ts-badge-debrief",
-  "Retired":                    "cmd-ts-badge-retired",
-};
-
-function _renderTeams(teams) {
-  const el = $("cmdTeamsList");
-  const countEl = $("cmdTeamCount");
-  if (!el) return;
-  if (countEl) countEl.textContent = teams.length ? `${teams.length} team${teams.length !== 1 ? "s" : ""}` : "";
-  if (!teams.length) { el.innerHTML = '<div class="cmd-empty">No teams yet.</div>'; return; }
-  el.innerHTML = teams.map(t => {
-    const bc  = _TEAM_BADGE[t.status] || "cmd-ts-badge-oos";
-    const asgnHtml = t.assignment
-      ? `<span class="cmd-team-asgn">${_esc(t.assignment)}</span>`
-      : `<span class="cmd-team-asgn no-asgn">No assignment</span>`;
-    return `<div class="cmd-team-row">
-      <span class="cmd-team-name">${_esc(t.name)}</span>
-      <span class="cmd-ts-badge ${bc}">${_esc(t.status || "—")}</span>
-      ${asgnHtml}
-    </div>`;
-  }).join("");
-}
-
-const _ASGN_LABEL = { DRAFT:"Draft", PREPARED:"Prepared", INPROGRESS:"In Progress", COMPLETED:"Completed" };
-const _ASGN_CHIP  = { INPROGRESS:"chip-inprogress", PREPARED:"chip-prepared", COMPLETED:"chip-completed", DRAFT:"chip-draft" };
-const _ASGN_ORDER = ["INPROGRESS","PREPARED","DRAFT","COMPLETED"];
-
-function _renderAssignments(counts) {
-  const el = $("cmdAsgnBody");
-  if (!el) return;
-  const total = Object.values(counts).reduce((s, n) => s + n, 0);
-  if (!total) { el.innerHTML = '<div class="cmd-empty">No assignments synced yet.</div>'; return; }
-  const completed = counts.COMPLETED || 0;
-  const pct = Math.round((completed / total) * 100);
-  const chips = Object.entries(counts)
-    .sort((a, b) => (_ASGN_ORDER.indexOf(a[0]) + 99) % 99 - (_ASGN_ORDER.indexOf(b[0]) + 99) % 99)
-    .map(([s, n]) => `<span class="cmd-asgn-chip ${_ASGN_CHIP[s] || ""}">${n} ${_ASGN_LABEL[s] || s}</span>`)
-    .join("");
-  el.innerHTML = `
-    <div class="cmd-asgn-bar-wrap"><div class="cmd-asgn-bar-fill" style="width:${pct}%"></div></div>
-    <div class="cmd-asgn-summary">${completed} of ${total} complete (${pct}%)</div>
-    <div class="cmd-asgn-breakdown">${chips}</div>`;
-}
-
-const _LOG_ROLE_CLASS = {
-  COMMS:"role-comms", OPS:"role-ops", IC:"role-ic", SYSTEM:"role-system", PLANS:"role-plans"
-};
-
-function _renderRecentLog(entries) {
-  const el = $("cmdLogFeed");
-  if (!el) return;
-  if (!entries.length) { el.innerHTML = '<div class="cmd-empty">No log entries yet.</div>'; return; }
-  el.innerHTML = entries.map(e => {
-    const time = (e.timestamp || "").substring(11, 16);
-    const role = (e.role || "SYSTEM").toUpperCase();
-    const important = (e.flags || "").includes("important") ? " log-important" : "";
-    return `<div class="cmd-log-entry${important}">
-      <span class="cmd-log-time">${_esc(time)}</span>
-      <span class="cmd-log-role ${_LOG_ROLE_CLASS[role] || ""}">${_esc(role)}</span>
-      <span class="cmd-log-msg" title="${_esc(e.message || "")}">${_esc(e.message || "")}</span>
-    </div>`;
-  }).join("");
-}
-
-function updateOpStrip(data) {
-  const strip = $("opStrip");
-  if (!strip) return;
-  if (!data) { strip.classList.add("hidden"); return; }
-  const p = data.personnel || {};
-  const asgn = data.assignments || {};
-  const completed  = asgn.COMPLETED || 0;
-  const inprogress = (asgn.INPROGRESS || 0) + (asgn.PREPARED || 0);
-  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
-  set("osAvail",      p.available ?? "—");
-  set("osDeployed",   p.deployed  ?? "—");
-  set("osReleased",   p.released  ?? "—");
-  set("osTeams",      data.teamsActive ?? "—");
-  set("osAsgnDone",   completed);
-  set("osAsgnActive", inprogress);
-  strip.classList.remove("hidden");
-}
 
 // ===============================
 // Home tab activation watcher
@@ -761,17 +618,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error(err);
       incidentMsg.show(`Import failed: ${err.message}`, "error");
     }
-  });
-
-  // Change Incident button — switches back to selector view
-  $("cmdChangeBtn")?.addEventListener("click", () => {
-    showCommandDashboard("");
-  });
-
-  // Refresh dashboard whenever any module fires a data-change event
-  window.addEventListener("sar:incident-selected", () => {
-    const inc = getCurrentIncident();
-    if (inc) loadCommandDashboard(inc);
   });
 
   watchHomeTab();

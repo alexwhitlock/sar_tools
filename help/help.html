@@ -194,7 +194,6 @@ tr:nth-child(even) td { background: #f8fafc; }
 .badge-purple { background: #f3e8ff; color: #581c87; }
 .badge-amber  { background: #fef3c7; color: #92400e; }
 .badge-dark   { background: #e2e8f0; color: #1e293b; }
-.badge-kiosk  { background: #ea580c; color: #fff; }
 
 .note {
   background: #eff6ff;
@@ -273,12 +272,6 @@ code {
   <a href="#personnel">Personnel</a>
   <a href="#personnel" class="sub">Adding Personnel</a>
   <a href="#personnel" class="sub">D4H Import</a>
-  <a href="#personnel" class="sub">Check-in Info</a>
-  <a href="#kiosk">Check-in Kiosk</a>
-  <a href="#kiosk" class="sub">Check In Flow</a>
-  <a href="#kiosk" class="sub">Check Out</a>
-  <a href="#kiosk" class="sub">QR Code</a>
-  <a href="#kiosk" class="sub">Admin Panel</a>
   <a href="#teams">Teams</a>
   <a href="#teams" class="sub">Status Workflow</a>
   <a href="#teams" class="sub">Views</a>
@@ -307,7 +300,6 @@ code {
 <ul>
   <li><strong>Assignments</strong> — Reads assignment data from a CalTopo map and tracks status, resource type, team, and notes alongside the CalTopo data.</li>
   <li><strong>Personnel</strong> — Tracks who is on scene with check-in / check-out status. Supports manual entry and bulk import from D4H.</li>
-  <li><strong>Check-in Kiosk</strong> — A self-service check-in interface for a tablet or phone at the entry point. Responders search for their name, confirm their contact details and skills, and check in without IC involvement.</li>
   <li><strong>Teams</strong> — Creates and tracks field teams with status workflows, member lists, and team leaders. Integrates with CalTopo assignment team fields.</li>
   <li><strong>Logging</strong> — Records radio traffic and operational notes in a searchable, exportable log.</li>
   <li><strong>Rectangle Tool</strong> — Draws assignment polygons (grids) that can be uploaded directly to CalTopo.</li>
@@ -315,9 +307,6 @@ code {
 
 <h3>Multiple users</h3>
 <p>Multiple operators can use the tool simultaneously. The interface syncs automatically every 30 seconds and immediately after any change you make. If a record is changed by another user while you have an edit modal open, you will receive a conflict warning and the data will be reloaded.</p>
-
-<h3>Session persistence</h3>
-<p>The selected incident and active tab are remembered across page refreshes. The current incident name is always visible in the toolbar at the top of the page, regardless of which tab is open.</p>
 
 
 <!-- ════════════════════════════════ -->
@@ -377,7 +366,7 @@ code {
   <li>Deleting an incident is permanent and removes all associated data.</li>
 </ul>
 
-<div class="note">The selected incident persists across tabs and page refreshes. The incident name is shown in the toolbar at all times. All data shown — assignments, personnel, teams, and log entries — belongs to the currently selected incident.</div>
+<div class="note">The selected incident persists across tabs. All data shown — assignments, personnel, teams, and log entries — belongs to the currently selected incident.</div>
 
 <h3>CalTopo setup</h3>
 <p>SAR Tools reads assignment data from a CalTopo map. Enter the <strong>Map ID</strong> (the alphanumeric code from the CalTopo URL, e.g. <code>APC1GE5</code>) and click <strong>Apply</strong>. The map title will be confirmed once successfully linked.</p>
@@ -403,14 +392,6 @@ code {
 
 <h3>Op Period</h3>
 <p>If the CalTopo map uses Operational Periods, select the active Op Period from the dropdown on the Home tab. This filters assignments across the Assignments and other tabs to show only the selected period.</p>
-
-<h3>Dashboard links</h3>
-<p>The Home tab includes quick links for the current incident:</p>
-<ul>
-  <li><strong>Incident Overview</strong> — Opens a summary view of the incident.</li>
-  <li><strong>HTML Backup</strong> — Downloads a self-contained HTML snapshot of the current incident data.</li>
-  <li><strong>Check-in Kiosk</strong> — Opens the kiosk check-in interface in a new tab. A QR code button next to this link generates a printable QR code page that can be posted at the entry point for responders to scan.</li>
-</ul>
 
 <h3>System Info</h3>
 <p>The System Info card shows the server hostname, current Git commit hash (linked to GitHub), and the database path. This is useful for confirming which version of the tool is running and for troubleshooting.</p>
@@ -524,7 +505,7 @@ code {
 <!-- ════════════════════════════════ -->
 <h2 id="personnel" class="section-anchor">Personnel</h2>
 
-<p>The Personnel tab tracks who is on scene and their current status. Personnel can be added manually, imported from D4H, or checked in through the kiosk.</p>
+<p>The Personnel tab tracks who is on scene and their current status. Personnel can be added manually or imported from D4H.</p>
 
 <h3>Personnel statuses</h3>
 
@@ -548,10 +529,10 @@ code {
 </table>
 
 <h3>Adding personnel manually</h3>
-<p>Click <strong>+ Person</strong> and enter the person's name. The tool checks for duplicate or similar names and will warn you before saving if a match is found. The add modal also includes a Team selector and an expandable <strong>Check-in Info</strong> section for capturing contact details and skills at the time of entry.</p>
+<p>Click <strong>+ Person</strong> and enter the person's name. The tool checks for duplicate or similar names and will warn you before saving if a match is found.</p>
 
 <h3>D4H import</h3>
-<p>If a D4H activity is linked on the Home tab, click <strong>Sync with D4H</strong> to pull the attendance list for that activity. The import flow:</p>
+<p>If a D4H activity is linked on the Home tab, click <strong>Add from D4H</strong> to pull the attendance list for that activity. The import flow:</p>
 <ol>
   <li>SAR Tools fetches the list of attending members from D4H.</li>
   <li>Each member is compared against the existing personnel list.</li>
@@ -564,89 +545,8 @@ code {
 
 <div class="note">When you check out a person who is currently a team member, you will be prompted to also remove them from their team.</div>
 
-<h3>Check-in Info</h3>
-<p>Each person's record can store the following check-in information, captured either at the kiosk or by editing the record in the Personnel tab:</p>
-<ul>
-  <li><strong>Phone</strong> — personal phone number (stored as XXX-XXX-XXXX).</li>
-  <li><strong>Emergency Contact</strong> — name and phone number of their emergency contact.</li>
-  <li><strong>License Plate</strong> — vehicle plate for parking and accountability.</li>
-  <li><strong>Skills</strong> — one or more of: 4x4 Vehicle, Team Leader, Advanced First Aid, Mountain Bike, Drone, Canine Handler, Canine Flanker.</li>
-</ul>
-<p>Check-in Info is hidden by default in the table. Enable it using the <strong>Check-in Info</strong> toggle above the table.</p>
-
-<h3>Kiosk check-ins</h3>
-<p>When a person checks in through the kiosk, their entry appears in the Personnel table with an orange <span class="badge badge-kiosk">KIOSK</span> badge in the Source column. To acknowledge the entry and clear the badge, open the ⋮ menu and select <strong>Confirm (Kiosk)</strong>.</p>
-<p>Toast notifications appear briefly in the main tool whenever a kiosk check-in or check-out occurs, so the IC is aware without having to watch the Personnel tab.</p>
-
-<h3>Personnel history</h3>
-<p>Click <strong>History</strong> from the ⋮ menu or from inside the edit modal to view a timeline of events for a person, including status changes and check-in info updates.</p>
-
-<h3>Filtering, searching, and statistics</h3>
-<p>Use the name search bar to find by name, and the team text filter to narrow by team. Filter pills let you narrow by team assignment status (Assigned / Unassigned) or check-in status. Use the column toggles to show or hide the D4H Ref, Notes, and Check-in Info columns.</p>
-<p>A statistics bar at the right of the filter row shows live counts of Total personnel, Checked In, and Checked Out once there is data.</p>
-
-
-<!-- ════════════════════════════════ -->
-<h2 id="kiosk" class="section-anchor">Check-in Kiosk</h2>
-
-<p>The Check-in Kiosk is a dedicated self-service interface designed for use on a tablet or phone at the entry point of an incident. Responders can check themselves in and out without IC involvement. The kiosk runs at <code>/checkin</code>, separate from the main tool.</p>
-
-<div class="note">Kiosk check-ins and check-outs generate toast notifications in the main tool, so the IC is kept informed in real time.</div>
-
-<h3>Starting the kiosk</h3>
-<ol>
-  <li>Open <code>/checkin</code> in a browser on the device you want to use as the kiosk.</li>
-  <li>Select the incident from the dropdown and tap <strong>Start Check-in</strong>. The kiosk locks to that incident.</li>
-  <li>If D4H is configured, you will be prompted to sync the member directory before proceeding.</li>
-  <li>To switch to a different incident, tap <strong>Change</strong> in the header.</li>
-</ol>
-
-<h3>Check In flow</h3>
-<ol>
-  <li>Make sure the <strong>Check In</strong> toggle is selected.</li>
-  <li>Type a name in the search box. Matching names from the member directory and existing personnel list appear immediately.</li>
-  <li>Tap a name to select it, or tap <strong>Enter manually</strong> to add a new person who is not in the directory.</li>
-  <li>Review and fill in the confirmation form:
-    <ul>
-      <li><strong>Name</strong> — pre-filled for returning members; editable for new entries.</li>
-      <li><strong>Phone</strong> — required. Enter 10 digits in any format; saved as XXX-XXX-XXXX.</li>
-      <li><strong>Emergency Contact</strong> — name and phone number, both required.</li>
-      <li><strong>License Plate</strong> — required. Saved to the member profile for future check-ins.</li>
-      <li><strong>Skills</strong> — tick any that apply: 4x4 Vehicle, Team Leader, Advanced First Aid, Mountain Bike, Drone, Canine Handler, Canine Flanker.</li>
-      <li><strong>Notes</strong> — optional free-text (e.g., "need to leave by 4pm", medical conditions).</li>
-    </ul>
-  </li>
-  <li>Tap <strong>Check In</strong>. A confirmation screen appears, then the kiosk resets automatically for the next person.</li>
-</ol>
-
-<div class="note">For returning members, previously saved phone numbers, emergency contacts, and license plates are pre-filled. The member only needs to review and update if anything has changed.</div>
-
-<h3>Check Out</h3>
-<ol>
-  <li>Tap the <strong>Check Out</strong> toggle at the top of the kiosk.</li>
-  <li>A list of currently checked-in people appears. Use the search box to filter by name.</li>
-  <li>Tap one or more names to select them (highlighted when selected).</li>
-  <li>Tap <strong>Confirm Checkout</strong> to check out all selected people at once.</li>
-</ol>
-
-<h3>QR Code</h3>
-<p>Tap the QR code icon button in the kiosk header to display a QR code for the current kiosk URL. Show this code on screen or scan it with another device to quickly open the kiosk without typing the address.</p>
-<p>If the kiosk is accessed via an IP address or localhost (local network only), the QR modal shows a warning: <em>Device must be on local network</em>. If the kiosk is accessible at a public domain name, no warning is shown.</p>
-<p>A printable QR code page can also be generated from the <strong>Home</strong> tab using the QR icon next to the Check-in Kiosk link. This page is formatted for printing and auto-opens the print dialog.</p>
-
-<h3>Connection status</h3>
-<p>The pill in the kiosk header shows <strong>Live</strong> (green) when the kiosk is connected to the SAR Tools server, or <strong>Offline</strong> (red) when the connection is lost. While offline, an overlay appears and the kiosk cannot be used until the connection is restored.</p>
-
-<h3>Admin Panel</h3>
-<p>Tap the ⚙ icon in the kiosk header to open the Admin Panel (<code>/checkin/admin</code>). The admin panel manages the local member directory used by the kiosk search:</p>
-
-<ul>
-  <li><strong>Sync from D4H</strong> — pulls the full member roster from D4H into the local directory. New members are added; existing members with local edits that differ from D4H are shown as conflicts for review.</li>
-  <li><strong>Conflict resolution</strong> — when a sync finds differences between locally-edited records and D4H data (e.g., a name or phone number), each conflict is presented side-by-side with a choice to <strong>Keep Local</strong> or <strong>Use D4H</strong>.</li>
-  <li><strong>Member directory</strong> — shows all members currently in the local database (name, member number, phone, license plate). Individual members can be deleted if needed.</li>
-</ul>
-
-<div class="note">The kiosk member directory is separate from the incident Personnel list. The directory is a pre-populated lookup table; actual check-in status is tracked per incident in the Personnel tab.</div>
+<h3>Filtering and searching</h3>
+<p>Use the search bar to find by name. Filter pills let you narrow by team assignment, team status, or check-in status.</p>
 
 
 <!-- ════════════════════════════════ -->
@@ -825,11 +725,6 @@ code {
     <td>Check them out manually if they have left the scene, or ignore if this is expected.</td>
   </tr>
   <tr>
-    <td><span class="badge badge-kiosk">KIOSK</span> badge on personnel entry</td>
-    <td>The person checked in through the kiosk and their entry has not yet been reviewed by the IC.</td>
-    <td>Open the ⋮ menu and select <strong>Confirm (Kiosk)</strong> to acknowledge the entry and clear the badge.</td>
-  </tr>
-  <tr>
     <td>⚠ Modified by another user (conflict)</td>
     <td>The record was changed by another operator while your edit modal was open.</td>
     <td>Close the modal and re-open it to see the latest data, then re-apply your changes.</td>
@@ -888,31 +783,6 @@ code {
     <td>⚠ Modified by another user (conflict)</td>
     <td>The team record was changed by another operator while your edit modal was open.</td>
     <td>Close and re-open the edit modal to reload the current data.</td>
-  </tr>
-</table>
-
-<h3>Kiosk</h3>
-
-<table>
-  <tr>
-    <th>Warning / Error</th>
-    <th>Cause</th>
-    <th>Resolution</th>
-  </tr>
-  <tr>
-    <td>Offline pill (red)</td>
-    <td>The kiosk cannot reach the SAR Tools server.</td>
-    <td>Check that the device is connected to the correct network. The kiosk will recover automatically when the connection is restored.</td>
-  </tr>
-  <tr>
-    <td>Phone number must be exactly 10 digits</td>
-    <td>A phone number was entered that is not exactly 10 digits after removing non-numeric characters.</td>
-    <td>Re-enter the phone number including area code (e.g. 250 555 1234).</td>
-  </tr>
-  <tr>
-    <td>⚠ Device must be on local network (QR modal)</td>
-    <td>The kiosk URL contains an IP address or localhost, meaning it is only reachable on the local network.</td>
-    <td>Ensure all devices that need to scan the QR code are connected to the same network as the server.</td>
   </tr>
 </table>
 
