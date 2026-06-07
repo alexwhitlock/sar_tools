@@ -131,7 +131,12 @@ def _resolve_base_url(req):
 
     if parsed.hostname in ("localhost", "127.0.0.1", "::1"):
         try:
-            lan_ip = socket.gethostbyname(socket.gethostname())
+            # UDP connect picks the right outbound interface without sending any data,
+            # avoiding Docker/VPN virtual adapters that gethostbyname can return.
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            lan_ip = s.getsockname()[0]
+            s.close()
             port = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
             return f"{parsed.scheme}://{lan_ip}{port}"
         except Exception:
